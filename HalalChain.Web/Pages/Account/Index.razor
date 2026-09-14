@@ -1,0 +1,29 @@
+@page "/account"
+@layout StorefrontLayout
+
+<section class="container mt-8 mb-8">
+    <h1 class="text-3xl font-bold mb-6">My Account</h1>
+    <div class="grid grid-3">
+        <a href="/account/orders" class="card" style="text-decoration:none">
+            <div class="card-body" style="text-align:center">
+                <div style="font-size:2rem;margin-bottom:var(--space-4)">📦</div>
+                <h3 class="font-semibold mb-2">My Orders</h3>
+                <p class="text-sm text-muted">View your order history</p>
+            </div>
+        </a>
+        <div class="card">
+            <div class="card-body" style="text-align:center">
+                <div style="font-size:2rem;margin-bottom:var(--space-4)">📍</div>
+                <h3 class="font-semibold mb-2">Addresses</h3>
+                <p class="text-sm text-muted">Manage shipping addresses</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body" style="text-align:center">
+                <div style="font-size:2rem;margin-bottom:var(--space-4)">⚙️</div>
+                <h3 class="font-semibold mb-2">Settings</h3>
+                <p class="text-sm text-muted">Account preferences</p>
+            </div>
+        </div>
+    </div>
+</section>

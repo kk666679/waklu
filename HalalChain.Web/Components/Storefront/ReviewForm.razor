@@ -1,0 +1,72 @@
+@using Radzen.Blazor
+@inject NotificationService NotificationService
+
+<RadzenCard class="@($"review-form {AdditionalClass}")">
+    <h3 class="review-form__title font-semibold">Write a Review</h3>
+    <div class="review-form__rating" style="display:flex;align-items:center;gap:0.5rem;margin:var(--space-3) 0">
+        <span class="text-sm text-muted">Your Rating:</span>
+        @for (int i = 1; i <= 5; i++)
+        {
+            <button class="review-form__star @(i <= _rating ? "review-form__star--active" : "")"
+                    @onclick="() => SetRating(i)"
+                    aria-label="@i star@(i > 1 ? "s" : "")">
+                <RadzenIcon Icon="@(i <= _rating ? "star" : "star_border")" />
+            </button>
+        }
+    </div>
+    <RadzenTextBox @bind-Value="_reviewerName"
+                   Placeholder="Your Name"
+                   class="w-100 mb-2"
+                   Style="margin-bottom:var(--space-2)" />
+    <RadzenTextBox @bind-Value="_reviewText"
+                   Placeholder="Share your experience with this product..."
+                   Rows="4"
+                   class="w-100"
+                   Style="margin-bottom:var(--space-2)" />
+    <div class="review-form__actions" style="display:flex;justify-content:flex-end;gap:0.5rem">
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="Submit Review" ButtonStyle="ButtonStyle.Primary" Click="@SubmitReview" Disabled="@(!CanSubmit)" />
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<ReviewDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private int _rating;
+    private string _reviewerName = "";
+    private string _reviewText = "";
+
+    private bool CanSubmit => _rating > 0 && !string.IsNullOrWhiteSpace(_reviewerName) && !string.IsNullOrWhiteSpace(_reviewText);
+
+    private void SetRating(int rating)
+    {
+        _rating = rating;
+        StateHasChanged();
+    }
+
+    private async Task SubmitReview()
+    {
+        if (!CanSubmit) return;
+
+        var review = new ReviewDto
+        {
+            ProductId = ProductId,
+            CustomerName = _reviewerName,
+            Rating = _rating,
+            Comment = _reviewText,
+            IsVerifiedPurchase = false
+        };
+
+        await OnSubmit.InvokeAsync(review);
+        NotificationService.Notify(NotificationSeverity.Success, "Review Submitted", "Thank you for your review!");
+
+        _rating = 0;
+        _reviewerName = "";
+        _reviewText = "";
+    }
+
+    private async Task Cancel() => await OnCancel.InvokeAsync();
+}

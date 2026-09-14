@@ -1,0 +1,81 @@
+@layer components;
+
+/* ═══════════════════════════════════════════════════════════════
+   MARKETPLACE — HalalChain Black Glassmorphism
+   Product cards, images, pricing, vendor info, verification badges,
+   halal certification, category nav, search, filtering, cart.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Product Card ── */
+.product-card {
+  background: var(--hc-black-soft);
+  border: 1px solid var(--hc-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: transform 220ms var(--ease-emphasized), box-shadow 220ms var(--ease-emphasized), border-color 180ms ease;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover);
+  border-color: var(--hc-border-strong);
+}
+.product-card__image {
+  aspect-ratio: 1; background: var(--hc-black);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.product-card__image img { transition: transform 400ms var(--ease-emphasized); width: 100%; height: 100%; object-fit: cover; }
+.product-card:hover .product-card__image img { transform: scale(1.03); }
+.product-card__actions {
+  opacity: 0; transform: translateY(8px);
+  transition: opacity var(--motion-base) var(--ease-standard), transform var(--motion-base) var(--ease-standard);
+}
+.product-card:hover .product-card__actions { opacity: 1; transform: translateY(0); }
+.product-card__body { padding: var(--space-4); display: flex; flex-direction: column; flex: 1; }
+.product-card__vendor { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-1); }
+.product-card__title { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--hc-text); margin-bottom: var(--space-2); }
+.product-card__price { font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--hc-text); }
+.product-card__badge {
+  position: absolute; top: var(--space-2); left: var(--space-2);
+}
+
+/* ── Product Grid ── */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-6); }
+@media (max-width: 640px) { .product-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-4); } }
+
+/* ── Verification Badges ── */
+.verify-badge {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: 0.125rem 0.625rem; border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: var(--font-medium); line-height: 1.5;
+}
+.verify-badge--verified { background: rgba(94, 122, 72, 0.15); color: var(--color-brand-600); border: 1px solid rgba(94, 122, 72, 0.3); }
+.verify-badge--pending { background: rgba(184, 145, 46, 0.15); color: var(--color-secondary-600); border: 1px solid rgba(184, 145, 46, 0.3); }
+.verify-badge--rejected { background: rgba(196, 43, 43, 0.15); color: var(--color-danger); border: 1px solid rgba(196, 43, 43, 0.3); }
+.verify-badge--expired { background: rgba(199, 122, 26, 0.15); color: var(--color-warning); border: 1px solid rgba(199, 122, 26, 0.3); }
+
+/* ── Halal Status Indicator ── */
+.halal-status {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-size: var(--text-xs); font-weight: var(--font-medium);
+}
+.halal-status__dot { width: 8px; height: 8px; border-radius: 50%; }
+.halal-status--certified { color: var(--color-success); }
+.halal-status--certified .halal-status__dot { background: var(--color-success); }
+.halal-status--pending { color: var(--color-warning); }
+.halal-status--pending .halal-status__dot { background: var(--color-warning); }
+.halal-status--rejected { color: var(--color-danger); }
+.halal-status--rejected .halal-status__dot { background: var(--color-danger); }
+
+/* ── Filters ── */
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: var(--space-3);
+  padding: var(--space-4); background: var(--hc-black-soft);
+  border: 1px solid var(--hc-border); border-radius: var(--radius-xl);
+  margin-bottom: var(--space-6);
+}
+.filter-group { display: flex; flex-direction: column; gap: var(--space-1); }
+.filter-group__label { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: var(--font-medium); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Sorting ── */
+.sort-control { display: flex; align-items: center; gap: var(--space-2); }

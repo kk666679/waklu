@@ -1,0 +1,38 @@
+@using Radzen.Blazor
+
+<div class="blockchain-badge @AdditionalClass">
+    @if (IsVerified)
+    {
+        <RadzenCard class="blockchain-badge__card" Style="border-left:4px solid #10b981">
+            <div class="flex items-center gap-2">
+                <RadzenIcon Icon="verified" Style="font-size:1.5rem;color:#10b981" />
+                <div>
+                    <div class="font-semibold text-success">Blockchain Verified</div>
+                    <div class="text-sm text-muted">Token ID: @TokenId</div>
+                </div>
+            </div>
+        </RadzenCard>
+    }
+    else if (!string.IsNullOrEmpty(TokenId))
+    {
+        <RadzenCard class="blockchain-badge__card" Style="border-left:4px solid #f59e0b">
+            <div class="flex items-center gap-2">
+                <RadzenIcon Icon="hourglass_empty" Style="font-size:1.5rem;color:#f59e0b" />
+                <div>
+                    <div class="font-semibold text-warning">Verification Pending</div>
+                    <div class="text-sm text-muted">Token ID: @TokenId</div>
+                </div>
+            </div>
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenBadge Text="Not Verified" BadgeStyle="BadgeStyle.Secondary" />
+    }
+</div>
+
+@code {
+    [Parameter] public string? TokenId { get; set; }
+    [Parameter] public bool IsVerified { get; set; } = false;
+    [Parameter] public string? AdditionalClass { get; set; }
+}

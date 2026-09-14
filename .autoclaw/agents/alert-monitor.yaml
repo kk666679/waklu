@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Alert Monitor Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: alert-monitor
+version: 2.0.0
+description: Monitors blockchain events and compliance alerts
+
+provider:
+  type: deterministic
+  endpoint: local
+  model: alert-monitor
+
+parameters:
+  temperature: 0.0
+  max_tokens: 256
+
+system: |
+  You are the HalalChain Alert Monitor. Your role is to monitor blockchain events and compliance alerts.
+
+  ## Alert Types
+  1. **Verification Alerts**: New verifications
+  2. **Certificate Alerts**: Certificate issuance/expiry
+  3. **Supply Chain Alerts**: Supply chain events
+  4. **Audit Alerts**: Audit findings
+  5. **Security Alerts**: Security events
+
+  ## Monitoring Process
+  1. Listen to contract events
+  2. Process event data
+  3. Generate alerts
+  4. Dispatch to channels
+  5. Store alert history
+
+  ## Output Format
+  [ALERT]
+  - Type: alert_type
+  - Severity: CRITICAL|HIGH|MEDIUM|LOW|INFO
+  - Source: contract_name
+  - Event: event_name
+  - Data: {...}
+  - Timestamp: ISO8601
+  - Status: NEW|ACKNOWLEDGED|RESOLVED
+
+knowledge:
+  - path: .autoclaw/blockchain/events/
+  - path: .autoclaw/blockchain/config.yaml
+
+memory:
+  enabled: true
+  ttl: 2592000
+  max_entries: 10000
+
+security:
+  input_sanitization: true
+  output_sanitization: true
+  audit_level: detailed

@@ -1,0 +1,43 @@
+@using Radzen.Blazor
+@inject WishlistService WishlistSvc
+@inject NotificationService NotificationService
+
+<button class="wishlist-button @(IsActive ? "wishlist-button--active" : "") @AdditionalClass"
+        @onclick="ToggleWishlist"
+        disabled="@Disabled"
+        aria-label="@(IsActive ? "Remove from wishlist" : "Add to wishlist")">
+    <RadzenIcon Icon="@(IsActive ? "favorite" : "favorite_border")" />
+    @if (ShowLabel)
+    {
+        <span>@(IsActive ? "Wishlisted" : "Wishlist")</span>
+    }
+</button>
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? ProductTitle { get; set; }
+    [Parameter] public decimal? Price { get; set; }
+    [Parameter] public string? Currency { get; set; } = "MYR";
+    [Parameter] public bool ShowLabel { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<bool> OnToggle { get; set; }
+
+    private bool IsActive => WishlistSvc.IsInWishlist(ProductId);
+
+    private async Task ToggleWishlist()
+    {
+        if (IsActive)
+        {
+            WishlistSvc.RemoveFromWishlist(ProductId);
+            NotificationService.Notify(NotificationSeverity.Info, "Removed", $"{ProductTitle ?? "Item"} removed from wishlist");
+        }
+        else
+        {
+            WishlistSvc.AddToWishlist(ProductId, ProductTitle ?? "", Price ?? 0, Currency ?? "MYR");
+            NotificationService.Notify(NotificationSeverity.Success, "Added", $"{ProductTitle ?? "Item"} added to wishlist");
+        }
+        await OnToggle.InvokeAsync(!IsActive);
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,42 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Policy Engine Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: policy-engine
+version: 2.0.0
+description: Deterministic policy engine for final halal verdict rendering
+
+provider:
+  type: deterministic
+  endpoint: local
+  model: policy-engine
+
+parameters:
+  temperature: 0.0
+  max_tokens: 256
+
+system: |
+  You are the HalalChain Policy Engine. Your purpose is to render final deterministic verdicts based on collected evidence.
+
+  ## Policy Rules
+  1. **HARAM**: Any evidence of pork, alcohol, or non-halal animal products → HARAM
+  2. **HALAL**: All ingredients halal, valid certificate, compliant supply chain → HALAL
+  3. **MASHBOOH**: Missing information, unspecified sources, or conflicting evidence → MASHBOOH
+
+  ## Output Format
+  [FINAL_VERDICT] HALAL|HARAM|MASHBOOH
+  [JUSTIFICATION] Brief explanation of the decision
+
+knowledge:
+  - path: .autoclaw/kg/proprietary_rules.yaml
+
+memory:
+  enabled: false
+
+output:
+  format: structured
+  schema:
+    verdict: string
+    justification: string
+    timestamp: string

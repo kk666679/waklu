@@ -1,0 +1,17 @@
+@code {
+    [Parameter] public string Icon { get; set; } = "lock";
+    [Parameter] public string Title { get; set; } = "Sign in to continue";
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string ActionText { get; set; } = "Sign in";
+    [Parameter] public string ActionUrl { get; set; } = "/account/login?returnUrl=/";
+}
+
+<div class="empty-state panel card-pad center">
+    <div class="empty-icon" aria-hidden="true">@Icon</div>
+    <h3 style="margin: var(--space-3) 0 var(--space-2);">@Title</h3>
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <p class="muted">@Message</p>
+    }
+    <a class="btn btn-primary mt-3" href="@ActionUrl">@ActionText</a>
+</div>

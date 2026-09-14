@@ -1,0 +1,197 @@
+/* ═══════════════════════════════════════════════════════════════
+   RADZEN — HalalChain 2026 Dark Theme (Indigo/Violet/Cyan)
+   Minimal overrides for Radzen Blazor components.
+   Uses the design tokens defined in the main stylesheet.
+   ═══════════════════════════════════════════════════════════════ */
+@layer radzen {
+  .rz-layout {
+    background: var(--color-background, #0b0d14);
+    color: var(--color-text, #f0f2f8);
+  }
+  .rz-header {
+    background: var(--color-surface, #0A0A0A) !important;
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    backdrop-filter: blur(var(--glass-blur-md, 16px)) saturate(140%);
+  }
+  .rz-sidebar {
+    background: var(--color-surface, #0A0A0A) !important;
+    border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+  }
+  .rz-panel-menu {
+    background: transparent !important;
+  }
+  .rz-panel-menu .rz-navigation-item-link {
+    color: var(--color-text-secondary, #a0a8b8) !important;
+    border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0 !important;
+    transition: background var(--transition-fast, 150ms), color var(--transition-fast, 150ms);
+  }
+  .rz-panel-menu .rz-navigation-item-link:hover {
+    background: var(--accent-glow, rgba(108, 92, 231, 0.3)) !important;
+    color: var(--color-text, #f0f2f8) !important;
+  }
+  .rz-panel-menu .rz-navigation-item-link.rz-state-active {
+    background: rgba(108, 92, 231, 0.15) !important;
+    color: var(--accent-start, #6c5ce7) !important;
+    border-left: 3px solid var(--accent-start, #6c5ce7) !important;
+  }
+  .rz-body {
+    background: var(--color-background, #0b0d14) !important;
+  }
+  .rz-card {
+    background: var(--color-surface, #0A0A0A) !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    border-radius: var(--radius-xl, 12px) !important;
+    color: var(--color-text, #f0f2f8) !important;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.4)) !important;
+  }
+  .rz-button {
+    border-radius: var(--radius-lg, 8px) !important;
+    font-family: var(--font-sans, "Inter", sans-serif) !important;
+    font-weight: var(--font-medium, 500) !important;
+    transition: all var(--transition-fast, 150ms) !important;
+  }
+  .rz-button.rz-primary {
+    background: linear-gradient(135deg, var(--accent-start, #6c5ce7), var(--accent-end, #06b6d4)) !important;
+    border-color: var(--accent-start, #6c5ce7) !important;
+    color: var(--color-action-text, #ffffff) !important;
+  }
+  .rz-button.rz-primary:hover {
+    background: linear-gradient(135deg, var(--accent-mid, #a855f7), var(--accent-end, #06b6d4)) !important;
+    border-color: var(--accent-mid, #a855f7) !important;
+  }
+  .rz-datagrid {
+    background: var(--color-surface, #0A0A0A) !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    border-radius: var(--radius-xl, 12px) !important;
+    color: var(--color-text, #f0f2f8) !important;
+    overflow: hidden !important;
+  }
+  .rz-datagrid .rz-datagrid-header {
+    background: var(--color-surface-elevated, #111111) !important;
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+  }
+  .rz-datagrid .rz-datagrid-header .rz-column-title {
+    color: var(--color-text-muted, #6a7282) !important;
+    font-size: var(--text-xs, 0.75rem) !important;
+    font-weight: var(--font-semibold, 600) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+  }
+  .rz-datagrid .rz-row {
+    border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04)) !important;
+    transition: background var(--transition-fast, 150ms) !important;
+  }
+  .rz-datagrid .rz-row:hover {
+    background: var(--color-action-subtle, rgba(255, 255, 255, 0.04)) !important;
+  }
+  .rz-datagrid .rz-cell {
+    color: var(--color-text, #f0f2f8) !important;
+    border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.04)) !important;
+  }
+  .rz-datagrid .rz-pager {
+    background: var(--color-surface-elevated, #111111) !important;
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+  }
+  .rz-textbox,
+  .rz-dropdown,
+  .rz-numeric,
+  .rz-datepicker {
+    background: var(--color-surface, #0A0A0A) !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    color: var(--color-text, #f0f2f8) !important;
+    border-radius: var(--radius-lg, 8px) !important;
+    transition: border-color var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms) !important;
+  }
+  .rz-textbox:focus,
+  .rz-dropdown:focus,
+  .rz-numeric:focus,
+  .rz-datepicker:focus {
+    border-color: var(--color-border-focus, rgba(108, 92, 231, 0.3)) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow, rgba(108, 92, 231, 0.3)) !important;
+    outline: none !important;
+  }
+  .rz-dialog,
+  .rz-window {
+    background: var(--glass-bg-strong, rgba(255, 255, 255, 0.06)) !important;
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)) !important;
+    border-radius: var(--radius-2xl, 16px) !important;
+    backdrop-filter: blur(var(--glass-blur-lg, 24px)) saturate(150%);
+    box-shadow: var(--glass-shadow-hover, 0 16px 48px rgba(0, 0, 0, 0.35)), var(--glass-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.06)) !important;
+  }
+  .rz-tabs {
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+  }
+  .rz-tab {
+    color: var(--color-text-secondary, #a0a8b8) !important;
+    transition: color var(--transition-fast, 150ms), border-color var(--transition-fast, 150ms) !important;
+  }
+  .rz-tab.rz-state-active {
+    color: var(--color-text, #f0f2f8) !important;
+    border-bottom: 2px solid var(--accent-start, #6c5ce7) !important;
+  }
+  .rz-accordion {
+    background: transparent !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    border-radius: var(--radius-xl, 12px) !important;
+  }
+  .rz-accordion .rz-accordion-header {
+    background: transparent !important;
+    color: var(--color-text, #f0f2f8) !important;
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    transition: background var(--transition-fast, 150ms) !important;
+  }
+  .rz-accordion .rz-accordion-header:hover {
+    background: var(--color-action-subtle, rgba(255, 255, 255, 0.04)) !important;
+  }
+  .rz-accordion .rz-accordion-content {
+    background: transparent !important;
+    color: var(--color-text-secondary, #a0a8b8) !important;
+  }
+  .rz-badge {
+    border-radius: var(--radius-full, 9999px) !important;
+    font-weight: var(--font-medium, 500) !important;
+  }
+  .rz-alert {
+    border-radius: var(--radius-lg, 8px) !important;
+  }
+  .rz-notification {
+    background: var(--glass-bg-strong, rgba(255, 255, 255, 0.06)) !important;
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)) !important;
+    border-radius: var(--radius-xl, 12px) !important;
+    backdrop-filter: blur(var(--glass-blur-md, 16px)) saturate(140%);
+    box-shadow: var(--glass-shadow-hover, 0 16px 48px rgba(0, 0, 0, 0.35)) !important;
+    color: var(--color-text, #f0f2f8) !important;
+  }
+  .rz-progressbar {
+    border-radius: var(--radius-full, 9999px) !important;
+  }
+  .rz-progressbar .rz-progressbar-value {
+    background: linear-gradient(135deg, var(--accent-start, #6c5ce7), var(--accent-end, #06b6d4)) !important;
+  }
+  .rz-menu {
+    background: var(--color-surface, #0A0A0A) !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    border-radius: var(--radius-xl, 12px) !important;
+  }
+  .rz-menuitem {
+    color: var(--color-text, #f0f2f8) !important;
+    transition: background var(--transition-fast, 150ms) !important;
+  }
+  .rz-menuitem:hover {
+    background: var(--color-action-subtle, rgba(255, 255, 255, 0.04)) !important;
+  }
+  .rz-tooltip {
+    background: var(--color-surface-elevated, #111111) !important;
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06)) !important;
+    border-radius: var(--radius-md, 6px) !important;
+    color: var(--color-text, #f0f2f8) !important;
+    box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.25)) !important;
+    padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem) !important;
+  }
+  .rz-chart {
+    color: var(--color-text, #f0f2f8) !important;
+  }
+  .rz-chart .rz-chart-legend {
+    color: var(--color-text-secondary, #a0a8b8) !important;
+  }
+}

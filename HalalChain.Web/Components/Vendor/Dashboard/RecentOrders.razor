@@ -1,0 +1,19 @@
+@inject IOrderService Orders
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Recent Orders</h4>
+    <RadzenDataList Data="@_items" TItem="Order" PageSize="5">
+        <Template Context="o">
+            <div class="v-order-row">
+                <div><strong>@o.OrderNumber</strong></div>
+                <div>@o.Total.ToString("C")</div>
+                <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@o.Status.ToString()" />
+            </div>
+        </Template>
+    </RadzenDataList>
+</RadzenCard>
+
+@code {
+    private IEnumerable<Order> _items = Array.Empty<Order>();
+    protected override async Task OnInitializedAsync() => _items = await Orders.GetAllAsync();
+}

@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Report Generator Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: report-generator
+version: 2.0.0
+description: Generates compliance reports in multiple formats
+type: sync
+timeout: 30s
+
+input:
+  schema:
+    type: object
+    properties:
+      data:
+        type: object
+        description: Data to include in report
+        required: true
+      report_type:
+        type: string
+        description: Type of report
+        enum: [compliance, audit, certification, summary, detailed]
+        required: true
+      format:
+        type: string
+        description: Output format
+        enum: [pdf, html, markdown, json, csv]
+        default: pdf
+      template:
+        type: string
+        description: Template name
+        required: false
+      include_sections:
+        type: array
+        description: Sections to include
+        items:
+          type: string
+      company_name:
+        type: string
+        description: Company name for branding
+        required: false
+      logo_path:
+        type: string
+        description: Path to logo image
+        required: false
+      jurisdiction:
+        type: string
+        description: Jurisdiction
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      report_id:
+        type: string
+      format:
+        type: string
+      content:
+        type: string
+        description: Base64 encoded report content
+      file_name:
+        type: string
+      size:
+        type: integer
+      pages:
+        type: integer
+      sections:
+        type: array
+        items:
+          type: string
+      generated_at:
+        type: string
+        format: date-time
+
+execution:
+  provider: python
+  source: skills/implementations/report_generator.py
+  entrypoint: generate_report
+  
+  dependencies:
+    - jinja2
+    - weasyprint
+    - markdown
+    - reportlab
+
+security:
+  required_permissions: [report:create]
+  data_classification: level_3
+  input_sanitization: true
+  output_sanitization: true
+
+templates:
+  path: .autoclaw/templates/
+  default: compliance.j2

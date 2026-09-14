@@ -1,0 +1,27 @@
+@inject IProductService Products
+@inject AppNotificationService Notify
+
+<RadzenTemplateForm TItem="Product" Data="@Product" Submit="@OnSubmit">
+    <RadzenStack Gap="1rem">
+        <RadzenFormField Text="Name"><RadzenTextBox @bind-Value="Product.Name" /></RadzenFormField>
+        <RadzenFormField Text="SKU"><RadzenTextBox @bind-Value="Product.Sku" /></RadzenFormField>
+        <RadzenFormField Text="Description"><RadzenTextArea @bind-Value="Product.Description" Rows="3" /></RadzenFormField>
+        <RadzenRow>
+            <RadzenColumn Size="6"><RadzenFormField Text="Price"><RadzenNumeric @bind-Value="Product.Price" /></RadzenFormField></RadzenColumn>
+            <RadzenColumn Size="6"><RadzenFormField Text="Stock"><RadzenNumeric @bind-Value="Product.StockQuantity" /></RadzenFormField></RadzenColumn>
+        </RadzenRow>
+        <RadzenCheckBox @bind-Value="Product.IsHalal" Name="halal" /><RadzenLabel Text="Halal Certified" Component="halal" />
+        <RadzenButton ButtonType="ButtonType.Submit" Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenStack>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public Product Product { get; set; } = new();
+
+    private async Task OnSubmit(Product p)
+    {
+        if (p.Id == 0) await Products.CreateAsync(p);
+        else await Products.UpdateAsync(p);
+        Notify.Success("Saved", p.Name);
+    }
+}

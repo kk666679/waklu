@@ -1,0 +1,25 @@
+<RadzenDataGrid TItem="HalalCertification" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="CertifyingBody" Title="Body" />
+        <RadzenDataGridColumn Property="CertificateNumber" Title="Cert #" />
+        <RadzenDataGridColumn Property="IssuedAt" Title="Issued">
+            <Template Context="c">@c.IssuedAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="ExpiresAt" Title="Expires">
+            <Template Context="c">@c.ExpiresAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="IsVerified" Title="Verified" Width="120px">
+            <Template Context="c">
+                <RadzenBadge BadgeStyle="@(c.IsVerified ? BadgeStyle.Success : BadgeStyle.Warning)" Text="@(c.IsVerified ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<HalalCertification> _items = new[]
+    {
+        new HalalCertification { Id = 1, CertifyingBody = "JAKIM", CertificateNumber = "HC-001", IssuedAt = DateTime.UtcNow.AddMonths(-6), ExpiresAt = DateTime.UtcNow.AddMonths(6), IsVerified = true },
+        new HalalCertification { Id = 2, CertifyingBody = "MUI", CertificateNumber = "HC-002", IssuedAt = DateTime.UtcNow.AddMonths(-2), ExpiresAt = DateTime.UtcNow.AddMonths(10), IsVerified = false }
+    };
+}

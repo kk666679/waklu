@@ -1,0 +1,9 @@
+@inject IHcLocalizer Localizer
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try { await Localizer.LoadAsync(); }
+        catch { }
+    }
+}

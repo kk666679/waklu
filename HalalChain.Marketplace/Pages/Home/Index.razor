@@ -1,0 +1,171 @@
+@page "/"
+@inject IPlatformApiClient Api
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>HalalChain — Premium Halal Marketplace</PageTitle>
+
+<section class="container section-sm">
+    <div class="hero">
+        <p class="eyebrow">Ethical · Halal · Verified</p>
+        <h1>Discover with confidence. Buy with trust.</h1>
+        <p>Thousands of halal-verified products from trusted vendors across the globe — each one checked against recognised certification bodies, with provenance you can trace.</p>
+        <div class="row gap-3" style="margin-top: var(--space-5);">
+            <a class="btn btn-primary btn-lg" href="/browse">Shop the marketplace</a>
+            <a class="btn btn-secondary btn-lg" href="/browse?status=1" style="background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.25);">Browse verified only</a>
+        </div>
+        <div class="row gap-4" style="margin-top: var(--space-5); color:#d8d3c4; font-size: var(--text-sm);">
+            <span><strong style="color:#fff;">@Model.Verified.Length+</strong> verified products</span>
+            <span><strong style="color:#fff;">@Model.Vendors.Length+</strong> trusted vendors</span>
+            <span><strong style="color:#fff;">@Model.Departments.Length</strong> departments</span>
+        </div>
+    </div>
+</section>
+
+<section class="container">
+    <div class="panel card-pad between wrap" style="gap: var(--space-4);">
+        <div class="row gap-2 center"><span class="badge badge-halal">✓ Halal Verified</span><span class="small muted">Cross-checked certification</span></div>
+        <div class="row gap-2 center"><span class="badge badge-cert">◎ Certified</span><span class="small muted">Recognised bodies</span></div>
+        <div class="row gap-2 center"><span class="badge badge-info">⛓ Traceable</span><span class="small muted">On-chain provenance</span></div>
+        <div class="row gap-2 center"><span class="badge badge-success">🔒 Secure</span><span class="small muted">Protected checkout</span></div>
+    </div>
+</section>
+
+@if (Model.Departments.Length > 0)
+{
+    <section class="container section">
+        <div class="between" style="margin-bottom: var(--space-4);">
+            <div>
+                <p class="eyebrow">Browse</p>
+                <h2>Featured departments</h2>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="/browse">View all →</a>
+        </div>
+        <div class="grid grid-4">
+            @foreach (var d in Model.Departments)
+            {
+                <a class="card card-pad" href="/browse?department=@d.Slug" style="display:block;">
+                    <div class="dept-icon" aria-hidden="true">@(d.IconClass ?? "◈")</div>
+                    <h4 style="margin:0 0 4px;">@d.Name</h4>
+                    <p class="small muted" style="margin:0;">@d.Description</p>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<section class="container section">
+    <div class="between" style="margin-bottom: var(--space-4);">
+        <div>
+            <p class="eyebrow">Trust</p>
+            <h2>Verified Halal collection</h2>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/browse?status=1">See all verified →</a>
+    </div>
+    @if (Model.Verified.Length == 0)
+    {
+        <EmptyState Icon="🔍" Title="No verified products yet" Message="Check back soon as vendors complete verification." />
+    }
+    else
+    {
+        <div class="grid grid-products">
+            @foreach (var p in Model.Verified) { <ProductCard Product="p" /> }
+        </div>
+    }
+</section>
+
+<section class="container section">
+    <div class="between" style="margin-bottom: var(--space-4);">
+        <div>
+            <p class="eyebrow">Trending</p>
+            <h2>Featured products</h2>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/browse">Explore →</a>
+    </div>
+    <div class="grid grid-products">
+        @foreach (var p in Model.Featured) { <ProductCard Product="p" /> }
+    </div>
+</section>
+
+@if (Model.Vendors.Length > 0)
+{
+    <section class="container section">
+        <div class="between" style="margin-bottom: var(--space-4);">
+            <div>
+                <p class="eyebrow">Community</p>
+                <h2>Featured vendors</h2>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="/vendors">All vendors →</a>
+        </div>
+        <div class="grid grid-4">
+            @foreach (var v in Model.Vendors) { <VendorCard Vendor="v" /> }
+        </div>
+    </section>
+}
+
+<section class="container section">
+    <div class="grid grid-2" style="gap: var(--space-6); align-items:center;">
+        <div class="hero" style="background: radial-gradient(120% 140% at 100% 0%, var(--color-brand-700), var(--color-brand-900));">
+            <p class="eyebrow">Provenance</p>
+            <h2 style="color:#fff;">From source to shelf, proven.</h2>
+            <p>Every certified product carries a verifiable chain of custody. Where a vendor anchors documentation to IPFS and the blockchain, you can follow the certificate, the supplier, and the journey — not just trust a badge.</p>
+            <a class="btn btn-secondary btn-sm mt-2" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25);" href="/verify">Verify a product</a>
+        </div>
+        <div class="stack gap-3">
+            <div class="panel card-pad">
+                <h4 style="margin:0 0 6px;">① Certification bodies</h4>
+                <p class="small muted" style="margin:0;">We recognise JAKIM, MUI, ESMA, GAC, SFDA and other accredited halal authorities. Each certificate is validated before a product earns its verified mark.</p>
+            </div>
+            <div class="panel card-pad">
+                <h4 style="margin:0 0 6px;">② Ingredient disclosure</h4>
+                <p class="small muted" style="margin:0;">Animal derivatives, gelatin and enzyme sources are disclosed per product — so your dietary choices are informed, not assumed.</p>
+            </div>
+            <div class="panel card-pad">
+                <h4 style="margin:0 0 6px;">③ Transparent verification</h4>
+                <p class="small muted" style="margin:0;">Our policy engine decides compliance from collected evidence. A language model never overrides a halal verdict.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container section">
+    <div class="between" style="margin-bottom: var(--space-4);">
+        <div>
+            <p class="eyebrow">Fresh</p>
+            <h2>New arrivals</h2>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/browse?sortBy=newest">More new →</a>
+    </div>
+    <div class="grid grid-4">
+        @foreach (var p in Model.Fresh) { <ProductCard Product="p" /> }
+    </div>
+</section>
+
+@code {
+    private HomeViewModel Model { get; set; } = new(Array.Empty<DepartmentDto>(), Array.Empty<EnrichedProductDto>(), Array.Empty<EnrichedProductDto>(), Array.Empty<EnrichedProductDto>(), Array.Empty<VendorDto>(), true);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var departmentsTask = Api.GetDepartmentsAsync();
+        var featuredTask = Api.BrowseAsync(new ProductQuery(SortBy: "newest", PageSize: 8));
+        var verifiedTask = Api.BrowseAsync(new ProductQuery(Status: 1, PageSize: 8));
+        var freshTask = Api.BrowseAsync(new ProductQuery(SortBy: "newest", PageSize: 4));
+        var vendorsTask = Api.GetVendorsAsync();
+
+        await Task.WhenAll(departmentsTask, featuredTask, verifiedTask, freshTask, vendorsTask);
+
+        var departments = departmentsTask.Result;
+        var featured = featuredTask.Result;
+        var verified = verifiedTask.Result;
+        var fresh = freshTask.Result;
+        var vendors = vendorsTask.Result;
+
+        Model = new HomeViewModel(
+            Departments: departments.IsSuccess ? departments.Data ?? [] : [],
+            Featured: featured.IsSuccess ? featured.Data?.Items ?? [] : [],
+            Verified: verified.IsSuccess ? verified.Data?.Items ?? [] : [],
+            Fresh: fresh.IsSuccess ? fresh.Data?.Items ?? [] : [],
+            Vendors: vendors.IsSuccess ? vendors.Data ?? [] : [],
+            ApiUnavailable: !(departments.IsSuccess || featured.IsSuccess));
+    }
+}

@@ -1,0 +1,3 @@
+// Bootstrap variables. Currently a no-op stub so other modules can `@use
+// "abstracts/variables"` without forcing every site to consume every token.
+@forward "tokens";

@@ -1,0 +1,55 @@
+@page "/vendors/{Id:guid}"
+@inject IPlatformApiClient Api
+
+<PageTitle>@(_vendor?.Name ?? "Vendor")</PageTitle>
+
+@if (_vendor == null)
+{
+    <section class="container section-sm"><p class="muted">Loading vendor…</p></section>
+}
+else
+{
+    <section class="container section-sm">
+        <div class="hero" style="background: radial-gradient(120% 140% at 100% 0%, var(--color-brand-700), var(--color-brand-900));">
+            <p class="eyebrow">Vendor</p>
+            <h1 style="color:#fff;">@_vendor.Name</h1>
+            @if (!string.IsNullOrEmpty(_vendor.Country)) { <p class="small" style="color:#d8d3c4;">@_vendor.Country</p> }
+        </div>
+    </section>
+
+    <section class="container section">
+        <div class="between" style="margin-bottom: var(--space-4);">
+            <h2 style="margin:0;">Products (@_totalProducts)</h2>
+        </div>
+        @if (_products.Length == 0)
+        {
+            <EmptyState Icon="🛍️" Title="No products yet" />
+        }
+        else
+        {
+            <div class="grid grid-products">
+                @foreach (var p in _products) { <ProductCardBasic Product="p" /> }
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private VendorDto? _vendor;
+    private ProductDto[] _products = Array.Empty<ProductDto>();
+    private int _totalProducts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var vendor = await Api.GetVendorAsync(Id);
+        if (!vendor.IsSuccess || vendor.Data == null) { _vendor = null; return; }
+        _vendor = vendor.Data;
+        var products = await Api.GetVendorProductsAsync(_vendor.Slug ?? _vendor.Name, 1, 24);
+        if (products.IsSuccess && products.Data != null)
+        {
+            _products = products.Data.Items;
+            _totalProducts = products.Data.TotalCount;
+        }
+    }
+}

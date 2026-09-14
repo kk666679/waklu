@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Blockchain Orchestrator
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: blockchain-orchestrator
+version: 2.0.0
+description: Orchestrates blockchain-related workflows
+
+agents:
+  - smart-contract-agent
+  - blockchain-oracle
+  - verification-verifier
+  - alert-monitor
+
+workflows:
+  - name: verify_and_record
+    description: Verify product and record on-chain
+    steps:
+      - id: verify_product
+        description: Run halal verification
+        agent: halal-orchestrator
+        workflow: verify_product
+        output: verification_result
+
+      - id: prepare_data
+        description: Prepare data for blockchain
+        agent: smart-contract-agent
+        action: prepare_transaction
+        input: verification_result
+        output: transaction_data
+
+      - id: record_on_chain
+        description: Record verification on blockchain
+        agent: smart-contract-agent
+        action: record_verification
+        input: transaction_data
+        output: onchain_record
+
+      - id: verify_record
+        description: Verify on-chain record
+        agent: verification-verifier
+        input: onchain_record
+        output: verification_proof
+
+      - id: generate_report
+        description: Generate verification report
+        agent: compliance-reporter
+        input: verification_proof
+        output: report
+
+  - name: register_certificate
+    description: Register certificate on blockchain
+    steps:
+      - id: validate_certificate
+        description: Validate certificate
+        agent: certificate-validator
+        output: certificate_status
+
+      - id: register_on_chain
+        description: Register on blockchain
+        agent: smart-contract-agent
+        action: register_certificate
+        input: certificate_status
+        output: certificate_record
+
+      - id: emit_event
+        description: Emit certificate event
+        agent: smart-contract-agent
+        action: emit_certificate_event
+        input: certificate_record
+
+      - id: alert
+        description: Send alerts
+        agent: alert-monitor
+        action: alert_certificate_registered
+
+  - name: track_supply_chain
+    description: Track supply chain on blockchain
+    steps:
+      - id: record_event
+        description: Record supply chain event
+        agent: smart-contract-agent
+        action: record_supply_event
+
+      - id: verify_provenance
+        description: Verify product provenance
+        agent: supply-chain-tracker
+        input: supply_event
+
+      - id: generate_proof
+        description: Generate provenance proof
+        agent: verification-verifier
+
+parallel_execution: true
+max_parallel_steps: 3
+
+consensus:
+  required: true
+  threshold: 2
+  timeout: 120s
+
+retry:
+  max_attempts: 5
+  backoff: exponential
+  initial_delay: 2s
+  max_delay: 60s
+
+timeout:
+  per_step: 45s
+  workflow: 300s
+
+audit:
+  enabled: true
+  log_level: detailed
+  output_format: json
+  storage: .autoclaw/orchestrator/audit_logs/
+
+security:
+  input_validation: true
+  output_validation: true
+  encryption: true
+  access_control: true
+  private_key_mgmt: true

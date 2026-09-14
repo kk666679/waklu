@@ -1,0 +1,12 @@
+{
+  "name": "halalchain-ai-inference-node-smoke",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Optional Node-based smoke harness for the Python FastAPI ai-inference service. The PRODUCTION runtime is the Python uvicorn entrypoint declared in the service's Dockerfile. This package is intentionally NOT part of the root npm workspace; run it directly with `npm start` from this directory if you want a quick local probe without Python dependencies.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  }
+}

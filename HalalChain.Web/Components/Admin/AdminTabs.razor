@@ -1,0 +1,58 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="admin-tabs @AdditionalClass">
+    <div class="admin-tabs__header" role="tablist">
+        @foreach (var tab in Tabs)
+        {
+            <button class="admin-tabs__tab @(tab.IsActive ? "admin-tabs__tab--active" : "")"
+                    role="tab"
+                    aria-selected="@tab.IsActive"
+                    aria-controls="@($"tab-{tab.Id}")"
+                    @onclick="() => SelectTab(tab.Id)">
+                @if (!string.IsNullOrEmpty(tab.Icon))
+                {
+                    <RadzenIcon Icon="@tab.Icon" Style="margin-right:0.25rem" />
+                }
+                @tab.Label
+                @if (tab.Badge.HasValue)
+                {
+                    <RadzenBadge Text="@tab.Badge.Value.ToString()" BadgeStyle="BadgeStyle.Primary" Size="BadgeSize.Small" />
+                }
+            </button>
+        }
+    </div>
+    <div class="admin-tabs__body">
+        @foreach (var tab in Tabs.Where(t => t.IsActive))
+        {
+            <div class="admin-tabs__panel" role="tabpanel" id="@($"tab-{tab.Id}")">
+                @if (tab.Content != null)
+                {
+                    @tab.Content
+                }
+                else if (tab.ContentTemplate != null)
+                {
+                    @tab.ContentTemplate(tab)
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<AdminTab> Tabs { get; set; } = [];
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string> OnTabChanged { get; set; }
+
+    private async Task SelectTab(string id)
+    {
+        foreach (var tab in Tabs) tab.IsActive = tab.Id == id;
+        await OnTabChanged.InvokeAsync(id);
+        StateHasChanged();
+    }
+
+    public record AdminTab(string Id, string Label, string? Icon = null, int? Badge = null, RenderFragment? Content = null, Func<AdminTab, RenderFragment>? ContentTemplate = null)
+    {
+        public bool IsActive { get; set; }
+    }
+}

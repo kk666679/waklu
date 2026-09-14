@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Blockchain Recorder Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: blockchain-recorder
+version: 2.0.0
+description: Records verification results to the HalalChain blockchain
+type: async
+timeout: 60s
+
+input:
+  schema:
+    type: object
+    properties:
+      product_id:
+        type: string
+        required: true
+      verdict:
+        type: string
+        enum: [HALAL, HARAM, MASHBOOH]
+        required: true
+      evidence:
+        type: object
+        required: true
+      certificates:
+        type: array
+        items:
+          type: object
+      jurisdiction:
+        type: string
+        required: true
+      timestamp:
+        type: string
+        format: date-time
+        required: false
+      metadata:
+        type: object
+        required: false
+      hash:
+        type: string
+        description: Hash of the data
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      transaction_id:
+        type: string
+      block_number:
+        type: integer
+      block_hash:
+        type: string
+      status:
+        type: string
+        enum: [CONFIRMED, PENDING, FAILED]
+      confirmations:
+        type: integer
+      timestamp:
+        type: string
+        format: date-time
+      gas_used:
+        type: integer
+      transaction_hash:
+        type: string
+      explorer_url:
+        type: string
+      verification_hash:
+        type: string
+        description: Hash for external verification
+
+execution:
+  provider: python
+  source: skills/implementations/blockchain_recorder.py
+  entrypoint: record_to_blockchain
+  
+  dependencies:
+    - web3
+    - eth_account
+    - json
+    - hashlib
+
+security:
+  required_permissions: [blockchain:record]
+  data_classification: level_4
+  input_sanitization: true
+  output_sanitization: true
+
+config:
+  blockchain:
+    network: ${BLOCKCHAIN_NETWORK}
+    rpc_url: ${BLOCKCHAIN_RPC}
+    contract_address: ${HALALCHAIN_CONTRACT}
+    private_key: ${BLOCKCHAIN_PRIVATE_KEY}
+    gas_limit: 500000
+    confirmations_required: 6

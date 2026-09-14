@@ -1,0 +1,23 @@
+@inject IPromotionService Promotions
+
+<RadzenDataGrid TItem="Coupon" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Code" Title="Code" Width="120px" />
+        <RadzenDataGridColumn Property="Type" Title="Type" Width="120px" />
+        <RadzenDataGridColumn Property="Value" Title="Value" Width="100px" />
+        <RadzenDataGridColumn Property="UsageCount" Title="Used" Width="100px" />
+        <RadzenDataGridColumn Property="ExpiresAt" Title="Expires">
+            <Template Context="c">@c.ExpiresAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="IsActive" Title="Active" Width="100px">
+            <Template Context="c">
+                <RadzenBadge BadgeStyle="@(c.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)" Text="@(c.IsActive ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Coupon> _items = Array.Empty<Coupon>();
+    protected override async Task OnInitializedAsync() => _items = await Promotions.GetAllAsync();
+}

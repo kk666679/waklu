@@ -1,0 +1,23 @@
+@using Radzen.Blazor
+
+<div class="admin-empty @AdditionalClass">
+    <div class="admin-empty__icon">
+        <RadzenIcon Icon="@Icon" Style="font-size:4rem;opacity:0.2" />
+    </div>
+    <h3 class="admin-empty__title">@Title</h3>
+    <p class="admin-empty__description text-muted">@Description</p>
+    @if (ActionTemplate != null)
+    {
+        <div class="admin-empty__action">
+            @ActionTemplate
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "No data available";
+    [Parameter] public string Description { get; set; } = "There are no items to display at this time";
+    [Parameter] public string Icon { get; set; } = "inbox";
+    [Parameter] public RenderFragment? ActionTemplate { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+}

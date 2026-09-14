@@ -1,0 +1,23 @@
+@inject ICategoryService Categories
+
+<RadzenDataGrid TItem="Category" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Id" Title="ID" Width="60px" />
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="DisplayOrder" Title="Order" Width="100px" />
+        <RadzenDataGridColumn Property="IsActive" Title="Active" Width="100px">
+            <Template Context="c">
+                <RadzenBadge BadgeStyle="@(c.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)"
+                             Text="@(c.IsActive ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Category> _items = Array.Empty<Category>();
+    protected override async Task OnInitializedAsync()
+    {
+        _items = await Categories.GetAllAsync();
+    }
+}

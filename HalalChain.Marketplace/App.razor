@@ -1,0 +1,48 @@
+@using Radzen
+@using Radzen.Blazor
+@using HalalChain.Marketplace.Layouts
+@using Microsoft.AspNetCore.Components
+@using System.Reflection
+<RealtimeNotificationBridge />
+<LocalizerBootstrap />
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="@(ResolveLayout(routeData))" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(StorefrontLayout)">
+            <div class="container" style="padding:var(--space-16) 0;text-align:center">
+                <h1 class="text-4xl font-bold mb-4">404</h1>
+                <p class="text-muted text-lg mb-6">Page not found</p>
+                <a href="/" class="btn btn-primary">Go Home</a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
+<RadzenComponents />
+
+@code {
+    private static Type ResolveLayout(RouteData routeData)
+    {
+        var pageType = routeData.PageType;
+        if (pageType is null) return typeof(StorefrontLayout);
+
+        var layoutAttr = pageType.GetCustomAttribute<LayoutAttribute>();
+        if (layoutAttr?.LayoutType is not null) return layoutAttr.LayoutType;
+
+        var routeTemplate = pageType.GetCustomAttribute<RouteAttribute>()?.Template;
+        if (!string.IsNullOrEmpty(routeTemplate))
+        {
+            if (routeTemplate.StartsWith("/admin", StringComparison.OrdinalIgnoreCase))
+                return typeof(AdminLayout);
+            if (routeTemplate.StartsWith("/vendor", StringComparison.OrdinalIgnoreCase))
+                return typeof(VendorLayout);
+            if (routeTemplate.StartsWith("/account", StringComparison.OrdinalIgnoreCase)
+                || routeTemplate.StartsWith("/login", StringComparison.OrdinalIgnoreCase)
+                || routeTemplate.StartsWith("/register", StringComparison.OrdinalIgnoreCase))
+                return typeof(AuthLayout);
+        }
+
+        return typeof(StorefrontLayout);
+    }
+}

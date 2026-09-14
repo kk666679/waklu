@@ -1,0 +1,114 @@
+@page "/admin/verifications"
+@layout AdminLayout
+@inject AppState State
+@inject NotificationService NotificationService
+@inject PlatformApiClient Api
+@using HalalChain.Platform.Contracts.Halal.Requests
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Halal Verifications</h2>
+</div>
+
+@if (State.IsLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+}
+else
+{
+    <RadzenDataGrid TItem="ProductDto"
+                    Data="@State.Products"
+                    AllowSorting="true"
+                    AllowPaging="true"
+                    PageSize="10"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid">
+        <Columns>
+            <RadzenDataGridColumn TItem="ProductDto" Property="Title" Title="Product" Sortable="true">
+                <Template Context="p">
+                    <div>
+                        <div class="font-medium">@p.Title</div>
+                        <div class="text-xs text-muted">by @p.VendorName</div>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Property="CategoryName" Title="Category" Sortable="true" />
+            <RadzenDataGridColumn TItem="ProductDto" Title="Status" Sortable="false">
+                <Template Context="p">
+                    <RadzenBadge Text="@(p.HalalStatus?.Status ?? "Unverified")"
+                                 BadgeStyle="@(p.HalalStatus?.Status == "Verified" ? BadgeStyle.Success : BadgeStyle.Warning)" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Title="Certification" Sortable="false">
+                <Template Context="p">
+                    @if (p.HalalStatus?.Status == "Verified")
+                    {
+                        <div class="text-sm">
+                            <div><strong>@p.HalalStatus.CertificationBody</strong></div>
+                            <div class="text-xs text-muted">@p.HalalStatus.CertificateNumber</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Title="Actions" Sortable="false">
+                <Template Context="p">
+                    @if (p.HalalStatus?.Status != "Verified")
+                    {
+                        <RadzenButton Click="@(() => TriggerVerification(p))"
+                                      Text="Verify"
+                                      Icon="verified"
+                                      ButtonStyle="ButtonStyle.Primary"
+                                      Size="ButtonSize.Small" />
+                    }
+                    else
+                    {
+                        <RadzenButton Click="@(() => ViewCertificate(p))"
+                                      Text="View"
+                                      Icon="badge"
+                                      ButtonStyle="ButtonStyle.Light"
+                                      Size="ButtonSize.Small" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadProductsAsync();
+    }
+
+    private async Task TriggerVerification(ProductDto product)
+    {
+        try
+        {
+            NotificationService.Notify(NotificationSeverity.Info, "Verifying", $"Triggering verification for {product.Title}...");
+            var result = await Api.TriggerVerificationAsync(product.Id, new TriggerVerificationRequest());
+            if (result != null)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Verification triggered successfully");
+                await State.LoadProductsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Verification failed: {ex.Message}");
+        }
+    }
+
+    private void ViewCertificate(ProductDto product)
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Certificate", $"Certificate: {product.HalalStatus?.CertificateNumber}");
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnChanged;
+}

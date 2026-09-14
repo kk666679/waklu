@@ -1,0 +1,13 @@
+# tawheed runtime dependencies.
+# Pinned to the versions resolved on 2026-08-27 for reproducible builds.
+# Only packages actually imported by the service code paths are listed.
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+httpx==0.28.1
+prometheus-client==0.21.1
+opentelemetry-api==1.29.0
+opentelemetry-sdk==1.29.0
+opentelemetry-exporter-otlp==1.29.0
+python-dotenv==1.0.1

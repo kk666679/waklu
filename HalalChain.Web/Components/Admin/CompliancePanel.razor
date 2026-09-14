@@ -1,0 +1,126 @@
+@using Radzen.Blazor
+@inject AppState State
+
+<RadzenCard class="@($"compliance-panel {AdditionalClass}")">
+    <div class="compliance-panel__header">
+        <h3 class="compliance-panel__title font-semibold">Compliance Overview</h3>
+        <RadzenDropDown @bind-Value="@_selectedStatus"
+                        Data="@StatusOptions"
+                        Placeholder="All Statuses"
+                        Style="width:180px"
+                        Change="@OnFilterChanged" />
+    </div>
+
+    <div class="compliance-panel__stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);margin-bottom:var(--space-4)">
+        <MetricCard Title="Verified" Value="@_verifiedCount.ToString()" Icon="verified" Change="+12%" />
+        <MetricCard Title="Pending" Value="@_pendingCount.ToString()" Icon="hourglass_empty" Change="5%" />
+        <MetricCard Title="Rejected" Value="@_rejectedCount.ToString()" Icon="cancel" Change="-2%" />
+        <MetricCard Title="Total" Value="@_totalCount.ToString()" Icon="inventory_2" />
+    </div>
+
+    <div class="compliance-panel__list">
+        <AdminDataGrid TItem="HalalCertificateDto"
+                       Items="@(FilteredCertificates?.ToList() ?? new List<HalalCertificateDto>())"
+                       Columns="@_columns"
+                       ShowPagination="true"
+                       PageSize="10" />
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public HalalCertificateDto[]? Certificates { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private string _selectedStatus = "";
+    private int _verifiedCount;
+    private int _pendingCount;
+    private int _rejectedCount;
+    private int _totalCount;
+
+    private List<string> StatusOptions = ["Verified", "Pending", "Rejected", "Expired", "ExpiringSoon"];
+    private List<ColumnDef<HalalCertificateDto>> _columns = new();
+
+    private HalalCertificateDto[] FilteredCertificates
+    {
+        get
+        {
+            if (Certificates == null) return [];
+            if (string.IsNullOrEmpty(_selectedStatus)) return Certificates;
+            return [.. Certificates.Where(c => c.Status.ToString() == _selectedStatus)];
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        UpdateStats();
+        _columns = new()
+        {
+            new ColumnDef<HalalCertificateDto> { Header = "Certificate", Property = "CertificateNumber", Sortable = true },
+            new ColumnDef<HalalCertificateDto> { Header = "Product", Property = "ProductId", Template = c => builder => builder.AddContent(0, $"Product #{c.ProductId.ToString()[..8]}") },
+            new ColumnDef<HalalCertificateDto> { Header = "Body", Property = "CertificationBody", Sortable = true },
+            new ColumnDef<HalalCertificateDto> { Header = "Issued", Property = "IssueDate", Template = c => builder => builder.AddContent(0, c.IssueDate.ToString("MMM dd, yyyy")), Sortable = true },
+            new ColumnDef<HalalCertificateDto> { Header = "Expires", Property = "ExpiryDate", Template = c => builder => builder.AddContent(0, c.ExpiryDate.ToString("MMM dd, yyyy")), Sortable = true },
+            new ColumnDef<HalalCertificateDto>
+            {
+                Header = "Status",
+                Template = c => builder =>
+                {
+                    builder.OpenComponent<StatusBadge>(0);
+                    builder.AddAttribute(1, "Text", c.Status.ToString());
+                    builder.AddAttribute(2, "Status", c.Status.ToString());
+                    builder.CloseComponent();
+                }
+            },
+            new ColumnDef<HalalCertificateDto>
+            {
+                Header = "Actions",
+                Template = c => builder =>
+                {
+                    var id = c.Id;
+                    builder.OpenComponent<RadzenButton>(0);
+                    builder.AddAttribute(1, "Icon", "visibility");
+                    builder.AddAttribute(2, "ButtonStyle", ButtonStyle.Light);
+                    builder.AddAttribute(3, "Size", ButtonSize.Small);
+                    builder.AddAttribute(4, "Click", EventCallback.Factory.Create(this, () => ViewCertificate(id)));
+                    builder.AddAttribute(5, "class", "me-1");
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenButton>(0);
+                    builder.AddAttribute(1, "Icon", "download");
+                    builder.AddAttribute(2, "ButtonStyle", ButtonStyle.Light);
+                    builder.AddAttribute(3, "Size", ButtonSize.Small);
+                    builder.AddAttribute(4, "Click", EventCallback.Factory.Create(this, () => DownloadCertificate(id)));
+                    builder.CloseComponent();
+                }
+            }
+        };
+    }
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void UpdateStats()
+    {
+        if (Certificates == null) return;
+        _totalCount = Certificates.Length;
+        _verifiedCount = Certificates.Count(c => c.Status == CertificateStatus.Verified);
+        _pendingCount = Certificates.Count(c => c.Status == CertificateStatus.Submitted || c.Status == CertificateStatus.DocumentReview || c.Status == CertificateStatus.Verification);
+        _rejectedCount = Certificates.Count(c => c.Status == CertificateStatus.Rejected || c.Status == CertificateStatus.Revoked);
+    }
+
+    private async Task ViewCertificate(Guid certificateId)
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "View Certificate", $"Viewing certificate {certificateId}");
+        await Task.CompletedTask;
+    }
+
+    private async Task DownloadCertificate(Guid certificateId)
+    {
+        NotificationService.Notify(NotificationSeverity.Success, "Download", $"Downloading certificate {certificateId}");
+        await Task.CompletedTask;
+    }
+
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+}

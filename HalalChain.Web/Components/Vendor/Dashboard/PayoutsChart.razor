@@ -1,0 +1,17 @@
+@inject IPayoutService Payouts
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Payouts</h4>
+    <RadzenChart>
+        <RadzenColumnSeries Data="@_data" CategoryProperty="Month" ValueProperty="Value" Title="Payouts" />
+    </RadzenChart>
+</RadzenCard>
+
+@code {
+    record P(string Month, double Value);
+    private List<P> _data = new()
+    {
+        new("Jan", 400), new("Feb", 650), new("Mar", 520),
+        new("Apr", 780), new("May", 600), new("Jun", 850)
+    };
+}

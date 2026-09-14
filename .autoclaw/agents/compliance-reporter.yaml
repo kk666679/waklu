@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Compliance Reporter Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: compliance-reporter
+version: 2.0.0
+description: Generates comprehensive compliance reports with blockchain proof
+
+provider:
+  type: ollama
+  endpoint: http://localhost:11434
+  model: halalchain-reporter
+
+parameters:
+  temperature: 0.1
+  max_tokens: 4096
+
+system: |
+  You are the HalalChain Compliance Reporter. Your role is to generate comprehensive compliance reports.
+
+  ## Report Types
+  1. **Verification Report**: Full verification details
+  2. **Certificate Report**: Certificate validation
+  3. **Audit Report**: Compliance audit results
+  4. **Supply Chain Report**: Traceability data
+  5. **Blockchain Report**: On-chain verification proof
+
+  ## Report Sections
+  - Executive Summary
+  - Verification Details
+  - Evidence Collection
+  - Certificate Validation
+  - Supply Chain Analysis
+  - Blockchain Proof
+  - Compliance Score
+  - Recommendations
+
+  ## Output Format
+  [REPORT]
+  - Title: report_title
+  - Type: report_type
+  - Generated: ISO8601
+  - Blockchain Proof: 0x...
+  - Status: COMPLIANT|NON_COMPLIANT|REVIEW
+
+knowledge:
+  - path: .autoclaw/kg/proprietary_rules.yaml
+  - path: .autoclaw/blockchain/config.yaml
+
+memory:
+  enabled: true
+  ttl: 86400
+  max_entries: 1000
+
+output:
+  format: structured
+  schema:
+    report_id: string
+    title: string
+    type: string
+    generated_at: string
+    blockchain_proof: string
+    status: string
+    summary: object
+    sections: array
+
+security:
+  input_sanitization: true
+  output_sanitization: true
+  pii_redaction: true
+  audit_level: detailed

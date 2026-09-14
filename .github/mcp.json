@@ -1,0 +1,189 @@
+{
+  "inputs": [
+    {
+      "id": "arg0",
+      "type": "promptString",
+      "description": "",
+      "default": ""
+    },
+    {
+      "id": "arg1",
+      "type": "promptString",
+      "description": "",
+      "default": ""
+    },
+    {
+      "id": "arg2",
+      "type": "promptString",
+      "description": "Optional: GitHub token for testing models for free with rate limits.",
+      "default": "",
+      "password": true
+    },
+    {
+      "id": "arg3",
+      "type": "promptString",
+      "description": "Your Azure AI Search endpoint (https://<service>.search.windows.net/). Required for knowledge tools.",
+      "default": ""
+    },
+    {
+      "id": "arg4",
+      "type": "promptString",
+      "description": "API version (defaults to 2025-03-01-preview).",
+      "default": ""
+    },
+    {
+      "id": "arg5",
+      "type": "promptString",
+      "description": "Authentication method: 'service-principal' or 'api-search-key'.",
+      "default": ""
+    },
+    {
+      "id": "arg6",
+      "type": "promptString",
+      "description": "Required if using service-principal auth.",
+      "default": ""
+    },
+    {
+      "id": "arg7",
+      "type": "promptString",
+      "description": "Required if using service-principal auth.",
+      "default": ""
+    },
+    {
+      "id": "arg8",
+      "type": "promptString",
+      "description": "Required if using service-principal auth.",
+      "default": "",
+      "password": true
+    },
+    {
+      "id": "arg9",
+      "type": "promptString",
+      "description": "Required if using api-search-key auth.",
+      "default": "",
+      "password": true
+    },
+    {
+      "id": "arg10",
+      "type": "promptString",
+      "description": "Path to JSONL datasets for evaluation tools.",
+      "default": ""
+    },
+    {
+      "id": "arg11",
+      "type": "promptString",
+      "description": "Endpoint for text-quality evaluators (optional).",
+      "default": ""
+    },
+    {
+      "id": "arg12",
+      "type": "promptString",
+      "description": "API key for the above endpoint (optional).",
+      "default": "",
+      "password": true
+    },
+    {
+      "id": "arg13",
+      "type": "promptString",
+      "description": "Deployment name (e.g., gpt-4o) used by evaluators (optional).",
+      "default": ""
+    },
+    {
+      "id": "arg14",
+      "type": "promptString",
+      "description": "API version for Azure OpenAI (optional).",
+      "default": ""
+    },
+    {
+      "id": "arg15",
+      "type": "promptString",
+      "description": "Azure AI Project endpoint for agent tools (optional).",
+      "default": ""
+    },
+    {
+      "id": "arg16",
+      "type": "promptString",
+      "description": "",
+      "default": ""
+    },
+    {
+      "id": "arg17",
+      "type": "promptString",
+      "description": "Path to a .env file to load (e.g., ${workspaceFolder}/.env).",
+      "default": ""
+    }
+  ],
+  "servers": {
+    "Azure AI Foundry": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--prerelease=allow",
+        "${input:arg0}",
+        "--from",
+        "${input:arg1}",
+        "git+https://github.com/azure-ai-foundry/mcp-foundry.git@93bc2600ad0e65f6aac4de319347236be8bed580",
+        "run-azure-ai-foundry-mcp",
+        "--envFile",
+        "${input:arg16}",
+        "${input:arg17}"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${input:arg2}",
+        "AZURE_AI_SEARCH_ENDPOINT": "${input:arg3}",
+        "AZURE_AI_SEARCH_API_VERSION": "${input:arg4}",
+        "SEARCH_AUTHENTICATION_METHOD": "${input:arg5}",
+        "AZURE_TENANT_ID": "${input:arg6}",
+        "AZURE_CLIENT_ID": "${input:arg7}",
+        "AZURE_CLIENT_SECRET": "${input:arg8}",
+        "AZURE_AI_SEARCH_API_KEY": "${input:arg9}",
+        "EVAL_DATA_DIR": "${input:arg10}",
+        "AZURE_OPENAI_ENDPOINT": "${input:arg11}",
+        "AZURE_OPENAI_API_KEY": "${input:arg12}",
+        "AZURE_OPENAI_DEPLOYMENT": "${input:arg13}",
+        "AZURE_OPENAI_API_VERSION": "${input:arg14}",
+        "AZURE_AI_PROJECT_ENDPOINT": "${input:arg15}"
+      },
+      "internalMetadata": {
+        "description": "An experimental MCP server implementation for Azure AI Foundry that exposes unified tools for models, knowledge, evaluation and deployment.",
+        "version": "1.0.0",
+        "repository": "https://github.com/azure-ai-foundry/mcp-foundry",
+        "id": "azure-ai-foundry/mcp-foundry",
+        "owner_avatar_url": "https://avatars.githubusercontent.com/u/202016865?v=4",
+        "publishedDate": "9/9/2025 5:55:23 PM",
+        "registry": "https://api.mcp.github.com/v0.1/servers/",
+        "pinnedCommitSha": "93bc2600ad0e65f6aac4de319347236be8bed580"
+      }
+    },
+    "Hugging Face": {
+      "type": "sse",
+      "url": "https://huggingface.co/mcp",
+      "internalMetadata": {
+        "description": "Access Hugging Face models, datasets, Spaces, papers, collections via MCP.",
+        "version": "1.0.0",
+        "repository": "https://github.com/huggingface/hf-mcp-server",
+        "id": "huggingface/hf-mcp-server",
+        "owner_avatar_url": "https://avatars.githubusercontent.com/u/25720743?v=4",
+        "publishedDate": "20/8/2025 7:00:00 AM",
+        "registry": "https://api.mcp.github.com/v0.1/servers/"
+      }
+    },
+    "Vercel Next Dev Tools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "next-devtools-mcp@0.3.6"
+      ],
+      "internalMetadata": {
+        "description": "Next.js development tools MCP server with stdio transport",
+        "version": "0.3.6",
+        "repository": "https://github.com/vercel/next-devtools-mcp",
+        "id": "io.github.vercel/next-devtools-mcp",
+        "owner_avatar_url": "https://avatars.githubusercontent.com/u/14985020?v=4",
+        "publishedDate": "5/12/2025 9:38:56 PM",
+        "registry": "https://api.mcp.github.com/v0.1/servers/"
+      }
+    }
+  }
+}

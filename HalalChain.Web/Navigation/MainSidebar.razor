@@ -1,0 +1,106 @@
+@using HalalChain.Navigation
+@implements IDisposable
+@inject NavigationService Navigation
+@inject IUserContext UserContext
+@inject NavigationManager Nav
+
+<div class="hc-sidebar">
+    <div class="hc-sidebar__brand">
+        <a href="/" class="hc-brand-link">
+            <span class="hc-brand-text"><span class="text-primary">Halal</span><span>Chain</span></span>
+        </a>
+    </div>
+
+    <nav class="hc-sidebar__nav" aria-label="Main Navigation">
+        @if (_items != null)
+        {
+            @foreach (var item in _items)
+            {
+                @if (item.Children != null && item.Children.Any())
+                {
+                    <div class="hc-nav-group">
+                        <div class="hc-nav-group-label">@item.Label</div>
+                        @foreach (var child in item.Children)
+                        {
+                            <NavLink href="@child.Route" class="hc-nav-item" Match="NavLinkMatch.All">
+                                @if (!string.IsNullOrEmpty(child.Icon))
+                                {
+                                    <i class="fas @child.Icon" style="width:1.25rem;text-align:center;margin-right:0.5rem"></i>
+                                }
+                                <span>@child.Label</span>
+                            </NavLink>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <NavLink href="@item.Route" class="hc-nav-item" Match="NavLinkMatch.All">
+                        @if (!string.IsNullOrEmpty(item.Icon))
+                        {
+                            <i class="fas @item.Icon" style="width:1.25rem;text-align:center;margin-right:0.5rem"></i>
+                        }
+                        <span>@item.Label</span>
+                    </NavLink>
+                }
+            }
+        }
+    </nav>
+
+    <div class="hc-sidebar__footer">
+        <div class="hc-sidebar__user">
+            <img src="@UserContext.AvatarUrl" alt="@UserContext.UserName" class="hc-avatar" />
+            <div class="hc-user-info">
+                <div class="hc-user-name">@UserContext.UserName</div>
+                <div class="hc-user-role">@string.Join(", ", UserContext.Roles)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<NavigationItem>? _items;
+
+    protected override void OnInitialized()
+    {
+        var items = new List<NavigationItem>
+        {
+            new("/", "Home", "home", null, null, true),
+            new("/products", "Products", "shopping-bag", null, null, true),
+            new("/cart", "Cart", "shopping-cart", null, null, true),
+            new("/account", "Account", "user", null, null, true),
+            new("/vendor", "Vendor Portal", "store", null, "vendor", true,
+                new()
+                {
+                    new("/vendor", "Dashboard", "chart-pie", null, "vendor", true),
+                    new("/vendor/products", "Products", "box", null, "vendor", true),
+                    new("/vendor/orders", "Orders", "shopping-bag", null, "vendor", true),
+                    new("/vendor/certificates", "Certificates", "certificate", null, "vendor", true)
+                }),
+            new("/admin", "Admin", "cog", null, "admin", true,
+                new()
+                {
+                    new("/admin", "Dashboard", "chart-pie", null, "admin", true),
+                    new("/admin/vendors", "Vendors", "store", null, "admin", true),
+                    new("/admin/products", "Products", "box", null, "admin", true),
+                    new("/admin/orders", "Orders", "shopping-bag", null, "admin", true),
+                    new("/admin/verifications", "Verifications", "check-double", null, "admin", true),
+                    new("/admin/settings", "Settings", "cog", null, "admin", true)
+                })
+        };
+
+        Navigation.RegisterItems(items);
+        _items = Navigation.GetVisibleItems();
+        UserContext.OnChange += HandleUserContextChanged;
+    }
+
+    private void HandleUserContextChanged()
+    {
+        _items = Navigation.GetVisibleItems();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        UserContext.OnChange -= HandleUserContextChanged;
+    }
+}

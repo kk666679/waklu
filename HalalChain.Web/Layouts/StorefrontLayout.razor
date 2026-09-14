@@ -1,0 +1,430 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject CartState CartState
+@inject IThemeService ThemeService
+@inject IUserContext UserContext
+@inject IAuthService Auth
+@inject ISearchService SearchService
+@inject IJSRuntime JsRuntime
+@inject PlatformApiClient Api
+@inject ILogger<StorefrontLayout> Logger
+@inject NotificationService NotificationService
+
+<div class="@LayoutClass">
+    @if (!AnnouncementDismissed)
+    {
+        <div class="sf-announcement" role="alert">
+            <div class="container">
+                <span>Halal-Certified Products from Verified Vendors — Free Shipping on Orders Over MYR 50</span>
+                <button class="sf-announcement__close" @onclick="DismissAnnouncement" aria-label="Dismiss announcement">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    }
+
+    <RadzenHeader class="@HeaderClass" id="sf-header">
+        <div class="sf-header__main">
+            <div class="container">
+                <div class="sf-header__inner">
+                    <button class="sf-hamburger" @onclick="ToggleMobileMenu" aria-label="Toggle menu" aria-expanded="@MobileMenuOpen">
+                        <span></span><span></span><span></span>
+                    </button>
+
+                    <a href="/" class="sf-header__logo" aria-label="HalalChain Home">
+                        <span class="brand-text"><span class="text-primary">Halal</span>Chain</span>
+                        <span class="brand-tagline">AI-verified</span>
+                    </a>
+
+                    <nav class="sf-header__nav" aria-label="Main Navigation">
+                        <ul class="sf-nav-list">
+                            <li><NavLink href="/products" class="sf-nav-link" Match="NavLinkMatch.All">All Products</NavLink></li>
+                            @if (_departments != null)
+                            {
+                                @foreach (var dept in _departments)
+                                {
+                                    <li class="sf-nav-item--dropdown"
+                                        @onmouseenter="() => OpenDeptDropdown(dept.Slug)"
+                                        @onmouseleave="CloseDeptDropdown">
+                                        <NavLink href="@($"/products?department={dept.Slug}")" class="sf-nav-link">
+                                            @if (!string.IsNullOrEmpty(dept.IconClass))
+                                            {
+                                                <i class="fas @dept.IconClass" style="margin-right:0.35rem"></i>
+                                            }
+                                            @dept.Name
+                                        </NavLink>
+                                        @if (_openDept == dept.Slug)
+                                        {
+                                            <ul class="sf-dropdown-menu" @onclick:stopPropagation="true">
+                                                @if (_deptCategoriesLoading.Contains(dept.Slug))
+                                                {
+                                                    <li class="sf-dropdown-link text-muted"><i class="fas fa-spinner fa-spin"></i> Loading…</li>
+                                                }
+                                                else if (_deptCategories.TryGetValue(dept.Slug, out var cats) && cats.Length > 0)
+                                                {
+                                                    @foreach (var cat in cats)
+                                                    {
+                                                        <li>
+                                                            <NavLink href="@($"/products?department={dept.Slug}&category={cat.Slug}")" class="sf-dropdown-link">
+                                                                @if (!string.IsNullOrEmpty(cat.IconClass))
+                                                                {
+                                                                    <i class="fas @cat.IconClass" style="margin-right:0.35rem;width:1rem"></i>
+                                                                }
+                                                                @cat.Name
+                                                                <span class="text-muted small" style="margin-left:auto">@cat.SubcategoryCount</span>
+                                                            </NavLink>
+                                                        </li>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <li>
+                                                        <NavLink href="@($"/products?department={dept.Slug}")" class="sf-dropdown-link">
+                                                            View all @dept.Name <i class="fas fa-arrow-right"></i>
+                                                        </NavLink>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </li>
+                                }
+                            }
+                            <li>
+                                <NavLink href="/products?halalStatus=1" class="sf-nav-link">
+                                    <i class="fas fa-shield-halved" style="margin-right:0.35rem"></i>Halal Verified
+                                </NavLink>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <div class="sf-header__actions">
+                        <div class="sf-search" @onclick="FocusSearch">
+                            <i class="fas fa-search search-icon" aria-hidden="true"></i>
+                            <input type="text"
+                                   class="sf-search-input"
+                                   placeholder="Search products..."
+                                   aria-label="Search"
+                                   id="global-search"
+                                   @bind="SearchQuery"
+                                   @bind:event="oninput"
+                                   @onkeydown="HandleSearchKeydown" />
+                            <kbd class="search-shortcut">Ctrl+K</kbd>
+                            @if (SearchSuggestions.Any())
+                            {
+                                <ul class="sf-search-suggestions">
+                                    @foreach (var s in SearchSuggestions)
+                                    {
+                                        <li @onclick="() => NavigateToSearch(s)"><i class="fas fa-search"></i> @s</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+
+                        <button class="sf-theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="@(ThemeService.CurrentTheme == "dark" ? "true" : "false")">
+                            <i class="fas @(ThemeService.CurrentTheme == "dark" ? "fa-sun" : "fa-moon")" aria-hidden="true"></i>
+                        </button>
+
+                        <div class="sf-cart-wrapper" @onclick:stopPropagation="true">
+                            <button class="sf-cart-btn" @onclick="ToggleCartDropdown" aria-label="Shopping cart" aria-expanded="@CartDropdownOpen">
+                                <i class="fas fa-bag-shopping" aria-hidden="true"></i>
+                                <span class="sf-cart-badge">@CartState.Count</span>
+                            </button>
+                            @if (CartDropdownOpen)
+                            {
+                                <div class="sf-cart-dropdown">
+                                    <div class="sf-cart-header">
+                                        <span>Your Cart</span>
+                                        <span class="text-muted small">(@CartState.Count items)</span>
+                                    </div>
+                                    <div class="sf-cart-items">
+                                        @if (CartState.Items.Any())
+                                        {
+                                            @foreach (var item in CartState.Items.Take(5))
+                                            {
+                                                <div class="sf-cart-item">
+                                                    <div class="sf-cart-item-img"><i class="fas fa-bag-shopping" aria-hidden="true"></i></div>
+                                                    <div class="sf-cart-item-details">
+                                                        <div class="sf-cart-item-name">@item.Title</div>
+                                                        <div class="sf-cart-item-price">@item.Currency @item.Price.ToString("N2") x @item.Quantity</div>
+                                                    </div>
+                                                    <button class="sf-cart-item-remove" @onclick="() => CartState.RemoveItemAsync(item.ProductId)" aria-label="Remove">×</button>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="sf-cart-empty">
+                                                <i class="fas fa-bag-shopping" style="font-size:2rem;opacity:0.3" aria-hidden="true"></i>
+                                                <p>Your cart is empty</p>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="sf-cart-footer">
+                                        <div class="sf-cart-total">
+                                            <span>Total:</span>
+                                            <strong>MYR @CartState.Subtotal.ToString("N2")</strong>
+                                        </div>
+                                        <a href="/cart" class="btn btn-secondary btn-sm" style="width:100%;margin-top:0.5rem;text-decoration:none">View Cart</a>
+                                        <a href="/checkout" class="btn btn-primary btn-sm" style="width:100%;margin-top:0.5rem;text-decoration:none">Checkout</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="sf-user-wrapper" @onclick:stopPropagation="true">
+                            @if (UserContext.IsAuthenticated)
+                            {
+                                <button class="sf-user-btn" @onclick="ToggleProfileDropdown" aria-label="User menu" aria-expanded="@ProfileDropdownOpen">
+                                    <img src="@UserContext.AvatarUrl" alt="@UserContext.UserName" class="sf-avatar" />
+                                </button>
+                                @if (ProfileDropdownOpen)
+                                {
+                                    <div class="sf-profile-dropdown">
+                                        <div class="sf-dropdown-header">
+                                            <strong>@UserContext.FullName</strong>
+                                            <span class="text-muted small">@UserContext.Email</span>
+                                        </div>
+                                        <hr />
+                                        <NavLink href="/account" class="sf-dropdown-item"><i class="fas fa-user-circle"></i> My Account</NavLink>
+                                        <NavLink href="/account/orders" class="sf-dropdown-item"><i class="fas fa-box"></i> My Orders</NavLink>
+                                        <NavLink href="/vendor" class="sf-dropdown-item"><i class="fas fa-store"></i> Vendor Portal</NavLink>
+                                        <hr />
+                                        <button class="sf-dropdown-item text-danger" @onclick="Logout"><i class="fas fa-right-from-bracket"></i> Logout</button>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="sf-auth-links">
+                                    <NavLink href="/login" class="sf-auth-link">Login</NavLink>
+                                    <NavLink href="/register" class="btn btn-primary btn-sm">Sign Up</NavLink>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sf-mobile-menu @(MobileMenuOpen ? "open" : "")">
+            <div class="sf-mobile-nav">
+                <ul>
+                    <li><NavLink href="/products" class="sf-mobile-link">All Products</NavLink></li>
+                    <li><NavLink href="/products?category=snacks" class="sf-mobile-link">Snacks</NavLink></li>
+                    <li><NavLink href="/products?category=beverages" class="sf-mobile-link">Beverages</NavLink></li>
+                    <li><NavLink href="/products?category=meat-poultry" class="sf-mobile-link">Meat &amp; Poultry</NavLink></li>
+                    <li><NavLink href="/products?halalStatus=Verified" class="sf-mobile-link">Halal Verified</NavLink></li>
+                </ul>
+            </div>
+            <div class="sf-mobile-actions">
+                <NavLink href="/account" class="sf-mobile-link"><i class="fas fa-user"></i> Account</NavLink>
+                <NavLink href="/account/orders" class="sf-mobile-link"><i class="fas fa-box"></i> Orders</NavLink>
+                <NavLink href="/vendor" class="sf-mobile-link"><i class="fas fa-store"></i> Vendor Portal</NavLink>
+            </div>
+        </div>
+    </RadzenHeader>
+
+    <RadzenBody class="sf-main" data-reveal-stagger>
+        @Body
+    </RadzenBody>
+
+    <RadzenFooter class="sf-footer">
+        <div class="container">
+            <div class="sf-footer__grid">
+                <div class="sf-footer__about">
+                    <h3><span class="text-primary">Halal</span>Chain</h3>
+                    <p style="color:var(--color-neutral-400);font-size:0.875rem;margin-top:0.75rem;line-height:1.6">
+                        The AI-verified halal marketplace connecting certified vendors with conscious consumers across Southeast Asia.
+                    </p>
+                    <div style="display:flex;gap:0.75rem;margin-top:1rem">
+                        <a href="#" style="color:var(--color-neutral-400)" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" style="color:var(--color-neutral-400)" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" style="color:var(--color-neutral-400)" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="font-weight:600;margin-bottom:1rem">Shop</h4>
+                    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem">
+                        <li><a href="/products" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">All Products</a></li>
+                        <li><a href="/products?halalStatus=Verified" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Halal Verified</a></li>
+                        <li><a href="/products?category=snacks" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Snacks</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-weight:600;margin-bottom:1rem">Vendor</h4>
+                    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem">
+                        <li><a href="/vendor" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Vendor Portal</a></li>
+                        <li><a href="/vendor/register" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Become a Vendor</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-weight:600;margin-bottom:1rem">Compliance</h4>
+                    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem">
+                        <li><a href="/about" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">About HalalChain</a></li>
+                        <li><a href="/halal-standard" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Halal Standards</a></li>
+                        <li><a href="/privacy" style="color:var(--color-neutral-400);text-decoration:none;font-size:0.875rem">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="sf-footer__bottom">
+                <p style="color:var(--color-neutral-500);font-size:0.875rem">&copy; @DateTime.UtcNow.Year HalalChain. All rights reserved. Powered by Tawheed AI Agents.</p>
+            </div>
+        </div>
+    </RadzenFooter>
+
+    @if (_chatbotOpen)
+    {
+        <div class="chatbot-float-container">
+            <Chatbot Title="HalalChain Assistant" Context="@("Page: {Nav.Uri}")" />
+        </div>
+    }
+    <button class="chatbot-fab" @onclick="ToggleChatbot" aria-label="AI Assistant">
+        <i class="fas fa-@(_chatbotOpen ? "times" : "robot")" aria-hidden="true"></i>
+    </button>
+
+</div>
+
+@code {
+    private bool AnnouncementDismissed { get; set; }
+    private bool IsScrolled { get; set; }
+    private bool CartDropdownOpen { get; set; }
+    private bool ProfileDropdownOpen { get; set; }
+    private bool MobileMenuOpen { get; set; }
+    private string SearchQuery { get; set; } = "";
+    private List<string> SearchSuggestions { get; set; } = [];
+
+    private string LayoutClass => "sf-layout" + (ThemeService.CurrentTheme == "dark" ? " dark-theme" : "");
+    private string HeaderClass => "sf-header" + (IsScrolled ? " sf-header--scrolled" : "");
+
+    private DepartmentDto[]? _departments;
+    private string? _openDept;
+    private readonly Dictionary<string, TaxonomyCategoryDto[]> _deptCategories = new();
+    private readonly HashSet<string> _deptCategoriesLoading = new();
+
+    private bool _chatbotOpen;
+
+    private async Task LoadDepartmentsAsync()
+    {
+        try { _departments = await Api.GetDepartmentsAsync(); }
+        catch { _departments = null; }
+    }
+
+    private async Task OpenDeptDropdown(string deptSlug)
+    {
+        _openDept = deptSlug;
+        if (!_deptCategories.ContainsKey(deptSlug) && !_deptCategoriesLoading.Contains(deptSlug))
+        {
+            _deptCategoriesLoading.Add(deptSlug);
+            try
+            {
+                var cats = await Api.GetCategoriesForDepartmentAsync(deptSlug);
+                _deptCategories[deptSlug] = cats;
+            }
+            catch { _deptCategories[deptSlug] = []; }
+            finally { _deptCategoriesLoading.Remove(deptSlug); }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CloseDeptDropdown() => _openDept = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        CartState.OnChange += OnCartChanged;
+        Auth.OnAuthStateChanged += OnAuthChanged;
+        try { AnnouncementDismissed = await JsRuntime.InvokeAsync<bool>("localStorageHelper.getItem", "announcementDismissed"); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Failed to read announcementDismissed"); }
+        try { ThemeService.SetTheme(await JsRuntime.InvokeAsync<string>("getStoredTheme")); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Failed to read stored theme"); }
+        try { await JsRuntime.InvokeVoidAsync("addScrollListener", DotNetObjectReference.Create(this)); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Failed to register scroll listener"); }
+        _ = LoadDepartmentsAsync();
+        _ = CartState.InitializeAsync();
+    }
+
+    private DotNetObjectReference<StorefrontLayout>? _themeCallbackRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _themeCallbackRef = DotNetObjectReference.Create(this);
+            try { await JsRuntime.InvokeVoidAsync("registerThemeCallback", _themeCallbackRef); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Failed to register theme callback"); }
+        }
+    }
+
+    [JSInvokable]
+    public void OnNativeThemeChanged(string theme)
+    {
+        try { ThemeService.SetTheme(theme); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Failed to set theme from native callback"); }
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnScroll(int scrollY)
+    {
+        IsScrolled = scrollY > 20;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissAnnouncement()
+    {
+        AnnouncementDismissed = true;
+        await JsRuntime.InvokeVoidAsync("localStorageHelper.setItem", "announcementDismissed", true);
+    }
+
+    private void ToggleCartDropdown() { CartDropdownOpen = !CartDropdownOpen; ProfileDropdownOpen = false; }
+    private void ToggleProfileDropdown() { ProfileDropdownOpen = !ProfileDropdownOpen; CartDropdownOpen = false; }
+    private void ToggleMobileMenu() { MobileMenuOpen = !MobileMenuOpen; }
+
+    private async Task OnSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery) || SearchQuery.Length < 2) { SearchSuggestions = []; return; }
+        SearchSuggestions = await SearchService.GetSuggestionsAsync(SearchQuery);
+    }
+
+    private void NavigateToSearch(string query)
+    {
+        SearchQuery = query; SearchSuggestions = [];
+        Nav.NavigateTo($"/products?q={Uri.EscapeDataString(query)}");
+    }
+
+    private async Task HandleSearchKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            SearchSuggestions = [];
+            Nav.NavigateTo($"/products?q={Uri.EscapeDataString(SearchQuery)}");
+        }
+        else if (e.Key == "k" && e.CtrlKey)
+        {
+            await JsRuntime.InvokeVoidAsync("focusElement", "global-search");
+        }
+    }
+
+    private void FocusSearch() => JsRuntime.InvokeVoidAsync("focusElement", "global-search");
+
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        NotificationService.Notify(NotificationSeverity.Info, "Signed out", "You have been logged out.");
+        Nav.NavigateTo("/", true);
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+    private void OnCartChanged() => InvokeAsync(StateHasChanged);
+    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+
+    private void ToggleChatbot() { _chatbotOpen = !_chatbotOpen; InvokeAsync(StateHasChanged); }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        CartState.OnChange -= OnCartChanged;
+        Auth.OnAuthStateChanged -= OnAuthChanged;
+    }
+}

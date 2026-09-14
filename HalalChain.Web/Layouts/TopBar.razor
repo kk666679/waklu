@@ -1,0 +1,259 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IThemeService ThemeService
+@inject IUserContext UserContext
+@inject IAuthService Auth
+@inject NotificationState Notify
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject CartState CartState
+@inject IJSRuntime JsRuntime
+@inject ILogger<TopBar> Logger
+@inject IHcLocalizer L
+
+<header class="@HeaderClass" id="hc-topbar">
+    <div class="hc-topbar__inner">
+        <div class="hc-topbar__left">
+            @if (ShowSidebarToggle)
+            {
+                <button type="button" class="hc-topbar__icon-btn" @onclick="OnToggleSidebar" aria-label="Toggle sidebar">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+            }
+            <a href="/" class="hc-topbar__brand" aria-label="HalalChain Home">
+                <span class="hc-brand-mark" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                <span class="hc-topbar__brand-text">
+                    <span class="text-primary">Halal</span>Chain
+                </span>
+            </a>
+        </div>
+
+        @if (ShowSearch)
+        {
+            <div class="hc-topbar__center">
+                <div class="hc-topbar__search">
+                    <i class="fas fa-search hc-topbar__search-icon" aria-hidden="true"></i>
+                    <input type="search"
+                           class="hc-topbar__search-input"
+                           placeholder="@L.T("common.search")"
+                           aria-label="@L.T("common.searchShort")"
+                           @bind="SearchQuery"
+                           @bind:event="oninput"
+                           @onkeydown="HandleSearchKeydown" />
+                    <kbd class="hc-topbar__shortcut">Ctrl K</kbd>
+                </div>
+            </div>
+        }
+
+        <div class="hc-topbar__right">
+            <CultureSwitcher />
+            <button type="button" class="hc-topbar__icon-btn" aria-label="Toggle theme" aria-pressed="@(ThemeService.CurrentTheme == "dark" ? "true" : "false")" @onclick="ToggleTheme">
+                <i class="fas @(ThemeService.CurrentTheme == "dark" ? "fa-sun" : "fa-moon")" aria-hidden="true"></i>
+            </button>
+
+            @if (ShowNotifications)
+            {
+                <button type="button" class="hc-topbar__icon-btn hc-topbar__notifications" aria-label="Notifications" @onclick="ToggleNotifications">
+                    <i class="fas fa-bell" aria-hidden="true"></i>
+                    @if (Notify.Notifications.Count > 0)
+                    {
+                        <span class="hc-topbar__badge">@Notify.Notifications.Count</span>
+                    }
+                </button>
+                @if (_notificationsOpen)
+                {
+                    <div class="hc-topbar__dropdown hc-topbar__dropdown--notifications" @onclick:stopPropagation="true">
+                        <div class="hc-topbar__dropdown-header">
+                            <strong>Notifications</strong>
+                            <button type="button" class="hc-topbar__dropdown-clear" @onclick="ClearNotifications">Clear all</button>
+                        </div>
+                        @if (Notify.Notifications.Count == 0)
+                        {
+                            <div class="hc-topbar__dropdown-empty">No notifications yet.</div>
+                        }
+                        else
+                        {
+                            <ul class="hc-topbar__notification-list">
+                                @foreach (var n in Notify.Notifications.OrderByDescending(x => x.Id).Take(8))
+                                {
+                                    <li class="hc-topbar__notification hc-topbar__notification--@n.Type">
+                                        <span class="hc-topbar__notification-dot" aria-hidden="true"></span>
+                                        <span class="hc-topbar__notification-text">@n.Message</span>
+                                        <button type="button" class="hc-topbar__notification-dismiss" aria-label="Dismiss" @onclick="() => Notify.Dismiss(n.Id)">
+                                            <i class="fas fa-times" aria-hidden="true"></i>
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+            }
+
+            @if (ShowCart)
+            {
+                <a href="/cart" class="hc-topbar__icon-btn hc-topbar__cart" aria-label="Cart">
+                    <i class="fas fa-bag-shopping" aria-hidden="true"></i>
+                    @if (CartState.Count > 0)
+                    {
+                        <span class="hc-topbar__badge">@CartState.Count</span>
+                    }
+                </a>
+            }
+
+            @if (UserContext.IsAuthenticated)
+            {
+                <div class="hc-topbar__user" @onclick:stopPropagation="true">
+                    <button type="button" class="hc-topbar__user-btn" aria-label="User menu" aria-expanded="@_profileOpen" @onclick="ToggleProfile">
+                        <span class="hc-topbar__avatar" aria-hidden="true">@GetUserInitials()</span>
+                        <span class="hc-topbar__user-name">@UserContext.UserName</span>
+                        <i class="fas fa-chevron-down hc-topbar__user-chev" aria-hidden="true"></i>
+                    </button>
+                    @if (_profileOpen)
+                    {
+                        <div class="hc-topbar__dropdown hc-topbar__dropdown--profile">
+                            <div class="hc-topbar__dropdown-header">
+                                <strong>@UserContext.FullName</strong>
+                                <span class="text-muted small">@UserContext.Email</span>
+                            </div>
+                            <div class="hc-topbar__dropdown-divider"></div>
+                            <a href="/account" class="hc-topbar__dropdown-item" @onclick="CloseProfile">
+                                <i class="fas fa-user-circle" aria-hidden="true"></i> My Account
+                            </a>
+                            <a href="/account/orders" class="hc-topbar__dropdown-item" @onclick="CloseProfile">
+                                <i class="fas fa-box" aria-hidden="true"></i> My Orders
+                            </a>
+                            @if (UserContext.Roles.Contains("vendor"))
+                            {
+                                <a href="/vendor" class="hc-topbar__dropdown-item" @onclick="CloseProfile">
+                                    <i class="fas fa-store" aria-hidden="true"></i> Vendor Portal
+                                </a>
+                            }
+                            @if (UserContext.Roles.Contains("admin"))
+                            {
+                                <a href="/admin" class="hc-topbar__dropdown-item" @onclick="CloseProfile">
+                                    <i class="fas fa-gauge-high" aria-hidden="true"></i> Admin Console
+                                </a>
+                            }
+                            <div class="hc-topbar__dropdown-divider"></div>
+                            <button type="button" class="hc-topbar__dropdown-item hc-topbar__dropdown-item--danger" @onclick="Logout">
+                                <i class="fas fa-right-from-bracket" aria-hidden="true"></i> Logout
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="hc-topbar__auth">
+                    <a href="/login" class="hc-topbar__auth-link">@L.T("auth.login")</a>
+                    <a href="/register" class="hc-topbar__auth-cta">@L.T("auth.signup")</a>
+                </div>
+            }
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter] public bool ShowSidebarToggle { get; set; } = true;
+    [Parameter] public bool ShowSearch { get; set; } = true;
+    [Parameter] public bool ShowCart { get; set; } = true;
+    [Parameter] public bool ShowNotifications { get; set; } = true;
+    [Parameter] public EventCallback OnToggleSidebar { get; set; }
+
+    private string SearchQuery { get; set; } = "";
+    private bool _scrolled;
+    private bool _profileOpen;
+    private bool _notificationsOpen;
+
+    private string HeaderClass => "hc-topbar" + (_scrolled ? " hc-topbar--scrolled" : "");
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        CartState.OnChange += OnChange;
+        Auth.OnAuthStateChanged += OnChange;
+        Notify.OnChange += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JsRuntime.InvokeVoidAsync("addScrollListener", DotNetObjectReference.Create(this)); }
+            catch (Exception ex) { Logger.LogDebug(ex, "TopBar scroll listener registration failed"); }
+        }
+    }
+
+    [JSInvokable]
+    public void OnScroll(int scrollY)
+    {
+        var next = scrollY > 8;
+        if (next != _scrolled)
+        {
+            _scrolled = next;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    private void ToggleTheme() => ThemeService.ToggleTheme();
+
+    private void ToggleNotifications()
+    {
+        _notificationsOpen = !_notificationsOpen;
+        if (_notificationsOpen) _profileOpen = false;
+    }
+
+    private void ToggleProfile()
+    {
+        _profileOpen = !_profileOpen;
+        if (_profileOpen) _notificationsOpen = false;
+    }
+
+    private void CloseProfile() => _profileOpen = false;
+
+    private void ClearNotifications()
+    {
+        foreach (var n in Notify.Notifications.ToList())
+        {
+            Notify.Dismiss(n.Id);
+        }
+    }
+
+    private async Task HandleSearchKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            var q = Uri.EscapeDataString(SearchQuery.Trim());
+            Nav.NavigateTo($"/products?q={q}");
+        }
+    }
+
+    private async Task Logout()
+    {
+        _profileOpen = false;
+        await Auth.LogoutAsync();
+        NotificationService.Notify(NotificationSeverity.Info, "Signed out", "You have been signed out.");
+        Nav.NavigateTo("/", true);
+    }
+
+    private string GetUserInitials()
+    {
+        var name = UserContext.UserName ?? "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        CartState.OnChange -= OnChange;
+        Auth.OnAuthStateChanged -= OnChange;
+        Notify.OnChange -= OnChange;
+    }
+}

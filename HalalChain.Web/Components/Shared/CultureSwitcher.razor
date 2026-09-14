@@ -1,0 +1,54 @@
+@implements IDisposable
+@inject IHcLocalizer Localizer
+@inject NavigationManager Nav
+
+<div class="hc-culture">
+    <button type="button" class="hc-culture__btn"
+            aria-haspopup="listbox" aria-expanded="@_open"
+            aria-label="Select language"
+            @onclick="Toggle">
+        <span class="hc-culture__flag" aria-hidden="true">@Localizer.CurrentDescriptor.Flag</span>
+        <span class="hc-culture__code">@Localizer.CurrentCulture.ToUpperInvariant()</span>
+        <i class="fas fa-chevron-down hc-culture__chev" aria-hidden="true"></i>
+    </button>
+    @if (_open)
+    {
+        <ul class="hc-culture__menu" role="listbox" @onclick:stopPropagation="true">
+            @foreach (var c in Localizer.Supported)
+            {
+                <li role="option" aria-selected="@(c.Id == Localizer.CurrentCulture)">
+                    <button type="button" class="hc-culture__item @(c.Id == Localizer.CurrentCulture ? "is-active" : "")"
+                            @onclick="() => Select(c.Id)">
+                        <span class="hc-culture__flag" aria-hidden="true">@c.Flag</span>
+                        <span class="hc-culture__native">@c.NativeName</span>
+                        <span class="hc-culture__name">@c.DisplayName</span>
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool _open;
+
+    protected override void OnInitialized() => Localizer.OnChange += HandleChange;
+
+    private void HandleChange() => InvokeAsync(StateHasChanged);
+
+    private void Toggle() => _open = !_open;
+
+    private async Task Select(string id)
+    {
+        _open = false;
+        await Localizer.SetCultureAsync(id);
+        var uri = new Uri(Nav.Uri);
+        var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        Dictionary<string, string?> dict = q.ToDictionary(kv => kv.Key, kv => (string?)kv.Value.ToString());
+        dict[SupportedCultures.QueryName] = id;
+        var rebuilt = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(uri.GetLeftPart(UriPartial.Path), dict!);
+        Nav.NavigateTo(rebuilt, forceLoad: false);
+    }
+
+    public void Dispose() => Localizer.OnChange -= HandleChange;
+}

@@ -1,0 +1,120 @@
+@page "/products"
+@layout StorefrontLayout
+@inject AppState State
+@implements IDisposable
+
+<section class="container mt-8 mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold mb-1">All Products</h1>
+            <p class="text-muted">@State.FilteredProducts.Length products from verified vendors</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-6">
+        <div class="card-body" style="padding:var(--space-4)">
+            <div class="flex items-center gap-4" style="flex-wrap:wrap">
+                <!-- Search -->
+                <div style="flex:1;min-width:250px;position:relative">
+                    <i class="fas fa-search" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:var(--color-neutral-400);font-size:0.875rem"></i>
+                    <input type="text" class="form-input" style="padding-left:2.25rem"
+                           placeholder="Search products, vendors..."
+                           value="@State.SearchQuery"
+                           @oninput="OnSearchInput" />
+                </div>
+
+                <!-- Category filter -->
+                <div style="min-width:180px">
+                    <select class="form-input form-select" @onchange="OnCategoryChange">
+                        <option value="">All Categories</option>
+                        @foreach (var cat in State.Categories)
+                        {
+                            <option value="@cat.Name" selected="@(State.SelectedCategory == cat.Name)">@cat.Name (@cat.ProductCount)</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Halal filter -->
+                <div style="min-width:160px">
+                    <select class="form-input form-select" @onchange="OnHalalChange">
+                        <option value="">All Status</option>
+                        <option value="Verified" selected="@(State.SelectedHalalStatus == "Verified")">✅ Halal Verified</option>
+                        <option value="Unverified" selected="@(State.SelectedHalalStatus == "Unverified")">⏳ Unverified</option>
+                    </select>
+                </div>
+
+                @if (!string.IsNullOrEmpty(State.SearchQuery) || !string.IsNullOrEmpty(State.SelectedCategory) || !string.IsNullOrEmpty(State.SelectedHalalStatus))
+                {
+                    <button class="btn btn-ghost btn-sm" @onclick="ClearFilters">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    @if (State.IsLoading)
+    {
+        <div class="grid grid-4">
+            @for (var i = 0; i < 8; i++)
+            {<div class="skeleton" style="height:300px;border-radius:var(--radius-lg)"></div>}
+        </div>
+    }
+    else if (!State.FilteredProducts.Any())
+    {
+        <div class="card" style="text-align:center;padding:var(--space-12)">
+            <i class="fas fa-search fa-3x" style="color:var(--color-neutral-300);margin-bottom:var(--space-4)"></i>
+            <h3 class="text-xl font-bold mb-2">No products found</h3>
+            <p class="text-muted mb-4">Try adjusting your search or filters</p>
+            <button class="btn btn-primary" @onclick="ClearFilters">Clear Filters</button>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-4">
+            @foreach (var p in State.FilteredProducts)
+            {<ProductCard Product="p" />}
+        </div>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnStateChanged;
+        if (!State.Products.Any())
+        {
+            await State.LoadProductsAsync();
+            await State.LoadCategoriesAsync();
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        State.SetSearchQuery(e.Value?.ToString() ?? "");
+    }
+
+    private void OnCategoryChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        State.SetCategoryFilter(string.IsNullOrEmpty(value) ? null : value);
+    }
+
+    private void OnHalalChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        State.SetHalalFilter(string.IsNullOrEmpty(value) ? null : value);
+    }
+
+    private void ClearFilters()
+    {
+        State.SetSearchQuery("");
+        State.SetCategoryFilter(null);
+        State.SetHalalFilter(null);
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnStateChanged;
+}

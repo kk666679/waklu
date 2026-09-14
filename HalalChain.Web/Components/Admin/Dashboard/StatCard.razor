@@ -1,0 +1,21 @@
+<div class="admin-stat-card rz-shadow-1">
+    <div class="admin-stat-card__icon" style="background:@BgColor">
+        <i class="material-icons">@Icon</i>
+    </div>
+    <div class="admin-stat-card__body">
+        <div class="admin-stat-card__label">@Label</div>
+        <div class="admin-stat-card__value">@Value</div>
+        @if (!string.IsNullOrEmpty(Trend))
+        {
+            <div class="admin-stat-card__trend">@Trend</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = "insights";
+    [Parameter] public string BgColor { get; set; } = "var(--rz-primary)";
+    [Parameter] public string? Trend { get; set; }
+}

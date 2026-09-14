@@ -1,0 +1,62 @@
+@page "/account/login"
+@layout AuthLayout
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Sign in</PageTitle>
+
+<div class="auth-title">
+    <h1>Welcome back</h1>
+    <p class="muted">Sign in to manage your cart, orders, and wishlist.</p>
+</div>
+
+<EditForm Model="@_form" OnValidSubmit="@Submit">
+    <DataAnnotationsValidator />
+    <div class="stack gap-3">
+        <div>
+            <label class="small muted">Email</label>
+            <RadzenTextBox @bind-Value="_form.Email" Style="width:100%;" Name="Email" />
+        </div>
+        <div>
+            <label class="small muted">Password</label>
+            <RadzenPassword @bind-Value="_form.Password" Style="width:100%;" Name="Password" />
+        </div>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-error">@_error</div>
+        }
+        <RadzenButton Text="Sign in" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" ButtonType="ButtonType.Submit" IsBusy="@_submitting" Style="width:100%;" />
+    </div>
+</EditForm>
+
+<div class="auth-foot">
+    <span>New to HalalChain?</span>
+    <a href="/account/register">Create an account</a>
+</div>
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    private LoginForm _form = new();
+    private string? _error;
+    private bool _submitting;
+
+    public class LoginForm
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    private async Task Submit()
+    {
+        _submitting = true; _error = null;
+        var result = await Auth.LoginAsync(_form.Email, _form.Password);
+        _submitting = false;
+        if (result.IsSuccess && result.Data?.Token != null)
+        {
+            Toast.Success("Signed in");
+            Nav.NavigateTo(ReturnUrl ?? "/account", forceLoad: true);
+        }
+        else _error = "We couldn't sign you in. Check your email and password.";
+    }
+}

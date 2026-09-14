@@ -1,0 +1,125 @@
+@page "/cart"
+@layout StorefrontLayout
+@inject CartState CartState
+@implements IDisposable
+
+<section class="container mt-8 mb-8">
+    <h1 class="text-3xl font-bold mb-6">Shopping Cart</h1>
+    @if (!CartState.Items.Any())
+    {
+        <div class="card" style="text-align:center;padding:var(--space-12)">
+            <i class="fas fa-shopping-bag fa-3x" style="color:var(--color-neutral-300);margin-bottom:var(--space-4)"></i>
+            <h3 class="text-xl font-bold mb-2">Your cart is empty</h3>
+            <p class="text-muted text-lg mb-4">Browse our halal-certified products to get started</p>
+            <Button Href="/products" Text="Continue Shopping" Icon="shopping-bag" />
+        </div>
+    }
+    else
+    {
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-8)">
+            <!-- Cart Items -->
+            <div class="card">
+                <div class="card-header flex items-center justify-between">
+                    <span>Cart Items (@CartState.Count)</span>
+                    <button class="btn btn-ghost btn-sm text-danger" @onclick="CartState.Clear">
+                        <i class="fas fa-trash"></i> Clear Cart
+                    </button>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th style="text-align:right">Price</th>
+                                <th style="text-align:center">Qty</th>
+                                <th style="text-align:right">Total</th>
+                                <th style="width:50px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in CartState.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="font-medium">@item.Title</div>
+                                    </td>
+                                    <td style="text-align:right;color:var(--color-text-secondary)">@item.Currency @item.Price.ToString("N2")</td>
+                                    <td style="text-align:center">
+                                        <div style="display:inline-flex;align-items:center;gap:var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-1)">
+                                            <button class="btn btn-ghost btn-sm" style="padding:0.15rem 0.4rem" @onclick="() => DecreaseQuantity(item.ProductId)" disabled="@(item.Quantity <= 1)">
+                                                <i class="fas fa-minus" style="font-size:0.65rem"></i>
+                                            </button>
+                                            <span style="font-weight:var(--font-semibold);min-width:1.5rem;text-align:center;font-size:var(--text-sm)">@item.Quantity</span>
+                                            <button class="btn btn-ghost btn-sm" style="padding:0.15rem 0.4rem" @onclick="() => IncreaseQuantity(item.ProductId)">
+                                                <i class="fas fa-plus" style="font-size:0.65rem"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right" class="font-semibold">@item.Currency @((item.Price * item.Quantity).ToString("N2"))</td>
+                                    <td>
+                                        <button class="btn btn-ghost btn-sm" style="color:var(--color-danger)" @onclick="() => CartState.RemoveItem(item.ProductId)" aria-label="Remove">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div>
+                <div class="card" style="position:sticky;top:calc(var(--topbar-height, 64px) + var(--space-4))">
+                    <div class="card-header">Order Summary</div>
+                    <div class="card-body">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Subtotal (@CartState.Count items)</span>
+                            <span class="font-medium">MYR @CartState.Subtotal.ToString("N2")</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Shipping</span>
+                            <span class="text-success font-medium">@(CartState.Subtotal >= 50 ? "Free" : "MYR 8.00")</span>
+                        </div>
+                        @if (CartState.Subtotal < 50)
+                        {
+                            <div style="background:var(--color-brand-50);border:1px solid var(--color-brand-200);border-radius:var(--radius-lg);padding:var(--space-3);margin:var(--space-4) 0;font-size:var(--text-xs);color:var(--color-brand-700)">
+                                <i class="fas fa-truck"></i> Add MYR @((50 - CartState.Subtotal).ToString("N2")) more for free shipping
+                            </div>
+                        }
+                        <hr style="margin:var(--space-4) 0;border-color:var(--color-neutral-200)" />
+                        <div class="flex justify-between mb-4">
+                            <span class="font-bold text-lg">Total</span>
+                            <span class="font-bold text-lg text-primary">MYR @((CartState.Subtotal + (CartState.Subtotal >= 50 ? 0 : 8)).ToString("N2"))</span>
+                        </div>
+                        <Button Href="/checkout" Text="Proceed to Checkout" Icon="credit-card" FullWidth="true" />
+                        <div style="text-align:center;margin-top:var(--space-3)">
+                            <a href="/products" style="font-size:var(--text-sm);color:var(--color-primary-600)">← Continue Shopping</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    protected override void OnInitialized() => CartState.OnChange += OnChanged;
+
+    private void IncreaseQuantity(string productId)
+    {
+        var item = CartState.Items.FirstOrDefault(i => i.ProductId == productId);
+        if (item != null)
+            CartState.UpdateQuantity(productId, item.Quantity + 1);
+    }
+
+    private void DecreaseQuantity(string productId)
+    {
+        var item = CartState.Items.FirstOrDefault(i => i.ProductId == productId);
+        if (item != null && item.Quantity > 1)
+            CartState.UpdateQuantity(productId, item.Quantity - 1);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => CartState.OnChange -= OnChanged;
+}

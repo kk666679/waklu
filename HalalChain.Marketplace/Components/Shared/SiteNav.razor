@@ -1,0 +1,179 @@
+@inject CartState Cart
+@inject ISearchService Search
+@inject IThemeService Theme
+@inject NavigationManager Nav
+@inject AuthService Auth
+@implements IDisposable
+
+<header class="site-nav">
+    <div class="container nav-inner">
+        <a class="brand" href="/">
+            <span class="brand-mark">◈</span>
+            <span class="brand-name">HalalChain</span>
+        </a>
+
+        <nav class="nav-main" aria-label="Departments">
+            <div class="nav-mega" @onmouseenter="OpenMega" @onmouseleave="CloseMega">
+                <button class="nav-mega-btn" aria-expanded="@_megaOpen" @onclick="ToggleMega">
+                    <span>Departments</span>
+                    <span class="caret">▾</span>
+                </button>
+                @if (_megaOpen && _departments.Length > 0)
+                {
+                    <div class="nav-mega-panel">
+                        <div class="grid grid-3">
+                            @foreach (var d in _departments)
+                            {
+                                <a class="mega-item" href="/browse?department=@d.Slug" @onclick="CloseMega">
+                                    <span class="mega-icon">@(d.IconClass ?? "◈")</span>
+                                    <span>
+                                        <strong>@d.Name</strong>
+                                        <span class="small muted">@d.Description</span>
+                                    </span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <a class="nav-link" href="/browse?status=1">Verified</a>
+            <a class="nav-link" href="/vendors">Vendors</a>
+            <a class="nav-link" href="/verify">Verify</a>
+        </nav>
+
+        <div class="nav-search">
+            <div class="search-box">
+                <input type="text" placeholder="Search halal products…"
+                       @bind="_searchQuery" @bind:event="oninput"
+                       @onfocus="OnSearchFocus" @onblur="OnSearchBlur"
+                       @onkeydown="OnSearchKey" />
+                @if (_showSuggestions && _suggestions.Length > 0)
+                {
+                    <ul class="search-suggestions">
+                        @foreach (var s in _suggestions)
+                        {
+                            <li>
+                                <a href="@s.Href">
+                                    <span>@s.Text</span>
+                                    @if (!string.IsNullOrEmpty(s.Category))
+                                    {
+                                        <span class="small muted">@s.Category</span>
+                                    }
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <button class="icon-btn" @onclick="Theme.ToggleAsync" aria-label="Toggle theme">
+                @if (Theme.CurrentTheme == "dark") { <span>☀</span> } else { <span>☾</span> }
+            </button>
+
+            <a class="icon-btn" href="/account/wishlist" aria-label="Wishlist">
+                <span>♡</span>
+            </a>
+
+            <a class="icon-btn nav-cart" href="/cart" aria-label="Cart">
+                <span>🛒</span>
+                @if (Cart.ItemCount > 0)
+                {
+                    <span class="nav-badge">@Cart.ItemCount</span>
+                }
+            </a>
+
+            @if (Auth.IsAuthenticated)
+            {
+                <a class="nav-link" href="/account">Account</a>
+            }
+            else
+            {
+                <a class="btn btn-ghost btn-sm" href="/account/login">Sign in</a>
+            }
+        </div>
+
+        <button class="nav-burger" @onclick="ToggleMobile" aria-label="Menu">☰</button>
+    </div>
+
+    @if (_mobileOpen)
+    {
+        <div class="nav-mobile">
+            <a href="/browse" @onclick="CloseMobile">Browse</a>
+            <a href="/vendors" @onclick="CloseMobile">Vendors</a>
+            <a href="/verify" @onclick="CloseMobile">Verify</a>
+            <a href="/cart" @onclick="CloseMobile">Cart (@Cart.ItemCount)</a>
+            <a href="/account" @onclick="CloseMobile">Account</a>
+        </div>
+    }
+</header>
+
+@code {
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    private DepartmentDto[] _departments = Array.Empty<DepartmentDto>();
+    private SearchSuggestionDto[] _suggestions = Array.Empty<SearchSuggestionDto>();
+    private string _searchQuery = "";
+    private bool _megaOpen;
+    private bool _mobileOpen;
+    private bool _showSuggestions;
+    private CancellationTokenSource? _searchCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Cart.OnChange += OnCartChanged;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<ApiResult<DepartmentDto[]>>($"{Nav.BaseUri}api/nav/departments");
+            if (result?.IsSuccess == true && result.Data != null) _departments = result.Data;
+        }
+        catch { /* degrade gracefully */ }
+        try { await Cart.LoadAsync(); } catch { }
+    }
+
+    private void OnCartChanged() => InvokeAsync(StateHasChanged);
+
+    private void ToggleMega() => _megaOpen = !_megaOpen;
+    private void OpenMega() => _megaOpen = true;
+    private void CloseMega() => _megaOpen = false;
+    private void ToggleMobile() => _mobileOpen = !_mobileOpen;
+    private void CloseMobile() => _mobileOpen = false;
+
+    private async Task OnSearchFocus()
+    {
+        _showSuggestions = _searchQuery.Length >= 2;
+        if (_showSuggestions) await RunSuggestions();
+    }
+
+    private async Task OnSearchBlur()
+    {
+        await Task.Delay(200);
+        _showSuggestions = false;
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Nav.NavigateTo($"/browse?search={Uri.EscapeDataString(_searchQuery)}");
+            _showSuggestions = false;
+        }
+        else if (_searchQuery.Length >= 2)
+        {
+            _showSuggestions = true;
+            await RunSuggestions();
+        }
+    }
+
+    private async Task RunSuggestions()
+    {
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        try { _suggestions = await Search.GetSuggestionsAsync(_searchQuery, 8, _searchCts.Token); }
+        catch { _suggestions = Array.Empty<SearchSuggestionDto>(); }
+    }
+
+    public void Dispose() => Cart.OnChange -= OnCartChanged;
+}

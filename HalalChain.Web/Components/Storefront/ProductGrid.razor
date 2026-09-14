@@ -1,0 +1,102 @@
+@using Radzen.Blazor
+@using HalalChain.Services
+@inject AppState State
+@inject PlatformApiClient Api
+@implements IDisposable
+
+<div class="product-grid @(ViewMode == "list" ? "product-grid--list" : "") @AdditionalClass">
+    <div class="product-grid__toolbar">
+        <div class="product-grid__filters">
+            <SearchBox Placeholder="Search products..." InitialQuery="@State.SearchQuery" OnSearch="@OnSearch" />
+            <SortDropdown SelectedSort="@_selectedSort" OnSortChanged="@OnSortChanged" />
+            <DataViewToggle ViewMode="@ViewMode" OnViewModeChanged="@OnViewModeChanged" Info="@($"{State.FilteredProducts.Length} products")" />
+        </div>
+    </div>
+
+    @if (State.IsLoading)
+    {
+        <div class="product-grid__skeleton">
+            @for (var i = 0; i < PageSize; i++)
+            {
+                <div class="skeleton" style="height:320px;border-radius:var(--radius-lg)"></div>
+            }
+        </div>
+    }
+    else if (!State.FilteredProducts.Any())
+    {
+        <DataEmpty Title="No products found" Description="Try adjusting your search or filters" />
+    }
+    else
+    {
+        <div class="product-grid__items">
+            @foreach (var p in ViewMode == "list" ? State.FilteredProducts.Take(PageSize) : State.FilteredProducts.Take(PageSize))
+            {
+                        <StorefrontProductCard Product="@GetExtendedProduct(p)" />
+            }
+        </div>
+        @if (State.FilteredProducts.Length > PageSize)
+        {
+            <Pagination CurrentPage="@_currentPage" TotalPages="@GetTotalPages()" OnPageChanged="@GoToPage" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string ViewMode { get; set; } = "grid";
+    [Parameter] public int PageSize { get; set; } = 12;
+    [Parameter] public string? Category { get; set; }
+    [Parameter] public string? Department { get; set; }
+    [Parameter] public string? SearchQuery { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<ProductDto> OnProductClick { get; set; }
+
+    private string _selectedSort = "newest";
+    private int _currentPage = 1;
+    private List<ProductDto> _filteredProducts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnStateChanged;
+        if (!State.Products.Any())
+        {
+            await State.LoadProductsAsync();
+            await State.LoadCategoriesAsync();
+        }
+        _filteredProducts = [.. State.FilteredProducts];
+    }
+
+    private async void OnStateChanged()
+    {
+        _filteredProducts = [.. State.FilteredProducts];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSearch(string query)
+    {
+        State.SetSearchQuery(query);
+    }
+
+    private async Task OnSortChanged(string? sort)
+    {
+        _selectedSort = sort ?? "newest";
+        StateHasChanged();
+    }
+
+    private async Task OnViewModeChanged(string mode)
+    {
+        ViewMode = mode;
+        StateHasChanged();
+    }
+
+    private void GoToPage(int page)
+    {
+        _currentPage = page;
+        StateHasChanged();
+    }
+
+    private int GetTotalPages() => (int)Math.Ceiling((double)Math.Min(State.FilteredProducts.Length, PageSize * _currentPage + PageSize) / PageSize);
+
+    private ExtendedProductDto GetExtendedProduct(ProductDto p) => ExtendedProductDto.FromProductDto(p);
+
+    public void Dispose() => State.OnChange -= OnStateChanged;
+}

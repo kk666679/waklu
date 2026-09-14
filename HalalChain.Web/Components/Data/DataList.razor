@@ -1,0 +1,53 @@
+@typeparam TItem
+@using Radzen.Blazor
+
+<div class="data-list @AdditionalClass">
+    <div class="data-list__header">
+        <h3 class="data-list__title">@Title</h3>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <span class="data-list__subtitle text-sm text-muted">@Subtitle</span>
+        }
+    </div>
+    <div class="data-list__items">
+        @if (Items != null && Items.Any())
+        {
+            @foreach (var item in Items)
+            {
+                <div class="data-list__item" @onclick="() => OnItemClick?.Invoke(item)">
+                    @if (ItemTemplate != null)
+                    {
+                        @ItemTemplate(item)
+                    }
+                    else
+                    {
+                        @item
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="data-list__empty">
+                <RadzenIcon Icon="inbox" Style="font-size:2rem;opacity:0.3" />
+                <p class="text-muted">No items to display</p>
+            </div>
+        }
+    </div>
+    @if (Loading)
+    {
+        <div class="data-list__loading">
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public List<TItem>? Items { get; set; }
+    [Parameter] public RenderFragment<TItem>? ItemTemplate { get; set; }
+    [Parameter] public Action<TItem>? OnItemClick { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+}

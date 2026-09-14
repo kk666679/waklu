@@ -1,0 +1,26 @@
+@page "/account/register"
+@inject IAuthService Auth
+@inject AppNotificationService Notify
+@inject NavigationManager Nav
+@inject IHcLocalizer L
+
+<RadzenCard class="rz-shadow-2" Style="max-width:420px;margin:2rem auto">
+    <h3>@L.T("auth.createAccount")</h3>
+    <RadzenTemplateForm TItem="RegisterModel" Data="@_model" Submit="@OnSubmit">
+        <RadzenFormField Text="@L.T("auth.fullName")"><RadzenTextBox @bind-Value="_model.FullName" /></RadzenFormField>
+        <RadzenFormField Text="@L.T("auth.email")"><RadzenTextBox @bind-Value="_model.Email" /></RadzenFormField>
+        <RadzenFormField Text="@L.T("auth.password")"><RadzenPassword @bind-Value="_model.Password" /></RadzenFormField>
+        <RadzenButton ButtonType="ButtonType.Submit" Text="@L.T("auth.register")" ButtonStyle="ButtonStyle.Primary" Style="width:100%" />
+    </RadzenTemplateForm>
+</RadzenCard>
+
+@code {
+    private RegisterModel _model = new();
+    private async Task OnSubmit(RegisterModel _)
+    {
+        var r = await Auth.RegisterAsync(_model.Email, _model.Password, _model.FullName);
+        if (r.Success) { Notify.Success(L.T("auth.register"), _model.Email); Nav.NavigateTo("/"); }
+        else Notify.Error(L.T("auth.invalid"), r.Error ?? "");
+    }
+    public class RegisterModel { public string FullName { get; set; } = ""; public string Email { get; set; } = ""; public string Password { get; set; } = ""; }
+}

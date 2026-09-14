@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Ingredient Verifier Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: ingredient-verifier
+version: 2.0.0
+description: Verifies the halal status of ingredients and E-codes
+type: sync
+timeout: 5s
+
+input:
+  schema:
+    type: object
+    properties:
+      ingredient:
+        type: string
+        description: Ingredient name or E-code
+        required: true
+      source:
+        type: string
+        description: Ingredient source (plant, animal, synthetic, unknown)
+        required: false
+      certification:
+        type: string
+        description: Any certification details
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [HALAL, HARAM, MASHBOOH, UNKNOWN]
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      classification:
+        type: string
+        description: Detailed classification
+      notes:
+        type: string
+        description: Additional information
+      references:
+        type: array
+        items:
+          type: string
+      e_code:
+        type: string
+        description: Associated E-code if applicable
+
+execution:
+  provider: python
+  source: skills/implementations/ingredient_verifier.py
+  entrypoint: verify_ingredient
+  
+  dependencies:
+    - yaml
+    - sqlite3
+
+knowledge_sources:
+  - .autoclaw/kg/halal_e_codes.yaml
+  - .autoclaw/kg/ingredient_db.yaml
+
+security:
+  required_permissions: [kg:read]
+  data_classification: level_1
+  input_sanitization: true
+  output_sanitization: true
+
+caching:
+  enabled: true
+  ttl: 86400
+  max_entries: 10000

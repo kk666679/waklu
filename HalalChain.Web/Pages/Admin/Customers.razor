@@ -1,0 +1,62 @@
+@page "/admin/customers"
+@layout AdminLayout
+@inject AppState State
+@inject NotificationService NotificationService
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Customers</h2>
+</div>
+
+@if (State.IsLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+}
+else
+{
+    <RadzenDataGrid TItem="CustomerDto"
+                    Data="@State.Customers"
+                    AllowSorting="true"
+                    AllowPaging="true"
+                    PageSize="10"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid">
+        <Columns>
+            <RadzenDataGridColumn TItem="CustomerDto" Property="Name" Title="Customer" Sortable="true">
+                <Template Context="c">
+                    <div>
+                        <div class="font-medium">@c.Name</div>
+                        <div class="text-xs text-muted">@c.Email</div>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustomerDto" Property="OrderCount" Title="Orders" Sortable="true">
+                <Template Context="c">
+                    <RadzenBadge Text="@c.OrderCount.ToString()" BadgeStyle="BadgeStyle.Info" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustomerDto" Property="TotalSpent" Title="Total Spent" Sortable="true">
+                <Template Context="c">
+                    <span class="font-semibold">@c.Currency @c.TotalSpent.ToString("N2")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustomerDto" Property="JoinedAt" Title="Joined" Sortable="true">
+                <Template Context="c">
+                    <span class="text-sm text-muted">@c.JoinedAt.ToString("MMM dd, yyyy")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadCustomersAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnChanged;
+}

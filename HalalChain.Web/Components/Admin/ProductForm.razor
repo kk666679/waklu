@@ -1,0 +1,114 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+@inject AppState State
+
+<AdminForm Title="@Title"
+           Description="@Description"
+           Model="@Model"
+           IsLoading="@IsLoading"
+           OnValidSubmit="@HandleSubmit"
+           OnCancel="@HandleCancel"
+           SubmitText="@SubmitText"
+           AdditionalClass="@AdditionalClass">
+    @if (ShowImageUpload)
+    {
+        <div class="form-group">
+            <RadzenLabel Text="Product Images" />
+            <RadzenUpload @ref="_upload"
+                          ChooseText="Choose Images"
+                          Multiple="true"
+                          Accept="image/*"
+                          class="w-100"
+                          Style="margin-top:var(--space-2)" />
+        </div>
+    }
+    <div class="form-group">
+        <RadzenLabel Text="Product Name *" />
+        <RadzenTextBox @bind-Value="@Model.Title" class="w-100" />
+        <ValidationMessage For="@(() => Model.Title)" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Description" />
+        <RadzenTextBox @bind-Value="@Model.Description" Rows="4" class="w-100" TextArea="true" />
+    </div>
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        <div class="form-group">
+            <RadzenLabel Text="Price (MYR) *" />
+            <RadzenNumeric @bind-Value="@Model.Price" Format="N2" class="w-100" />
+            <ValidationMessage For="@(() => Model.Price)" />
+        </div>
+        <div class="form-group">
+            <RadzenLabel Text="Inventory *" />
+            <RadzenNumeric @bind-Value="@Model.Inventory" class="w-100" />
+            <ValidationMessage For="@(() => Model.Inventory)" />
+        </div>
+    </div>
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        <div class="form-group">
+            <RadzenLabel Text="Category" />
+            <RadzenDropDown @bind-Value="@Model.CategoryName"
+                            Data="@State.Categories"
+                            TextProperty="Name"
+                            ValueProperty="Name"
+                            Placeholder="Select Category"
+                            class="w-100" />
+        </div>
+        <div class="form-group">
+            <RadzenLabel Text="Origin" />
+            <RadzenTextBox @bind-Value="@Model.Origin" class="w-100" />
+        </div>
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Halal Status" />
+        <div style="display:flex;gap:var(--space-2);align-items:center">
+            <StatusBadge Text="@(Model.HalalStatus?.Status ?? "Unknown")" Status="@(Model.HalalStatus?.Status ?? "Unknown")" />
+            @if (!string.IsNullOrEmpty(Model.HalalStatus?.CertificateNumber))
+            {
+                <span class="text-sm text-muted">Certificate: @Model.HalalStatus.CertificateNumber</span>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(ProductId))
+    {
+        <div class="form-group">
+            <RadzenLabel Text="Blockchain Verification" />
+            <BlockchainBadge TokenId="@Model.BlockchainBadgeTokenId" />
+        </div>
+    }
+</AdminForm>
+
+@code {
+    [Parameter] public string? ProductId { get; set; }
+    [Parameter] public ExtendedProductDto Model { get; set; } = default!;
+    [Parameter] public bool ShowImageUpload { get; set; } = true;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<ExtendedProductDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string Title => string.IsNullOrEmpty(ProductId) ? "Add Product" : "Edit Product";
+    private string Description => string.IsNullOrEmpty(ProductId) ? "Create a new product listing" : "Update product details";
+    private string SubmitText => string.IsNullOrEmpty(ProductId) ? "Create Product" : "Save Changes";
+    private bool IsLoading { get; set; }
+    private RadzenUpload? _upload;
+
+    private async Task HandleSubmit()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            await OnSubmit.InvokeAsync(Model);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        Nav.NavigateTo("/admin/products");
+    }
+}

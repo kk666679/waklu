@@ -1,0 +1,34 @@
+@using Radzen.Blazor
+@inject DialogService DialogService
+
+<RadzenDialog @ref="_dialog" Style="z-index:2000" />
+
+@code {
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<DialogResult> OnClose { get; set; }
+
+    private RadzenDialog? _dialog;
+
+    public async Task<DialogResult> OpenAsync<T>(string title, Dictionary<string, object?>? parameters = null, DialogOptions? options = null) where T : ComponentBase
+    {
+        var result = await DialogService.OpenAsync<T>(title, parameters, options);
+        return new DialogResult { Result = result };
+    }
+
+    public async Task<bool> ConfirmAsync(string message, string title = "Confirm")
+    {
+        return await DialogService.Confirm(message, title, new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) == true;
+    }
+
+    public async Task AlertAsync(string message, string title = "Alert")
+    {
+        await DialogService.Alert(message, title, new AlertOptions { OkButtonText = "OK" });
+    }
+
+    public void Close(object? result = null)
+    {
+        _dialog?.Close(result!);
+    }
+
+    public record DialogResult(object? Result = null);
+}

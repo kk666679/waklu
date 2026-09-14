@@ -1,0 +1,83 @@
+@using Radzen.Blazor
+@inject PlatformApiClient Api
+
+<div class="department-menu @AdditionalClass">
+    <div class="department-menu__inner">
+        @foreach (var dept in Departments ?? [])
+        {
+            <div class="department-menu__item"
+                 @onmouseenter="() => OpenDropdown(dept.Slug)"
+                 @onmouseleave="CloseDropdown">
+                <RadzenLink href="@($"/products?department={dept.Slug}")" class="department-menu__link">
+                    @if (!string.IsNullOrEmpty(dept.IconClass))
+                    {
+                        <i class="fas @dept.IconClass department-menu__icon"></i>
+                    }
+                    <span>@dept.Name</span>
+                    <RadzenIcon Icon="expand_more" class="department-menu__arrow" />
+                </RadzenLink>
+                @if (_openDept == dept.Slug)
+                {
+                    <div class="department-menu__dropdown">
+                        <div class="department-menu__dropdown-inner">
+                            <div class="department-menu__dropdown-header">
+                                <h4>@dept.Name</h4>
+                                <p class="text-sm text-muted">@dept.Description</p>
+                            </div>
+                            <div class="department-menu__categories">
+                                @if (_deptCategories.TryGetValue(dept.Slug, out var cats) && cats.Length > 0)
+                                {
+                                    @foreach (var cat in cats)
+                                    {
+                                        <RadzenLink href="@($"/products?department={dept.Slug}&category={cat.Slug}")" class="department-menu__category-link">
+                                            @if (!string.IsNullOrEmpty(cat.IconClass))
+                                            {
+                                                <i class="fas @cat.IconClass" style="width:1.25rem;text-align:center;margin-right:0.5rem"></i>
+                                            }
+                                            @cat.Name
+                                            <span class="text-xs text-muted">@cat.ProductCount</span>
+                                        </RadzenLink>
+                                    }
+                                }
+                                else
+                                {
+                                    <RadzenLink href="@($"/products?department={dept.Slug}")" class="department-menu__view-all">
+                                        View all @dept.Name <RadzenIcon Icon="arrow_forward" />
+                                    </RadzenLink>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public DepartmentDto[]? Departments { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private string? _openDept;
+    private readonly Dictionary<string, TaxonomyCategoryDto[]> _deptCategories = new();
+    private readonly HashSet<string> _loadingDepts = new();
+
+    private async void OpenDropdown(string deptSlug)
+    {
+        _openDept = deptSlug;
+        if (!_deptCategories.ContainsKey(deptSlug) && !_loadingDepts.Contains(deptSlug))
+        {
+            _loadingDepts.Add(deptSlug);
+            try
+            {
+                var cats = await Api.GetCategoriesForDepartmentAsync(deptSlug);
+                _deptCategories[deptSlug] = cats;
+            }
+            catch { _deptCategories[deptSlug] = []; }
+            finally { _loadingDepts.Remove(deptSlug); }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CloseDropdown() => _openDept = null;
+}

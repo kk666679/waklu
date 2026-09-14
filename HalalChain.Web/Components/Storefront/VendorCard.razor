@@ -1,0 +1,70 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<RadzenCard class="@($"vendor-card {AdditionalClass}")" @onclick="NavigateToVendor" style="cursor:pointer">
+    <div class="vendor-card__header" style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3)">
+        <div class="vendor-card__logo" style="width:48px;height:48px;border-radius:50%;background:var(--color-neutral-100);display:flex;align-items:center;justify-content:center">
+            <RadzenIcon Icon="store" Style="font-size:1.5rem;color:var(--color-primary)" />
+        </div>
+        <div>
+            <h3 class="vendor-card__name font-semibold">@Vendor.Name</h3>
+            <p class="vendor-card__country text-sm text-muted">@Vendor.Country</p>
+        </div>
+        <RadzenBadge Text="@Vendor.Status" BadgeStyle="@GetStatusBadgeStyle(Vendor.Status)" class="vendor-card__status" />
+    </div>
+    <div class="vendor-card__stats" style="display:flex;justify-content:space-between;padding:var(--space-3) 0;border-top:1px solid var(--color-neutral-200);border-bottom:1px solid var(--color-neutral-200)">
+        <div style="text-align:center">
+            <div class="font-bold">@_productCount</div>
+            <div class="text-xs text-muted">Products</div>
+        </div>
+        <div style="text-align:center">
+            <div class="font-bold">@_rating</div>
+            <div class="text-xs text-muted">Rating</div>
+        </div>
+        <div style="text-align:center">
+            <div class="font-bold">@_yearsActive</div>
+            <div class="text-xs text-muted">Years Active</div>
+        </div>
+    </div>
+    <div class="vendor-card__footer" style="margin-top:var(--space-3);display:flex;gap:0.5rem">
+        <RadzenButton Text="Visit Store" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="flex-1" Click="@NavigateToVendor" />
+        <RadzenButton Icon="chat" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ContactVendor" />
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public VendorDto Vendor { get; set; } = default!;
+    [Parameter] public int ProductCount { get; set; }
+    [Parameter] public double? Rating { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback OnContact { get; set; }
+
+    private int _productCount;
+    private double _rating = 4.5;
+    private int _yearsActive = 3;
+
+    protected override void OnInitialized()
+    {
+        _productCount = ProductCount;
+        _rating = Rating ?? 4.5;
+        var created = Vendor.CreatedAt;
+        var createdNonNull = created == default ? DateTimeOffset.UtcNow : created;
+        _yearsActive = Math.Max(1, (int)((DateTimeOffset.UtcNow - createdNonNull).TotalDays / 365));
+    }
+
+    private void NavigateToVendor() => Nav.NavigateTo($"/vendor/{Vendor.Slug}");
+    private void ContactVendor()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Contact Vendor", $"Message feature for {Vendor.Name} coming soon");
+    }
+
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+
+    private static BadgeStyle GetStatusBadgeStyle(string status) => status.ToLowerInvariant() switch
+    {
+        "active" => BadgeStyle.Success,
+        "pending" => BadgeStyle.Warning,
+        "suspended" => BadgeStyle.Danger,
+        _ => BadgeStyle.Secondary
+    };
+}

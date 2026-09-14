@@ -1,0 +1,23 @@
+@if (Services == null || Services.Count == 0)
+{
+    <p class="text-muted">No services registered.</p>
+}
+else
+{
+    <div class="po-services-grid">
+        @foreach (var svc in Services)
+        {
+            <div class="po-service-card @(svc.Status == ServiceStatus.Running ? "po-service-card--up" : "po-service-card--down")">
+                <div class="po-service-card__status">
+                    <i class="fas @(svc.Status == ServiceStatus.Running ? "fa-check-circle" : "fa-times-circle")"></i>
+                </div>
+                <div class="po-service-card__name">@svc.Name</div>
+                <div class="po-service-card__url text-muted">@svc.HealthUrl</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public List<ServiceInfo>? Services { get; set; }
+}

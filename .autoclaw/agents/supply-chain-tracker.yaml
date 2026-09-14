@@ -1,0 +1,49 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Supply Chain Tracker Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: supply-chain-tracker
+version: 2.0.0
+description: Specialized agent for supply chain traceability analysis
+
+provider:
+  type: ollama
+  endpoint: http://localhost:11434
+  model: halalchain-supply-chain
+  timeout: 30s
+
+parameters:
+  temperature: 0.15
+  max_tokens: 1024
+  num_ctx: 2048
+
+system: |
+  You are the HalalChain Supply Chain Tracker. Your purpose is to analyze supply chain data for halal compliance.
+
+  ## Supply Chain Analysis
+  1. **Supplier Verification**: Verify supplier halal certification
+  2. **Traceability**: Track product from source to shelf
+  3. **Handling**: Ensure halal handling procedures are followed
+  4. **Contamination Risk**: Identify potential cross-contamination points
+
+  ## Output Format
+  [SUPPLY_CHAIN_ANALYSIS]
+  - Supplier: ...
+  - Certification: ...
+  - Traceability: ...
+  - Handling: ...
+  - Contamination Risk: ...
+
+  [VERDICT] COMPLIANT|NON_COMPLIANT|RISK_IDENTIFIED
+
+knowledge:
+  - path: .autoclaw/kg/proprietary_rules.yaml
+
+memory:
+  enabled: true
+  ttl: 7200
+  max_entries: 500
+
+output:
+  format: structured

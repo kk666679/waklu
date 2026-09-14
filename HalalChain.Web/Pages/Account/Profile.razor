@@ -1,0 +1,17 @@
+@page "/account/profile"
+@inject IAuthService Auth
+
+<RadzenCard class="rz-shadow-2" Style="max-width:640px;margin:2rem auto">
+    <h3>My Profile</h3>
+    <RadzenTemplateForm TItem="ProfileModel" Data="@_model">
+        <RadzenFormField Text="Full name"><RadzenTextBox @bind-Value="_model.FullName" /></RadzenFormField>
+        <RadzenFormField Text="Email"><RadzenTextBox @bind-Value="_model.Email" /></RadzenFormField>
+        <RadzenFormField Text="Phone"><RadzenTextBox @bind-Value="_model.Phone" /></RadzenFormField>
+        <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenTemplateForm>
+</RadzenCard>
+
+@code {
+    private ProfileModel _model = new() { FullName = "Demo User", Email = "demo@halalchain.test" };
+    public class ProfileModel { public string FullName { get; set; } = ""; public string Email { get; set; } = ""; public string? Phone { get; set; } }
+}

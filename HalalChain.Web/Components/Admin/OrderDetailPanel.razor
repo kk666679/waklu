@@ -1,0 +1,99 @@
+@using Radzen.Blazor
+@inject AppState State
+
+<RadzenCard class="@($"order-detail-panel {AdditionalClass}")">
+    <div class="order-detail-panel__header">
+        <AdminBreadcrumb Items="@_breadcrumbs" />
+        <div class="order-detail-panel__actions">
+            <RadzenButton Icon="print" ButtonStyle="ButtonStyle.Light" Click="@PrintOrder" />
+            <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Light" Click="@DownloadInvoice" />
+            <RadzenButton Icon="email" ButtonStyle="ButtonStyle.Light" Click="@SendEmail" />
+        </div>
+    </div>
+
+    <div class="order-detail-panel__content">
+        <div class="order-detail-panel__info" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);margin-bottom:var(--space-6)">
+            <AdminCard Title="Order Status" Icon="info">
+                <div class="flex items-center gap-2">
+                    <StatusBadge Text="@Order.Status" Status="@Order.Status" />
+                    <span class="text-sm text-muted">@Order.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</span>
+                </div>
+            </AdminCard>
+            <AdminCard Title="Total Amount" Icon="payments">
+                <div class="font-bold text-2xl">@Order.Currency @Order.Total.ToString("N2")</div>
+            </AdminCard>
+            <AdminCard Title="Customer" Icon="person">
+                <div class="font-medium">Customer #@Order.Id.ToString()[..8]</div>
+            </AdminCard>
+        </div>
+
+        <h4 class="font-semibold mb-3">Vendor Orders</h4>
+        @foreach (var vendorOrder in Order.VendorOrders)
+        {
+            <RadzenCard class="vendor-order-card mb-3">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <RadzenIcon Icon="store" />
+                        <span class="font-medium">@vendorOrder.VendorName</span>
+                        <StatusBadge Text="@vendorOrder.Status" Status="@vendorOrder.Status" />
+                    </div>
+                    <span class="font-bold">@vendorOrder.Currency @vendorOrder.Subtotal.ToString("N2")</span>
+                </div>
+                <RadzenDataGrid TItem="OrderItemDto"
+                                Data="@vendorOrder.Items"
+                                AllowSorting="false"
+                                AllowPaging="false"
+                                class="hc-datagrid">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="OrderItemDto" Property="ProductTitle" Title="Product" />
+                        <RadzenDataGridColumn TItem="OrderItemDto" Property="Quantity" Title="Qty" />
+                        <RadzenDataGridColumn TItem="OrderItemDto" Property="UnitPrice" Title="Price">
+                            <Template Context="item">
+                                @vendorOrder.Currency @item.UnitPrice.ToString("N2")
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="OrderItemDto" Title="Subtotal">
+                            <Template Context="item">
+                                @vendorOrder.Currency @((item.Quantity * item.UnitPrice).ToString("N2"))
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        }
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public OrderDto Order { get; set; } = default!;
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private List<AdminBreadcrumb.BreadcrumbItem> _breadcrumbs = new();
+
+    protected override void OnParametersSet()
+    {
+        _breadcrumbs = new()
+        {
+            new AdminBreadcrumb.BreadcrumbItem("Home", "/admin"),
+            new AdminBreadcrumb.BreadcrumbItem("Orders", "/admin/orders"),
+            new AdminBreadcrumb.BreadcrumbItem($"Order #{(Order?.Id.ToString()[..8] ?? "")}", null, IsActive: true)
+        };
+    }
+
+    private void PrintOrder()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Print", "Print dialog opened");
+    }
+
+    private async Task DownloadInvoice()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Download", "Invoice download started");
+    }
+
+    private async Task SendEmail()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Email", "Invoice sent to customer");
+    }
+
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+}

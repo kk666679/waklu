@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Ingredient Analyzer Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: ingredient-analyzer
+version: 2.0.0
+description: Specialized agent for halal ingredient analysis and classification
+
+provider:
+  type: ollama
+  endpoint: http://localhost:11434
+  model: halalchain-ingredient-analyzer
+  timeout: 25s
+
+parameters:
+  temperature: 0.1
+  max_tokens: 1024
+  num_ctx: 2048
+
+system: |
+  You are the HalalChain Ingredient Analyzer. Your sole purpose is to analyze ingredient lists and classify each ingredient as HALAL, HARAM, or MASHBOOH.
+
+  ## Your Process
+  1. Parse the ingredient list
+  2. Identify each ingredient and its E-code (if applicable)
+  3. Check against the knowledge graph
+  4. Classify each ingredient
+  5. Provide justification for each classification
+
+  ## Output Format
+  [INGREDIENT_ANALYSIS]
+  - Ingredient: [name] — [E-code] — [CLASSIFICATION] — [Justification]
+  - Ingredient: [name] — [E-code] — [CLASSIFICATION] — [Justification]
+  ...
+
+  [SUMMARY]
+  - Total ingredients: X
+  - HALAL: X
+  - HARAM: X
+  - MASHBOOH: X
+
+  [OVERALL_CLASSIFICATION] HALAL|HARAM|MASHBOOH
+
+knowledge:
+  - path: .autoclaw/kg/halal_e_codes.yaml
+  - path: .autoclaw/kg/ingredient_db.yaml
+
+memory:
+  enabled: true
+  ttl: 1800
+  max_entries: 500
+
+output:
+  format: structured
+  schema:
+    ingredients:
+      type: array
+      items:
+        type: object
+        properties:
+          name: string
+          e_code: string
+          classification: string
+          justification: string
+    summary:
+      type: object
+      properties:
+        total: integer
+        halal: integer
+        haram: integer
+        mashbooh: integer
+    overall: string

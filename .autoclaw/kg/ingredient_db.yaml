@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — Ingredient Classification Database
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Comprehensive ingredient classifications
+
+ingredients:
+  wheat_flour:
+    status: HALAL
+    source: Plant
+    notes: Universally permitted
+    
+  sugar:
+    status: HALAL
+    source: Plant
+    notes: Universally permitted
+    
+  salt:
+    status: HALAL
+    source: Mineral
+    notes: Universally permitted
+    
+  palm_oil:
+    status: HALAL
+    source: Plant
+    notes: Universally permitted
+    
+  soy_lecithin:
+    status: HALAL
+    source: Plant
+    notes: Permitted
+    
+  pork:
+    status: HARAM
+    source: Animal
+    notes: Forbidden in Islam
+    
+  lard:
+    status: HARAM
+    source: Animal (pork)
+    notes: Forbidden in Islam
+    
+  ethanol:
+    status: HARAM
+    source: Fermentation
+    notes: Alcohol forbidden
+    
+  gelatin_porcine:
+    status: HARAM
+    source: Animal (pork)
+    notes: Forbidden in Islam
+
+  gelatin:
+    status: MASHBOOH
+    source: Animal (unknown)
+    notes: Source must be verified
+    
+  glycerin:
+    status: MASHBOOH
+    source: Plant or animal
+    notes: Source must be verified
+    
+  natural_flavors:
+    status: MASHBOOH
+    source: Unknown
+    notes: Source must be verified
+    
+  mono_diglycerides:
+    status: MASHBOOH
+    source: Plant or animal
+    notes: Source must be verified

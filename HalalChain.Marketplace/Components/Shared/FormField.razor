@@ -1,0 +1,34 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="hc-field">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="hc-field__label" for="@Id">
+            @Label
+            @if (Required)
+            {
+                <span class="hc-field__required" aria-hidden="true">*</span>
+            }
+        </label>
+    }
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <span class="hc-field__hint">@Hint</span>
+    }
+    <div class="hc-field__control">
+        @ChildContent
+    </div>
+    @if (!string.IsNullOrEmpty(ValidationError))
+    {
+        <span class="hc-field__error">@ValidationError</span>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Id { get; set; } = "";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string Hint { get; set; } = "";
+    [Parameter] public string ValidationError { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

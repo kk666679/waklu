@@ -1,0 +1,26 @@
+@inject IShipmentService Shipments
+
+<RadzenDataGrid TItem="Shipment" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="TrackingNumber" Title="Tracking" Width="160px" />
+        <RadzenDataGridColumn Property="Carrier" Title="Carrier" Width="120px" />
+        <RadzenDataGridColumn Property="OrderId" Title="Order" Width="100px" />
+        <RadzenDataGridColumn Property="Status" Title="Status" Width="140px">
+            <Template Context="s">
+                <RadzenBadge BadgeStyle="@Style(s.Status)" Text="@s.Status.ToString()" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Shipment> _items = Array.Empty<Shipment>();
+    protected override async Task OnInitializedAsync() => _items = await Shipments.GetAllAsync();
+    private static BadgeStyle Style(ShipmentStatus s) => s switch
+    {
+        ShipmentStatus.Delivered => BadgeStyle.Success,
+        ShipmentStatus.InTransit => BadgeStyle.Primary,
+        ShipmentStatus.Pending => BadgeStyle.Warning,
+        _ => BadgeStyle.Secondary
+    };
+}

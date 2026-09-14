@@ -1,0 +1,169 @@
+@page "/checkout"
+@layout StorefrontLayout
+@inject CartState CartState
+@inject AppState State
+@inject NotificationState Notify
+@inject NavigationManager Nav
+@implements IDisposable
+
+<section class="container mt-8 mb-8">
+    <h1 class="text-3xl font-bold mb-6">Checkout</h1>
+    @if (!CartState.Items.Any() && !_orderPlaced)
+    {
+        <div class="card" style="text-align:center;padding:var(--space-12)">
+            <i class="fas fa-shopping-bag fa-3x" style="color:var(--color-neutral-300);margin-bottom:var(--space-4)"></i>
+            <h3 class="text-xl font-bold mb-2">Your cart is empty</h3>
+            <p class="text-muted mb-4">Add some products before checking out</p>
+            <Button Href="/products" Text="Browse Products" Icon="shopping-bag" />
+        </div>
+    }
+    else if (_orderPlaced)
+    {
+        <div class="card" style="text-align:center;padding:var(--space-12)">
+            <div style="font-size:4rem;margin-bottom:var(--space-4)">✅</div>
+            <h3 class="text-2xl font-bold mb-2">Order Placed Successfully!</h3>
+            <p class="text-muted mb-2">Order #@_orderId has been confirmed</p>
+            <p class="text-muted mb-6">You'll receive a confirmation email shortly.</p>
+            <div style="display:flex;gap:var(--space-3);justify-content:center">
+                <Button Href="/account/orders" Text="View Orders" Icon="box" />
+                <Button Href="/products" Text="Continue Shopping" Icon="shopping-bag" Variant="Button.ButtonVariant.Secondary" />
+            </div>
+        </div>
+    }
+    else
+    {
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-8)">
+            <div class="card">
+                <div class="card-header">Shipping Information</div>
+                <div class="card-body">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">First Name *</label>
+                            <input class="form-input" @bind="_firstName" placeholder="John" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name *</label>
+                            <input class="form-input" @bind="_lastName" placeholder="Doe" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <input class="form-input" type="email" @bind="_email" placeholder="john@example.com" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Address *</label>
+                        <input class="form-input" @bind="_address" placeholder="123 Main Street" />
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">City *</label>
+                            <input class="form-input" @bind="_city" placeholder="Kuala Lumpur" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Postal Code *</label>
+                            <input class="form-input" @bind="_postalCode" placeholder="50000" />
+                        </div>
+                    </div>
+
+                    @if (_validationError)
+                    {
+                        <div class="alert alert-error" style="margin-top:var(--space-4)">
+                            <i class="fas fa-exclamation-circle"></i> Please fill in all required fields
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div>
+                <div class="card" style="position:sticky;top:calc(var(--topbar-height, 64px) + var(--space-4))">
+                    <div class="card-header">Order Summary</div>
+                    <div class="card-body">
+                        @foreach (var item in CartState.Items)
+                        {
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm truncate" style="max-width:180px">@item.Title x @item.Quantity</span>
+                                <span class="text-sm font-semibold">@item.Currency @((item.Price * item.Quantity).ToString("N2"))</span>
+                            </div>
+                        }
+                        <hr style="margin:var(--space-4) 0;border-color:var(--color-neutral-200)" />
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <span class="font-medium">MYR @CartState.Subtotal.ToString("N2")</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Shipping</span>
+                            <span class="text-success font-medium">@(CartState.Subtotal >= 50 ? "Free" : "MYR 8.00")</span>
+                        </div>
+                        <hr style="margin:var(--space-3) 0;border-color:var(--color-neutral-200)" />
+                        <div class="flex justify-between mb-4">
+                            <span class="font-bold text-lg">Total</span>
+                            <span class="font-bold text-lg text-primary">MYR @((CartState.Subtotal + (CartState.Subtotal >= 50 ? 0 : 8)).ToString("N2"))</span>
+                        </div>
+                        <Button Text="@(_placing ? "Placing Order..." : "Place Order")" Icon="check" FullWidth="true" OnClick="PlaceOrder" Disabled="@(_placing || !IsFormValid())" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private string _firstName = "";
+    private string _lastName = "";
+    private string _email = "";
+    private string _address = "";
+    private string _city = "";
+    private string _postalCode = "";
+    private bool _placing;
+    private bool _validationError;
+    private bool _orderPlaced;
+    private string _orderId = "";
+
+    private bool IsFormValid() =>
+        !string.IsNullOrWhiteSpace(_firstName) &&
+        !string.IsNullOrWhiteSpace(_lastName) &&
+        !string.IsNullOrWhiteSpace(_email) &&
+        !string.IsNullOrWhiteSpace(_address) &&
+        !string.IsNullOrWhiteSpace(_city) &&
+        !string.IsNullOrWhiteSpace(_postalCode);
+
+    private async Task PlaceOrder()
+    {
+        if (!IsFormValid()) { _validationError = true; return; }
+        _validationError = false;
+        _placing = true;
+        StateHasChanged();
+
+        try
+        {
+            var shippingAddress = $"{_firstName} {_lastName}, {_email}, {_address}, {_city}, {_postalCode}";
+            var request = new CheckoutRequest(shippingAddress, null, Guid.NewGuid().ToString());
+            var order = await State.CreateOrderAsync(request);
+
+            if (order != null && order.Length > 0)
+            {
+                _orderId = order[0].Id.ToString()[..8].ToUpper();
+                _orderPlaced = true;
+                await CartState.ClearAsync();
+                Notify.Success($"Order #{_orderId} placed successfully!");
+            }
+            else
+            {
+                Notify.Error("Failed to place order. Please try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Order failed: {ex.Message}");
+        }
+        finally
+        {
+            _placing = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized() => CartState.OnChange += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => CartState.OnChange -= OnChanged;
+}

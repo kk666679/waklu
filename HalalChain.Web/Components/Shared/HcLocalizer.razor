@@ -1,0 +1,19 @@
+@using HalalChain.Localization
+@implements IDisposable
+@inject IHcLocalizer Localizer
+
+@Localizer.T(Key, Args)
+
+@code {
+    [Parameter] public string Key { get; set; } = "";
+    [Parameter] public object?[] Args { get; set; } = Array.Empty<object?>();
+
+    protected override void OnInitialized()
+    {
+        Localizer.OnChange += HandleChange;
+    }
+
+    private void HandleChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Localizer.OnChange -= HandleChange;
+}

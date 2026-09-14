@@ -1,0 +1,147 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="product-gallery @AdditionalClass">
+    <div class="product-gallery__main">
+        <div class="product-gallery__image-wrapper" style="aspect-ratio:1;background:var(--color-neutral-100);display:flex;align-items:center;justify-content:center;border-radius:var(--radius-lg);overflow:hidden">
+            <span style="font-size:3rem;font-weight:600;color:var(--color-neutral-300)">@Product.Title</span>
+        </div>
+        @if (Images != null && Images.Length > 1)
+        {
+            <div class="product-gallery__thumbs">
+                @foreach (var img in Images)
+                {
+                    <button class="product-gallery__thumb @(img == SelectedImage ? "product-gallery__thumb--active" : "")"
+                            @onclick="() => SelectImage(img)">
+                        <span style="font-size:0.75rem;color:var(--color-neutral-400)">@img</span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    <div class="product-gallery__side">
+        <div class="product-gallery__info">
+            <div class="product-gallery__vendor text-sm text-muted">@Product.VendorName</div>
+            <h1 class="product-gallery__title text-2xl font-bold">@Product.Title</h1>
+            <div class="product-gallery__price">
+                <span class="font-bold text-2xl">@Product.Currency @Product.Price.ToString("N2")</span>
+                @if (Product.CompareAtPrice.HasValue && Product.CompareAtPrice > Product.Price)
+                {
+                    <span class="text-lg text-muted" style="text-decoration:line-through">@Product.Currency @Product.CompareAtPrice.Value.ToString("N2")</span>
+                }
+            </div>
+            <div class="product-gallery__divider"></div>
+            <p class="product-gallery__description">@Product.Description</p>
+            <div class="product-gallery__meta">
+                <div class="product-gallery__meta-item">
+                    <span class="text-muted">Category</span>
+                    <span class="font-medium">@Product.CategoryName</span>
+                </div>
+                <div class="product-gallery__meta-item">
+                    <span class="text-muted">Origin</span>
+                    <span class="font-medium">@Product.Origin</span>
+                </div>
+                @if (!string.IsNullOrEmpty(HalalStatusText))
+                {
+                    <div class="product-gallery__meta-item">
+                        <span class="text-muted">Halal Status</span>
+                        <RadzenBadge Text="@HalalStatusText" BadgeStyle="@GetHalalBadgeStyle()" />
+                    </div>
+                }
+            </div>
+            @if (VariantAttributes != null && VariantAttributes.Any())
+            {
+                <div class="product-gallery__variants">
+                    @foreach (var variant in VariantAttributes)
+                    {
+                        <div class="product-gallery__variant">
+                            <label class="product-gallery__variant-label font-medium">@variant.Name</label>
+                            <div class="product-gallery__variant-options">
+                                @foreach (var option in variant.Options)
+                                {
+                                    <button class="product-gallery__variant-option @(option.IsSelected ? "product-gallery__variant-option--selected" : "")"
+                                            @onclick="() => SelectVariant(variant, option)">
+                                        @if (variant.Type == "color" && !string.IsNullOrEmpty(option.Color))
+                                        {
+                                            <span class="product-gallery__color-swatch" style="background:@option.Color"></span>
+                                        }
+                                        else
+                                        {
+                                            <span>@option.Value</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            <div class="product-gallery__actions">
+                <button class="btn btn-primary btn-lg" @onclick="AddToCart" disabled="@(Product.Inventory <= 0)">
+                    <RadzenIcon Icon="shopping_bag" Style="margin-right:0.5rem" />
+                    @(Product.Inventory > 0 ? "Add to Cart" : "Out of Stock")
+                </button>
+                <button class="btn btn-secondary btn-lg" @onclick="BuyNow">
+                    Buy Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public ExtendedProductDto Product { get; set; } = default!;
+    [Parameter] public string[]? Images { get; set; }
+    [Parameter] public List<ProductVariant>? VariantAttributes { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private string SelectedImage { get; set; } = "";
+    private string HalalStatusText => Product.HalalStatus?.Status ?? "";
+
+    protected override void OnInitialized()
+    {
+        SelectedImage = Images?.FirstOrDefault() ?? Product.MainImageUrl ?? "";
+    }
+
+    private void SelectImage(string img)
+    {
+        SelectedImage = img;
+        StateHasChanged();
+    }
+
+    private void SelectVariant(ProductVariant variant, VariantOption option)
+    {
+        foreach (var o in variant.Options) o.IsSelected = false;
+        option.IsSelected = true;
+        StateHasChanged();
+    }
+
+    private void AddToCart()
+    {
+        CartState.AddItem(Product.Id.ToString(), Product.Title, Product.Price, Product.Currency);
+        NotificationService.Notify(NotificationSeverity.Success, "Added to Cart", $"{Product.Title} added to your cart");
+    }
+
+    private void BuyNow()
+    {
+        CartState.AddItem(Product.Id.ToString(), Product.Title, Product.Price, Product.Currency);
+        Nav.NavigateTo("/checkout");
+    }
+
+    [Inject] private CartState CartState { get; set; } = default!;
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+
+    private BadgeStyle GetHalalBadgeStyle()
+    {
+        return Product.HalalStatus?.Status switch
+        {
+            "Verified" => BadgeStyle.Success,
+            "VerifiedByPlatform" => BadgeStyle.Info,
+            "Certified" => BadgeStyle.Success,
+            "MuslimFriendly" => BadgeStyle.Light,
+            "SelfDeclared" => BadgeStyle.Warning,
+            "Pending" => BadgeStyle.Warning,
+            _ => BadgeStyle.Secondary
+        };
+    }
+}

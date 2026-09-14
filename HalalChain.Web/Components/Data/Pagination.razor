@@ -1,0 +1,96 @@
+@using Radzen.Blazor
+
+<nav class="pagination @AdditionalClass" aria-label="Pagination">
+    <RadzenButton Icon="first_page"
+                  ButtonStyle="ButtonStyle.Light"
+                  Size="ButtonSize.Small"
+                  Click="@(() => GoToPage(1))"
+                  Disabled="@(_currentPage == 1)" />
+    <RadzenButton Icon="chevron_left"
+                  ButtonStyle="ButtonStyle.Light"
+                  Size="ButtonSize.Small"
+                  Click="@(() => GoToPage(_currentPage - 1))"
+                  Disabled="@(_currentPage == 1)" />
+
+    @foreach (var pageNum in GetPageNumbers())
+    {
+        if (pageNum == -1)
+        {
+            <span class="pagination__ellipsis text-muted">...</span>
+        }
+        else
+        {
+            <RadzenButton Text="@pageNum.ToString()"
+                          ButtonStyle="@(_currentPage == pageNum ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          Size="ButtonSize.Small"
+                          Click="@(() => GoToPage(pageNum))" />
+        }
+    }
+
+    <RadzenButton Icon="chevron_right"
+                  ButtonStyle="ButtonStyle.Light"
+                  Size="ButtonSize.Small"
+                  Click="@(() => GoToPage(_currentPage + 1))"
+                  Disabled="@(_currentPage == _totalPages)" />
+    <RadzenButton Icon="last_page"
+                  ButtonStyle="ButtonStyle.Light"
+                  Size="ButtonSize.Small"
+                  Click="@(() => GoToPage(_totalPages))"
+                  Disabled="@(_currentPage == _totalPages)" />
+</nav>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; } = 1;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+    private int _currentPage;
+    private int _totalPages;
+
+    protected override void OnParametersSet()
+    {
+        _currentPage = CurrentPage;
+        _totalPages = Math.Max(1, TotalPages);
+    }
+
+    private async void GoToPage(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _currentPage = page;
+        await OnPageChanged.InvokeAsync(page);
+    }
+
+    private List<int> GetPageNumbers()
+    {
+        var pages = new List<int>();
+        var delta = 2;
+        var range = delta * 2 + 1;
+
+        if (_totalPages <= range)
+        {
+            for (int i = 1; i <= _totalPages; i++) pages.Add(i);
+        }
+        else
+        {
+            var left = Math.Max(2, _currentPage - delta);
+            var right = Math.Min(_totalPages - 1, _currentPage + delta);
+
+            if (_currentPage <= delta + 1)
+            {
+                right = Math.Min(_totalPages - 1, range);
+            }
+            else if (_currentPage >= _totalPages - delta)
+            {
+                left = Math.Max(2, _totalPages - range + 1);
+            }
+
+            pages.Add(1);
+            if (left > 2) pages.Add(-1);
+            for (int i = left; i <= right; i++) pages.Add(i);
+            if (right < _totalPages - 1) pages.Add(-1);
+            pages.Add(_totalPages);
+        }
+        return pages;
+    }
+}

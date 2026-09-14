@@ -1,0 +1,30 @@
+name: semantic-memory
+version: 2.0.0
+memory_type: semantic
+storage:
+  database: .autoclaw/memory/agent_memory.db
+  embeddings: .autoclaw/vector/embeddings.db
+  backup_interval: 86400
+graph:
+  nodes: true
+  edges: true
+  relationships: true
+inference:
+  enabled: true
+  max_depth: 3
+  caching: true
+  rules: [transitive_closure, inheritance, equivalence]
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  dimensions: 384
+  batch_size: 32
+retrieval:
+  semantic_search: true
+  graph_traversal: true
+  hybrid_search: true
+  default_limit: 20
+security:
+  encryption: true
+  access_level: level_2
+  audit: true
+  versioning: true

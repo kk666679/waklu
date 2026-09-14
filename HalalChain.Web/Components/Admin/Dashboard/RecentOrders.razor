@@ -1,0 +1,19 @@
+@inject IProductService Products
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Top Products</h4>
+    <RadzenChart>
+        <RadzenBarSeries Data="@_data" CategoryProperty="Name" ValueProperty="Value" Title="Sold" />
+    </RadzenChart>
+</RadzenCard>
+
+@code {
+    record ChartPoint(string Name, double Value);
+    private List<ChartPoint> _data = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var list = await Products.GetAllAsync();
+        _data = list.Take(5).Select(p => new ChartPoint(p.Name, (double)p.Price)).ToList();
+    }
+}

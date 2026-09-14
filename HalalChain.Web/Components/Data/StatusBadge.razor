@@ -1,0 +1,22 @@
+@using Radzen.Blazor
+
+<RadzenBadge Text="@Text"
+             BadgeStyle="@GetBadgeStyle(Status)"
+             Class="@AdditionalClass" />
+
+@code {
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public string Status { get; set; } = "";
+    [Parameter] public bool Pulse { get; set; } = false;
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private static BadgeStyle GetBadgeStyle(string status) => status.ToLowerInvariant() switch
+    {
+        "verified" or "active" or "delivered" or "success" or "completed" => BadgeStyle.Success,
+        "pending" or "processing" or "review" or "warning" => BadgeStyle.Warning,
+        "suspended" or "cancelled" or "expired" or "rejected" or "error" => BadgeStyle.Danger,
+        "inactive" or "draft" or "info" => BadgeStyle.Info,
+        "unverified" or "unknown" or "secondary" => BadgeStyle.Secondary,
+        _ => BadgeStyle.Primary
+    };
+}

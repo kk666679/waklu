@@ -1,0 +1,59 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IThemeService ThemeService
+
+<RadzenLayout class="@LayoutClass">
+    <div class="auth-shell">
+        <aside class="auth-hero" aria-hidden="true">
+            <div class="auth-hero__inner">
+                <a href="/" class="auth-hero__brand">
+                    <span class="hc-brand-mark"><i class="fas fa-shield-halved" aria-hidden="true"></i></span>
+                    <span><span class="text-primary">Halal</span>Chain</span>
+                </a>
+                <h1 class="auth-hero__title">AI-Verified Halal Commerce</h1>
+                <p class="auth-hero__lede">
+                    One trusted marketplace connecting certified vendors with conscious consumers — across Southeast Asia and beyond.
+                </p>
+                <ul class="auth-hero__bullets">
+                    <li><i class="fas fa-shield-halved" aria-hidden="true"></i> Blockchain-attested halal certificates</li>
+                    <li><i class="fas fa-truck-fast" aria-hidden="true"></i> Verified vendors &amp; tamper-proof provenance</li>
+                    <li><i class="fas fa-robot" aria-hidden="true"></i> Tawheed AI assistants on every page</li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="auth-main">
+            <div class="auth-main__inner">
+                <div class="auth-main__bar">
+                    <button type="button" class="auth-theme-toggle" aria-label="Toggle theme" @onclick="ToggleTheme">
+                        <i class="fas @(ThemeService.CurrentTheme == "dark" ? "fa-sun" : "fa-moon")" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="auth-main__content">
+                    @Body
+                </div>
+                <div class="auth-main__footer">
+                    <small class="text-muted">&copy; @DateTime.UtcNow.Year HalalChain. All rights reserved.</small>
+                </div>
+            </div>
+        </main>
+    </div>
+</RadzenLayout>
+
+@code {
+    private string LayoutClass => "auth-layout" + (ThemeService.CurrentTheme == "dark" ? " auth-layout--dark" : "");
+
+    private void ToggleTheme() => ThemeService.ToggleTheme();
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+    }
+}

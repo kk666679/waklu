@@ -1,0 +1,15 @@
+<div class="admin-widget rz-shadow-1">
+    <div class="admin-widget__header">
+        <h3>@Title</h3>
+        @if (HeaderAction is not null) { @HeaderAction }
+    </div>
+    <div class="admin-widget__body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? HeaderAction { get; set; }
+}

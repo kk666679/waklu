@@ -1,0 +1,104 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Compliance Checker Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: compliance-checker
+version: 2.0.0
+description: Performs comprehensive compliance check on product data
+type: sync
+timeout: 20s
+
+input:
+  schema:
+    type: object
+    properties:
+      product_data:
+        type: object
+        required: true
+        properties:
+          name:
+            type: string
+          category:
+            type: string
+          ingredients:
+            type: array
+            items:
+              type: string
+          certificates:
+            type: array
+            items:
+              type: object
+          supplier:
+            type: object
+          jurisdiction:
+            type: string
+            enum: [MY, ID, SG, AE, SA, EU, US]
+          batch_number:
+            type: string
+          manufacture_date:
+            type: string
+            format: date
+
+output:
+  schema:
+    type: object
+    properties:
+      overall_status:
+        type: string
+        enum: [PASS, FAIL, REVIEW, PENDING]
+      verdict:
+        type: string
+        enum: [HALAL, HARAM, MASHBOOH]
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+      ingredient_check:
+        type: object
+      certificate_check:
+        type: object
+      supply_chain_check:
+        type: object
+      jurisdiction_check:
+        type: object
+      issues:
+        type: array
+        items:
+          type: string
+      recommendations:
+        type: array
+        items:
+          type: string
+      overall_score:
+        type: number
+        minimum: 0
+        maximum: 100
+      review_needed:
+        type: boolean
+      missing_information:
+        type: array
+        items:
+          type: string
+
+execution:
+  provider: python
+  source: skills/implementations/compliance_checker.py
+  entrypoint: check_compliance
+  
+  dependencies:
+    - yaml
+    - json
+    - datetime
+
+knowledge_sources:
+  - .autoclaw/kg/halal_e_codes.yaml
+  - .autoclaw/kg/certificate_authorities.yaml
+  - .autoclaw/kg/jurisdiction_standards.yaml
+  - .autoclaw/kg/proprietary_rules.yaml
+
+security:
+  required_permissions: [compliance:check, kg:read]
+  data_classification: level_3
+  input_sanitization: true
+  output_sanitization: true

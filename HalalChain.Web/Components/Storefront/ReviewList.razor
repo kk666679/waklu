@@ -1,0 +1,67 @@
+@using Radzen.Blazor
+@using Radzen
+@using HalalChain.Services
+
+<div class="review-list @AdditionalClass">
+    <div class="review-list__header">
+        <h3 class="review-list__title">@Title</h3>
+        @if (AverageRating.HasValue)
+        {
+            <div class="review-list__rating" style="display:flex;align-items:center;gap:0.5rem">
+                <RadzenIcon Icon="star" Style="font-size:1.25rem;color:#fbbf24" />
+                <span class="font-bold">@AverageRating.Value.ToString("F1")</span>
+                <span class="text-muted">(@Reviews.Count reviews)</span>
+            </div>
+        }
+    </div>
+    @if (!Reviews.Any())
+    {
+        <div class="review-list__empty">
+            <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+        </div>
+    }
+    else
+    {
+        <div class="review-list__items">
+            @foreach (var review in Reviews)
+            {
+                <div class="review-list__item">
+                    <div class="review-list__item-header">
+                        <div class="review-list__author">
+                            <Avatar Text="@GetInitials(review.CustomerName)" Size="Avatar.AvatarSize.Small" />
+                            <span class="font-medium">@review.CustomerName</span>
+                        </div>
+                        <div class="review-list__date text-sm text-muted">@review.Date.ToString("MMM dd, yyyy")</div>
+                    </div>
+                    <div class="review-list__rating" style="display:flex;align-items:center;gap:0.25rem;margin:0.5rem 0">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var color = i <= review.Rating ? "#fbbf24" : "var(--color-neutral-300)";
+                            <RadzenIcon Icon="@(i <= review.Rating ? "star" : "star_border")"
+                                        Style="@($"font-size:1rem;color:{color}")" />
+                        }
+                    </div>
+                    <p class="review-list__text">@review.Comment</p>
+                    @if (review.IsVerifiedPurchase)
+                    {
+                        <RadzenBadge Text="Verified Purchase" BadgeStyle="BadgeStyle.Success" Size="BadgeSize.Small" />
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<ReviewDto> Reviews { get; set; } = [];
+    [Parameter] public double? AverageRating { get; set; }
+    [Parameter] public string Title { get; set; } = "Reviews";
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private static string GetInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+}

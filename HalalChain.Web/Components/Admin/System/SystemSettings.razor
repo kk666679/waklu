@@ -1,0 +1,14 @@
+@inject IAdminService AdminSvc
+
+<RadzenDataGrid TItem="SystemSetting" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Key" Title="Key" />
+        <RadzenDataGridColumn Property="Value" Title="Value" />
+        <RadzenDataGridColumn Property="Group" Title="Group" Width="120px" />
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<SystemSetting> _items = Array.Empty<SystemSetting>();
+    protected override async Task OnInitializedAsync() => _items = await AdminSvc.GetSettingsAsync();
+}

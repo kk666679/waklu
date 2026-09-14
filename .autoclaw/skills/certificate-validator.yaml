@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Certificate Validator Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: certificate-validator
+version: 2.0.0
+description: Validates halal certificates against recognized authorities
+type: sync
+timeout: 10s
+
+input:
+  schema:
+    type: object
+    properties:
+      certificate_number:
+        type: string
+        description: Certificate number
+        required: true
+      issuing_body:
+        type: string
+        description: Issuing authority
+        required: true
+      issue_date:
+        type: string
+        format: date
+        description: Issue date
+        required: false
+      expiry_date:
+        type: string
+        format: date
+        description: Expiry date
+        required: false
+      product_scope:
+        type: string
+        description: Product category
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [VALID, INVALID, EXPIRED, SUSPENDED, PENDING_REVIEW]
+      authority:
+        type: string
+        description: Verified issuing authority
+      authority_priority:
+        type: integer
+        description: Priority score of authority
+      certificate_number:
+        type: string
+        description: Normalized certificate number
+      issue_date:
+        type: string
+        format: date
+      expiry_date:
+        type: string
+        format: date
+      days_until_expiry:
+        type: integer
+      product_scope:
+        type: string
+      verification_details:
+        type: string
+      warnings:
+        type: array
+        items:
+          type: string
+      digital_signature:
+        type: boolean
+        description: Whether digital signature is verified
+
+execution:
+  provider: python
+  source: skills/implementations/certificate_validator.py
+  entrypoint: validate_certificate
+  
+  dependencies:
+    - yaml
+    - cryptography
+    - datetime
+
+knowledge_sources:
+  - .autoclaw/kg/certificate_authorities.yaml
+
+security:
+  required_permissions: [kg:read, certificate:validate]
+  data_classification: level_2
+  input_sanitization: true
+  output_sanitization: true
+
+caching:
+  enabled: true
+  ttl: 3600
+  max_entries: 5000

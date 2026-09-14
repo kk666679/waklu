@@ -1,0 +1,301 @@
+@page "/vendor/products"
+@layout VendorLayout
+@inject PlatformApiClient Api
+@inject NavigationManager Nav
+@inject NotificationState Notify
+@implements IDisposable
+
+<div class="vendor-products">
+    <div class="page-header">
+        <div>
+            <h1>Products</h1>
+            <p>Manage your product catalog</p>
+        </div>
+        <NavLink href="/vendor/products/new" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Product
+        </NavLink>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="flex items-center gap-4">
+                <input type="text" class="form-input" placeholder="Search products..." @bind="_searchQuery" @oninput="FilterProducts" />
+                <select class="form-select" @bind="_statusFilter">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Draft">Draft</option>
+                    <option value="OutOfStock">Out of Stock</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body" style="padding:0">
+            @if (_loading)
+            {
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading products...</p>
+                </div>
+            }
+            else if (_products == null || !_products.Any())
+            {
+                <div class="empty-state">
+                    <i class="fas fa-box-open" style="font-size:3rem;opacity:0.3"></i>
+                    <h3>No products yet</h3>
+                    <p>Start by adding your first product</p>
+                    <NavLink href="/vendor/products/new" class="btn btn-primary mt-4">
+                        <i class="fas fa-plus"></i> Add Product
+                    </NavLink>
+                </div>
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Halal Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in _filteredProducts ?? [])
+                        {
+                            <tr>
+                                <td>
+                                    <div class="product-cell">
+                                        <div class="product-icon"><i class="fas fa-box"></i></div>
+                                        <div>
+                                            <div class="font-medium">@product.Title</div>
+                                            <div class="text-sm text-muted">@product.Slug</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@product.CategoryName</td>
+                                <td>@product.Currency @product.Price.ToString("N2")</td>
+                                <td>
+                                    <span class="@(product.Inventory < 10 ? "text-danger" : "")">@product.Inventory</span>
+                                </td>
+                                <td>
+                                    @if (product.HalalStatus != null)
+                                    {
+                                        <span class="badge @(product.HalalStatus.Status == "Verified" ? "badge-success" : "badge-warning")">
+                                            @product.HalalStatus.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">Unverified</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="flex gap-2">
+                                        <button class="btn btn-ghost btn-sm" @onclick="() => EditProduct(product.Id)" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm text-danger" @onclick="() => DeleteProduct(product)" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_showDeleteConfirm && _productToDelete != null)
+{
+    <div class="modal-overlay" @onclick="CancelDelete">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Delete Product</h3>
+                <button class="btn btn-ghost btn-sm" @onclick="CancelDelete"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<strong>@_productToDelete.Title</strong>"?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="CancelDelete">Cancel</button>
+                <button class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .vendor-products {
+        padding: var(--space-6);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-6);
+    }
+
+    .page-header h1 {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        margin-bottom: var(--space-1);
+    }
+
+    .page-header p {
+        color: var(--color-text-secondary);
+    }
+
+    .product-cell {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .product-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius);
+        background: var(--color-neutral-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-muted);
+    }
+
+    .loading-state {
+        padding: var(--space-12);
+        text-align: center;
+        color: var(--color-text-muted);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: white;
+        border-radius: var(--radius-xl);
+        width: 100%;
+        max-width: 400px;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .modal-header h3 {
+        font-weight: var(--font-semibold);
+    }
+
+    .modal-body {
+        padding: var(--space-6);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        border-top: 1px solid var(--color-border);
+    }
+</style>
+
+@code {
+    private ProductDto[]? _products;
+    private ProductDto[]? _filteredProducts;
+    private bool _loading = true;
+    private string _searchQuery = "";
+    private string _statusFilter = "";
+    private bool _showDeleteConfirm;
+    private ProductDto? _productToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _products = await Api.GetProductsAsync();
+            FilterProducts();
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Failed to load products: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void FilterProducts()
+    {
+        if (_products == null)
+        {
+            _filteredProducts = [];
+            return;
+        }
+
+        _filteredProducts = _products.Where(p =>
+            (string.IsNullOrEmpty(_searchQuery) ||
+             p.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+             p.Description?.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) == true) &&
+            (string.IsNullOrEmpty(_statusFilter) || p.HalalStatus?.Status == _statusFilter)
+        ).ToArray();
+    }
+
+    private void EditProduct(Guid id)
+    {
+        Nav.NavigateTo($"/vendor/products/{id}/edit");
+    }
+
+    private void DeleteProduct(ProductDto product)
+    {
+        _productToDelete = product;
+        _showDeleteConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        _showDeleteConfirm = false;
+        _productToDelete = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_productToDelete == null) return;
+
+        Notify.Success($"Product '{_productToDelete.Title}' deleted");
+        _products = _products?.Where(p => p.Id != _productToDelete.Id).ToArray();
+        FilterProducts();
+        CancelDelete();
+    }
+
+    public void Dispose() { }
+}

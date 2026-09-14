@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Supply Chain Events
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Supply chain event definitions
+
+events:
+  EventRecorded:
+    description: Emitted when a supply chain event is recorded
+    contract: SupplyChainTracker
+    parameters:
+      - name: eventId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: eventType
+        type: uint8
+        indexed: false
+      - name: recorder
+        type: address
+        indexed: false
+      - name: timestamp
+        type: uint256
+        indexed: false
+    handlers:
+      - supply-chain-tracker
+      - alert-monitor
+      - smart-contract-agent
+
+  EventVerified:
+    description: Emitted when a supply chain event is verified
+    contract: SupplyChainTracker
+    parameters:
+      - name: eventId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: verified
+        type: bool
+        indexed: false
+    handlers:
+      - verification-verifier
+      - compliance-reporter
+
+  ProvenanceComplete:
+    description: Emitted when product provenance tracking is complete
+    contract: SupplyChainTracker
+    parameters:
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: verificationHash
+        type: bytes32
+        indexed: false
+    handlers:
+      - supply-chain-tracker
+      - compliance-reporter
+      - alert-monitor

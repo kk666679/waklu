@@ -1,0 +1,23 @@
+@inject IReportService Reports
+@inject DialogService Dialog
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Sales Report</h4>
+    <RadzenChart>
+        <RadzenLineSeries Data="@_points" CategoryProperty="Date" ValueProperty="Value" Title="Sales" />
+    </RadzenChart>
+    <RadzenButton Text="Export PDF" Icon="picture_as_pdf" Click="@ExportPdf" />
+</RadzenCard>
+
+@code {
+    record P(DateTime Date, double Value);
+    private List<P> _points = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var report = await Reports.GetSalesReportAsync(DateTime.Today.AddDays(-30), DateTime.Today);
+        _points = report.Points.Select(x => new P(x.Date, (double)x.Value)).ToList();
+    }
+
+    private void ExportPdf() => Dialog.Open<RadzenDialog>("Export", new() { ["Title"] = "Exporting..." });
+}

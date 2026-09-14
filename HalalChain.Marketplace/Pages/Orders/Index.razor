@@ -1,0 +1,52 @@
+@page "/orders"
+@inject IPlatformApiClient Api
+@inject AuthService Auth
+
+<PageTitle>Your orders</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <SignedOut Title="Sign in to see your orders" ActionUrl="/account/login?returnUrl=/orders" />
+}
+else if (_orders == null)
+{
+    <section class="container section-sm"><p class="muted">Loading orders…</p></section>
+}
+else if (_orders.Length == 0)
+{
+    <section class="container section-sm">
+        <EmptyState Icon="📦" Title="No orders yet" Message="When you place an order, it will appear here." ActionText="Start shopping" ActionUrl="/browse" />
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Your orders</h1>
+        <div class="stack gap-3">
+            @foreach (var o in _orders)
+            {
+                var itemCount = o.VendorOrders?.Sum(vo => vo.Items?.Sum(i => i.Quantity) ?? 0) ?? 0;
+                <a class="card card-pad between" href="/orders/@o.Id" style="display:flex;">
+                    <div>
+                        <strong>Order @o.Id.ToString()[..8]</strong>
+                        <p class="small muted" style="margin:4px 0 0;">@o.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm") · @itemCount item(s)</p>
+                    </div>
+                    <div class="row gap-2 center">
+                        <span class="badge badge-@o.Status.ToString().ToLower()">@o.Status</span>
+                        <strong>@o.Currency @o.Total.ToString("N2")</strong>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private OrderDto[]? _orders;
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        var result = await Api.GetOrdersAsync();
+        _orders = result.IsSuccess ? result.Data ?? [] : Array.Empty<OrderDto>();
+    }
+}

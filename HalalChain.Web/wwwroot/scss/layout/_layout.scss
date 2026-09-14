@@ -1,0 +1,46 @@
+@layer layout;
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT — HalalChain Black Glassmorphism
+   Page structure, ambient backgrounds, elevation layers.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Ambient page background ── */
+body {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(94, 122, 72, 0.04), transparent 32rem),
+    radial-gradient(circle at 90% 20%, rgba(184, 145, 46, 0.03), transparent 28rem),
+    radial-gradient(circle at 50% 80%, rgba(94, 107, 153, 0.03), transparent 30rem),
+    var(--hc-black);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+.dark-theme body,
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(125, 151, 104, 0.04), transparent 32rem),
+    radial-gradient(circle at 90% 20%, rgba(209, 174, 77, 0.03), transparent 28rem),
+    radial-gradient(circle at 50% 80%, rgba(94, 107, 153, 0.03), transparent 30rem),
+    var(--hc-black);
+}
+
+/* ── Layout wrappers ── */
+.sf-layout, .admin-layout, .vendor-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.vendor-layout {
+  background: var(--color-background);
+}
+
+/* ── Page entrance ── */
+.sf-main > *, .admin-content > *, .vendor-content > * {
+  animation: page-enter var(--motion-medium) var(--ease-emphasized) both;
+}

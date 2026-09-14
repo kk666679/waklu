@@ -1,0 +1,48 @@
+@inject CartState Cart
+@inject IOrderService Orders
+@inject AppNotificationService Notify
+@inject NavigationManager Nav
+
+<RadzenCard class="rz-shadow-1">
+    <h3>Checkout</h3>
+    <RadzenTemplateForm TItem="CheckoutModel" Data="@_model" Submit="@OnSubmit">
+        <RadzenFormField Text="Full Name"><RadzenTextBox @bind-Value="_model.FullName" /></RadzenFormField>
+        <RadzenFormField Text="Address"><RadzenTextArea @bind-Value="_model.Address" Rows="3" /></RadzenFormField>
+        <RadzenFormField Text="City"><RadzenTextBox @bind-Value="_model.City" /></RadzenFormField>
+        <RadzenFormField Text="Country"><RadzenTextBox @bind-Value="_model.Country" /></RadzenFormField>
+        <RadzenFormField Text="Notes"><RadzenTextBox @bind-Value="_model.Notes" /></RadzenFormField>
+        <div>Total: <strong>@Cart.Total.ToString("C")</strong></div>
+        <RadzenButton ButtonType="ButtonType.Submit" Text="Place Order" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenTemplateForm>
+</RadzenCard>
+
+@code {
+    private CheckoutModel _model = new();
+
+    private async Task OnSubmit(CheckoutModel _)
+    {
+        var order = new Order
+        {
+            UserId = "guest",
+            SubTotal = Cart.Subtotal,
+            Tax = 0m,
+            ShippingFee = 0m,
+            Total = Cart.Total,
+            ShippingAddress = $"{_model.Address}, {_model.City}, {_model.Country}",
+            Notes = _model.Notes
+        };
+        await Orders.CreateAsync(order);
+        Cart.Clear();
+        Notify.Success("Order placed", order.OrderNumber);
+        Nav.NavigateTo("/");
+    }
+
+    public class CheckoutModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+}

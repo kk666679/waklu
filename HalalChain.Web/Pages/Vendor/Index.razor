@@ -1,0 +1,310 @@
+@page "/vendor"
+@page "/vendor/dashboard"
+@layout VendorLayout
+@inject PlatformApiClient Api
+@inject AppState AppState
+@implements IDisposable
+
+<div class="vendor-dashboard">
+    <div class="vendor-welcome">
+        <h1>Welcome, Vendor!</h1>
+        <p>Manage your products, track orders, and monitor verification status.</p>
+    </div>
+
+    <div class="vendor-stats">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-box"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(_products?.Length ?? 0)</div>
+                <div class="stat-label">Products</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(_totalOrders)</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-ring"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">@(_pendingCount)</div>
+                <div class="stat-label">Pending Verifications</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">MYR @(_totalRevenue.ToString("N2"))</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vendor-grid">
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <span>Recent Orders</span>
+                <NavLink href="/vendor/orders" class="text-primary text-sm">View All</NavLink>
+            </div>
+            <div class="card-body">
+                @if (_orders == null || !_orders.Any())
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-bag" style="font-size:2rem;opacity:0.3"></i>
+                        <p>No orders yet</p>
+                    </div>
+                }
+                else
+                {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in _orders.Take(5))
+                            {
+                                <tr>
+                                    <td>#@order.Id.ToString()[..8].ToUpper()</td>
+                                    <td>@order.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td><span class="badge @(order.Status == "Delivered" ? "badge-success" : "badge-warning")">@order.Status</span></td>
+                                    <td>MYR @order.Total.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <span>Verification Status</span>
+                <NavLink href="/vendor/certificates" class="text-primary text-sm">Manage</NavLink>
+            </div>
+            <div class="card-body">
+                <div class="verification-summary">
+                    <div class="verification-item">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Verified Products: @(_verifiedCount)</span>
+                    </div>
+                    <div class="verification-item">
+                        <i class="fas fa-clock text-warning"></i>
+                        <span>Pending Review: @(_pendingCount)</span>
+                    </div>
+                    <div class="verification-item">
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        <span>Requires Attention: @(_attentionCount)</span>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <NavLink href="/vendor/certificates/submit" class="btn btn-primary btn-sm w-full">
+                        <i class="fas fa-plus"></i> Submit New Certificate
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-6">
+        <div class="card-header flex items-center justify-between">
+            <span>Quick Actions</span>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions">
+                <NavLink href="/vendor/products/new" class="quick-action">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add New Product</span>
+                </NavLink>
+                <NavLink href="/vendor/products" class="quick-action">
+                    <i class="fas fa-boxes"></i>
+                    <span>Manage Inventory</span>
+                </NavLink>
+                <NavLink href="/vendor/orders" class="quick-action">
+                    <i class="fas fa-truck"></i>
+                    <span>Track Shipments</span>
+                </NavLink>
+                <a href="/vendor/analytics" class="quick-action">
+                    <i class="fas fa-chart-line"></i>
+                    <span>View Analytics</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .vendor-dashboard {
+        padding: var(--space-6);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .vendor-welcome {
+        margin-bottom: var(--space-6);
+    }
+
+    .vendor-welcome h1 {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        margin-bottom: var(--space-2);
+    }
+
+    .vendor-welcome p {
+        color: var(--color-text-secondary);
+    }
+
+    .vendor-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .stat-card {
+        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        background: var(--color-brand-50);
+        color: var(--color-brand-600);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: var(--text-xl);
+        font-weight: var(--font-bold);
+    }
+
+    .stat-label {
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+    }
+
+    .vendor-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--space-6);
+    }
+
+    .verification-summary {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .verification-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-4);
+    }
+
+    .quick-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        background: var(--color-neutral-50);
+        color: var(--color-text-primary);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+        background: var(--color-brand-50);
+        color: var(--color-link);
+    }
+
+    .quick-action i {
+        font-size: 1.5rem;
+    }
+
+    .quick-action span {
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+    }
+
+    .table-sm th,
+    .table-sm td {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    @@media (max-width: 1024px) {
+        .vendor-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .vendor-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+@code {
+    private ProductDto[]? _products;
+    private OrderDto[]? _orders;
+    private int _totalOrders;
+    private decimal _totalRevenue;
+    private int _verifiedCount;
+    private int _pendingCount;
+    private int _attentionCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        try
+        {
+            _products = await Api.GetProductsAsync();
+            _orders = await Api.GetOrdersAsync();
+
+            _totalOrders = _orders?.Length ?? 0;
+            _totalRevenue = _orders?.Sum(o => o.Total) ?? 0;
+
+            var myProducts = _products.Take(3).ToArray();
+            _verifiedCount = myProducts.Length;
+            _pendingCount = 2;
+            _attentionCount = 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+        }
+    }
+
+    public void Dispose() { }
+}

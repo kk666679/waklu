@@ -1,0 +1,53 @@
+@using Radzen.Blazor
+@using Radzen
+
+<div class="metric-card @(TrendDirection != null ? $"metric-card--{TrendDirection}" : "") @AdditionalClass">
+    <div class="metric-card__header">
+        <div class="metric-card__icon">
+            <RadzenIcon Icon="@Icon" />
+        </div>
+        <div class="metric-card__title">@Title</div>
+    </div>
+    <div class="metric-card__value">
+        @if (Prefix != null) { <span class="metric-card__prefix">@Prefix</span> }
+        @Value
+        @if (Suffix != null) { <span class="metric-card__suffix">@Suffix</span> }
+    </div>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <div class="metric-card__description">@Description</div>
+    }
+    @if (!string.IsNullOrEmpty(TrendValue) || !string.IsNullOrEmpty(TrendPeriod))
+    {
+        <div class="metric-card__trend">
+            <RadzenIcon Icon="@(TrendDirection == "up" ? "trending_up" : TrendDirection == "down" ? "trending_down" : "trending_flat")" />
+            <span class="metric-card__trend-value">@TrendValue</span>
+            <span class="metric-card__trend-period">@TrendPeriod</span>
+        </div>
+    }
+    @if (SparklineData != null && SparklineData.Length > 0)
+    {
+        <div class="metric-card__sparkline">
+            <RadzenChart Style="height:60px">
+                <RadzenLineSeries Data="@SparklineData" ValueProperty="Value" CategoryProperty="Label" StrokeWidth="2" />
+                <RadzenValueAxis Visible="false" />
+                <RadzenCategoryAxis Visible="false" />
+                <RadzenLegend Visible="false" />
+            </RadzenChart>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "0";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Prefix { get; set; }
+    [Parameter] public string? Suffix { get; set; }
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? TrendDirection { get; set; }
+    [Parameter] public string? TrendValue { get; set; }
+    [Parameter] public string? TrendPeriod { get; set; }
+    [Parameter] public object?[]? SparklineData { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+}

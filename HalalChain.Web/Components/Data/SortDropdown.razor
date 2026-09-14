@@ -1,0 +1,41 @@
+@using Radzen.Blazor
+
+<div class="sort-dropdown @AdditionalClass">
+    <RadzenDropDown @bind-Value="_selectedSort"
+                    Data="@_sortOptions"
+                    TextProperty="Label"
+                    ValueProperty="Value"
+                    Placeholder="@Placeholder"
+                     Change="@HandleSortChanged"
+                    Style="min-width:180px" />
+</div>
+
+@code {
+    [Parameter] public string? SelectedSort { get; set; }
+    [Parameter] public List<(string Label, string Value)> SortOptions { get; set; } = [];
+    [Parameter] public string Placeholder { get; set; } = "Sort by";
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string?> OnSortChanged { get; set; }
+
+    private string? _selectedSort;
+    private List<(string Label, string Value)> _sortOptions = new();
+
+    protected override void OnInitialized()
+    {
+        _selectedSort = SelectedSort;
+        _sortOptions = SortOptions.Count > 0 ? SortOptions : new List<(string, string)>
+        {
+            ("Newest", "newest"),
+            ("Price: Low to High", "price_asc"),
+            ("Price: High to Low", "price_desc"),
+            ("Best Selling", "best_selling"),
+            ("Top Rated", "rating")
+        };
+    }
+
+    private async Task HandleSortChanged(object? value)
+    {
+        _selectedSort = value?.ToString();
+        await OnSortChanged.InvokeAsync(_selectedSort);
+    }
+}

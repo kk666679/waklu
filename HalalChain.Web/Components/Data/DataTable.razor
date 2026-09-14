@@ -1,0 +1,166 @@
+@typeparam TItem where TItem : notnull
+@using Radzen.Blazor
+@inject IJSRuntime JS
+
+<div class="data-table-wrapper">
+    <div class="data-table-toolbar">
+        <div class="data-table-search">
+            <RadzenTextBox Placeholder="Search..." @bind-Value="_searchTerm" Change="@OnSearchChanged" class="data-table-search-input" Style="max-width:300px" />
+            @if (!string.IsNullOrEmpty(_searchTerm))
+            {
+                <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSearch" />
+            }
+        </div>
+        <div class="data-table-actions">
+            @if (ShowRefresh)
+            {
+                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@RefreshData" />
+            }
+            @if (Exportable)
+            {
+                <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Light" Text="Export" Click="@ExportCsv" />
+            }
+            <span class="data-table-info text-sm text-muted">
+                @FilteredItems.Length item@(FilteredItems.Length != 1 ? "s" : "")
+            </span>
+        </div>
+    </div>
+
+    <RadzenDataGrid TItem="TItem"
+                    Data="@FilteredItems"
+                    AllowSorting="@AllowSorting"
+                    AllowPaging="@ShowPagination"
+                    PageSize="@_pageSize"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid data-table">
+        <Columns>
+            @foreach (var col in Columns)
+            {
+                <RadzenDataGridColumn TItem="TItem" Property="@col.Property" Title="@col.Header" Sortable="@(col.Sortable && AllowSorting)" Filterable="false" Visible="@col.Visible">
+                    <Template Context="item">
+                        @if (col.Template != null)
+                        {
+                            @col.Template(item)
+                        }
+                        else
+                        {
+                            var value = GetPropertyValue(item, col.Property);
+                            @value
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+            }
+            @if (ActionsTemplate != null)
+            {
+                <RadzenDataGridColumn TItem="TItem" Title="Actions" Sortable="false" Filterable="false">
+                    <Template Context="item">
+                        @ActionsTemplate(item)
+                    </Template>
+                </RadzenDataGridColumn>
+            }
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    [Parameter] public List<TItem> Items { get; set; } = [];
+    [Parameter] public List<ColumnDef<TItem>> Columns { get; set; } = [];
+    [Parameter] public RenderFragment<TItem>? ActionsTemplate { get; set; }
+    [Parameter] public string? EmptyText { get; set; } = "No data found";
+    [Parameter] public bool ShowPagination { get; set; } = true;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public bool Exportable { get; set; } = true;
+    [Parameter] public bool ShowRefresh { get; set; } = false;
+    [Parameter] public bool AllowSorting { get; set; } = true;
+    [Parameter] public string ExportFileName { get; set; } = "export.csv";
+
+    private string _searchTerm = "";
+    private int _pageSize;
+
+    protected override void OnInitialized()
+    {
+        _pageSize = PageSize;
+    }
+
+    private TItem[] FilteredItems
+    {
+        get
+        {
+            var items = Items;
+            if (string.IsNullOrEmpty(_searchTerm))
+                return [.. items];
+
+            var searchLower = _searchTerm.ToLowerInvariant();
+            return [.. items.Where(item =>
+            {
+                foreach (var col in Columns)
+                {
+                    var value = col.SearchValue?.Invoke(item) ?? GetPropertyValue(item, col.Property)?.ToString();
+                    if (!string.IsNullOrEmpty(value) && value.ToLowerInvariant().Contains(searchLower))
+                        return true;
+                }
+                return false;
+            })];
+        }
+    }
+
+    private async Task OnSearchChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        _searchTerm = "";
+        StateHasChanged();
+    }
+
+    private void RefreshData()
+    {
+        _searchTerm = "";
+        StateHasChanged();
+    }
+
+    private async Task ExportCsv()
+    {
+        var items = FilteredItems;
+        var exportableColumns = Columns.Where(c => c.Exportable).ToList();
+
+        if (!exportableColumns.Any() || !items.Any()) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Join(",", exportableColumns.Select(c => EscapeCsv(c.Header))));
+
+        foreach (var item in items)
+        {
+            var values = exportableColumns.Select(col =>
+            {
+                var value = col.ExportFormat?.Invoke(item)
+                    ?? GetPropertyValue(item, col.Property)?.ToString()
+                    ?? "";
+                return EscapeCsv(value);
+            });
+            sb.AppendLine(string.Join(",", values));
+        }
+
+        var csv = sb.ToString();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", $"{ExportFileName}.csv", "text/csv", base64);
+    }
+
+    private static string? GetPropertyValue(TItem item, string? propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName)) return null;
+        var prop = typeof(TItem).GetProperty(propertyName);
+        return prop?.GetValue(item)?.ToString();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+}

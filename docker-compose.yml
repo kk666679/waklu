@@ -1,0 +1,251 @@
+services:
+  # ── ASP.NET application services ───────────────────────────────────────
+  # The three .NET service images are built from parameterized Dockerfiles.
+  # The PROJECT / PROJECT_DLL defaults match the file at the dockerfile
+  # location; if you need a custom build, pass `--build-arg` overrides.
+
+  platform-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PROJECT: HalalChain.Platform.Api
+        PROJECT_DLL: HalalChain.Platform.Api
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      # The dev stack is the documented local development path. Set
+      # ASPNETCORE_ENVIRONMENT=Production explicitly when deploying
+      # outside of a local docker compose workflow.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Jwt__Issuer: HalalChainPlatform
+      Jwt__Audience: HalalChainClients
+      Jwt__Key: ${JWT__KEY:?Set JWT__KEY in .env}
+      AiGateway__BaseUrl: http://ai-inference:7071
+      AiGateway__ApiKey: ${AI_GATEWAY_API_KEY:?Set AI_GATEWAY_API_KEY in .env}
+      ConnectionStrings__Postgres: ${POSTGRES_CONNECTION_STRING:?Set POSTGRES_CONNECTION_STRING in .env}
+      ConnectionStrings__Redis: ${REDIS_CONNECTION_STRING:?Set REDIS_CONNECTION_STRING in .env}
+      Tawheed__BaseUrl: http://tawheed:8000
+    ports:
+      - "5001:8080"
+    depends_on:
+      ai-inference:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  marketplace:
+    build:
+      context: .
+      dockerfile: HalalChain.Marketplace/Dockerfile
+      args:
+        PROJECT: HalalChain.Marketplace
+        PROJECT_DLL: HalalChain.Marketplace
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      PlatformApi__BaseUrl: http://platform-api:8080/
+    ports:
+      - "5201:8080"
+    depends_on:
+      platform-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  halalchain:
+    build:
+      context: .
+      dockerfile: HalalChain.Web/Dockerfile
+      args:
+        PROJECT: HalalChain.Web
+        PROJECT_DLL: HalalChain.Web
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      PlatformApi__BaseUrl: http://platform-api:8080/
+    ports:
+      - "5200:8080"
+    depends_on:
+      platform-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ── Python services (FastAPI) ───────────────────────────────────────────
+
+  ai-inference:
+    build:
+      # Build from the .halalchain parent so the shared Python package
+      # (./_shared) is on the build context. The Dockerfile itself lives
+      # in .halalchain/ai-inference/Dockerfile.
+      context: .halalchain
+      dockerfile: ai-inference/Dockerfile
+    environment:
+      PORT: 7071
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Auth — fail-closed at startup; required in non-dev environments.
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:?Set AI_GATEWAY_API_KEY in .env}
+      # CORS — comma-separated explicit origins. No wildcards.
+      AI_GATEWAY_ALLOWED_ORIGINS: ${AI_GATEWAY_ALLOWED_ORIGINS:-http://localhost:5001,http://localhost:5200,http://localhost:5201}
+      # Document processing — only files under this root are processable.
+      DOCUMENT_ROOT: ${AI_INFERENCE_DOCUMENT_ROOT:-/var/lib/halalchain/documents}
+      AI_BACKEND: ${AI_BACKEND:-local}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      FOUNDRY_BASE_URL: ${FOUNDRY_BASE_URL:-}
+      FOUNDRY_API_KEY: ${FOUNDRY_API_KEY:-}
+      FOUNDRY_MODEL: ${FOUNDRY_MODEL:-halalchain-assistant}
+      OPENCLAW_BASE_URL: ${OPENCLAW_BASE_URL:-http://host.docker.internal:11434/v1}
+      OPENCLAW_API_KEY: ${OPENCLAW_API_KEY:-ollama}
+      OPENCLAW_MODEL: ${OPENCLAW_MODEL:-halalchain-assistant}
+      REDIS_URL: redis://redis:6379/0
+      # Container-to-container address — use the Compose service hostname.
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-halalchain_vectors}
+      ENABLE_CACHE: "true"
+      CACHE_STRATEGY: redis
+      LOG_LEVEL: INFO
+    ports:
+      - "7071:7071"
+    volumes:
+      - ai_inference_documents:${AI_INFERENCE_DOCUMENT_ROOT:-/var/lib/halalchain/documents}
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7071/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  tawheed:
+    build:
+      context: .halalchain
+      dockerfile: tawheed/Dockerfile
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Production-style secrets — operators MUST provide real values.
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (>=32 chars)}
+      AI_BACKEND: ${AI_BACKEND:-demo}
+      FOUNDRY_BASE_URL: ${FOUNDRY_BASE_URL:-}
+      FOUNDRY_API_KEY: ${FOUNDRY_API_KEY:-}
+      FOUNDRY_MODEL: ${FOUNDRY_MODEL:-halalchain-assistant}
+      OPENCLAW_BASE_URL: ${OPENCLAW_BASE_URL:-http://host.docker.internal:11434/v1}
+      OPENCLAW_API_KEY: ${OPENCLAW_API_KEY:-ollama}
+      OPENCLAW_MODEL: ${OPENCLAW_MODEL:-halalchain-assistant}
+      POSTGRES_URL: ${POSTGRES_URL:?Set POSTGRES_URL in .env}
+      REDIS_URL: ${REDIS_URL:?Set REDIS_URL in .env}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:?Set NEO4J_USER in .env}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in .env}
+      DEFAULT_JURISDICTION: ${DEFAULT_JURISDICTION:-MY}
+      DEFAULT_POLICY_VERSION: ${DEFAULT_POLICY_VERSION:-MY-v3}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ── Infrastructure ─────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:17.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.26.0-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:?Set NEO4J_USER}/${NEO4J_PASSWORD:?Set NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+      QDRANT__SERVICE__HTTP_PORT: 6333
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    # The qdrant image ships a static qdrant binary without curl or
+    # wget. We use bash's /dev/tcp to make a minimal HTTP request to
+    # the /health endpoint.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/6333; echo -e \"GET /health HTTP/1.0\\r\\n\\r\\n\" >&3; head -1 <&3 | grep -q 200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  neo4j_data:
+  qdrant_data:
+  ai_inference_documents:

@@ -1,0 +1,46 @@
+# =============================================================================
+# HalalChain .NET service Dockerfile (parameterized)
+# =============================================================================
+# Usage (root build, e.g. for the platform-api):
+#   docker build --build-arg PROJECT=HalalChain.Platform.Api \
+#                --build-arg PROJECT_DLL=HalalChain.Platform.Api \
+#                -f Dockerfile -t halalchain/platform-api .
+#
+# Usage (per-service build):
+#   docker build --build-arg PROJECT=HalalChain.Web \
+#                --build-arg PROJECT_DLL=HalalChain.Web \
+#                -f HalalChain.Web/Dockerfile -t halalchain/web .
+# =============================================================================
+
+ARG DOTNET_VERSION=10.0.11
+ARG BASE_IMAGE=mcr.microsoft.com/dotnet/aspnet
+ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk
+
+FROM ${BASE_IMAGE}:${DOTNET_VERSION} AS base
+WORKDIR /app
+EXPOSE 8080
+
+FROM ${SDK_IMAGE}:${DOTNET_VERSION} AS build
+ARG PROJECT
+ARG PROJECT_DLL
+WORKDIR /src
+
+# Copy the project + its declared project references first so the Docker
+# layer cache is reused across service rebuilds.
+COPY ["HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj", "HalalChain.Platform.Contracts/"]
+COPY ["HalalChain.Platform.Http/HalalChain.Platform.Http.csproj", "HalalChain.Platform.Http/"]
+COPY ["${PROJECT}/${PROJECT}.csproj", "${PROJECT}/"]
+RUN dotnet restore "${PROJECT}/${PROJECT}.csproj"
+
+COPY . .
+RUN dotnet build "${PROJECT}/${PROJECT}.csproj" -c Release -o /app/build
+
+FROM build AS publish
+ARG PROJECT_DLL
+RUN dotnet publish "${PROJECT}/${PROJECT}.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+ARG PROJECT_DLL
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "${PROJECT_DLL}.dll"]

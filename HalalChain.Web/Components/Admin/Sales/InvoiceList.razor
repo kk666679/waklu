@@ -1,0 +1,31 @@
+@inject IInvoiceService Invoices
+
+<RadzenDataGrid TItem="Invoice" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="InvoiceNumber" Title="Invoice #" Width="140px" />
+        <RadzenDataGridColumn Property="OrderId" Title="Order" Width="100px" />
+        <RadzenDataGridColumn Property="Total" Title="Total">
+            <Template Context="i">@i.Total.ToString("C")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Status" Title="Status" Width="140px">
+            <Template Context="i">
+                <RadzenBadge BadgeStyle="@Style(i.Status)" Text="@i.Status.ToString()" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="IssuedAt" Title="Issued" Width="140px">
+            <Template Context="i">@i.IssuedAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Invoice> _items = Array.Empty<Invoice>();
+    protected override async Task OnInitializedAsync() => _items = await Invoices.GetAllAsync();
+    private static BadgeStyle Style(InvoiceStatus s) => s switch
+    {
+        InvoiceStatus.Paid => BadgeStyle.Success,
+        InvoiceStatus.Issued => BadgeStyle.Info,
+        InvoiceStatus.Overdue => BadgeStyle.Danger,
+        _ => BadgeStyle.Secondary
+    };
+}

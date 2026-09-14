@@ -1,0 +1,14 @@
+<RadzenDataGrid TItem="string" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="." Title="Cart Rule" />
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<string> _items = new[]
+    {
+        "Free shipping over $50",
+        "10% off on first order",
+        "Buy 2 get 1 free on selected items"
+    };
+}

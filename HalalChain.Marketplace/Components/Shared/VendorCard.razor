@@ -1,0 +1,24 @@
+<a class="card card-pad vendor-card" href="/vendors/@Vendor.Id">
+    <div class="row gap-2 center">
+        <div class="vendor-avatar" aria-hidden="true">@Initials</div>
+        <div>
+            <h4 style="margin:0;">@Vendor.Name</h4>
+            @if (!string.IsNullOrEmpty(Vendor.Country))
+            {
+                <span class="small muted">@Vendor.Country</span>
+            }
+        </div>
+    </div>
+    <div class="row gap-2 mt-2">
+        @if (string.Equals(Vendor.Status, "Verified", StringComparison.OrdinalIgnoreCase))
+        {
+            <span class="badge badge-halal">✓ Verified</span>
+        }
+    </div>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public VendorDto Vendor { get; set; } = default!;
+
+    private string Initials => string.Join("", Vendor.Name.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+}

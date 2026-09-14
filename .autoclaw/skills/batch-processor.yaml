@@ -1,0 +1,93 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Batch Processor Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: batch-processor
+version: 2.0.0
+description: Processes multiple items in batch with parallel execution
+type: async
+timeout: 300s
+
+input:
+  schema:
+    type: object
+    properties:
+      items:
+        type: array
+        description: Array of items to process
+        required: true
+        items:
+          type: object
+      batch_id:
+        type: string
+        description: Batch identifier
+        required: true
+      workflow:
+        type: string
+        description: Workflow to apply
+        required: true
+      max_workers:
+        type: integer
+        description: Maximum parallel workers
+        default: 10
+      timeout_per_item:
+        type: integer
+        description: Timeout per item in seconds
+        default: 60
+      retry_count:
+        type: integer
+        description: Number of retries per item
+        default: 3
+
+output:
+  schema:
+    type: object
+    properties:
+      batch_id:
+        type: string
+      status:
+        type: string
+        enum: [COMPLETED, PARTIAL, FAILED]
+      total_items:
+        type: integer
+      processed_items:
+        type: integer
+      successful:
+        type: integer
+      failed:
+        type: integer
+      results:
+        type: array
+        items:
+          type: object
+      errors:
+        type: array
+        items:
+          type: object
+      summary:
+        type: object
+      duration:
+        type: string
+
+execution:
+  provider: python
+  source: skills/implementations/batch_processor.py
+  entrypoint: process_batch
+  
+  dependencies:
+    - concurrent.futures
+    - asyncio
+    - json
+    - datetime
+
+security:
+  required_permissions: [batch:process]
+  data_classification: level_2
+  input_sanitization: true
+  output_sanitization: true
+
+caching:
+  enabled: true
+  ttl: 3600
+  max_entries: 100

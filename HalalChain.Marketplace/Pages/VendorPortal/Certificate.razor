@@ -1,0 +1,83 @@
+@page "/vendor/products/{Id:guid}/certificate"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Submit certificate</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Submit certificate</h1>
+    @if (!string.IsNullOrEmpty(_error)) { <div class="alert alert-error">@_error</div> }
+    <div class="panel card-pad" style="max-width: 640px;">
+        <EditForm Model="@_form" OnValidSubmit="@Submit">
+            <DataAnnotationsValidator />
+            <div class="stack gap-3">
+                <div>
+                    <label class="small muted">Certificate number</label>
+                    <RadzenTextBox @bind-Value="_form.CertificateNumber" Style="width:100%;" />
+                </div>
+                <div>
+                    <label class="small muted">Certification body</label>
+                    <RadzenTextBox @bind-Value="_form.CertificationBody" Style="width:100%;" />
+                </div>
+                <div>
+                    <label class="small muted">Jurisdiction</label>
+                    <RadzenTextBox @bind-Value="_form.Jurisdiction" Style="width:100%;" />
+                </div>
+                <div class="grid grid-2 gap-3">
+                    <div>
+                        <label class="small muted">Issue date</label>
+                        <RadzenDatePicker @bind-Value="_form.IssueDate" Style="width:100%;" />
+                    </div>
+                    <div>
+                        <label class="small muted">Expiry date</label>
+                        <RadzenDatePicker @bind-Value="_form.ExpiryDate" Style="width:100%;" />
+                    </div>
+                </div>
+                <div>
+                    <label class="small muted">Scope (optional)</label>
+                    <RadzenTextArea @bind-Value="_form.Scope" Style="width:100%;" Rows="3" />
+                </div>
+                <div class="row gap-2">
+                    <RadzenButton Text="Submit" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" IsBusy="@_submitting" />
+                    <a class="btn btn-ghost" href="/vendor/products">Cancel</a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private CertForm _form = new();
+    private string? _error;
+    private bool _submitting;
+
+    public class CertForm
+    {
+        public string CertificateNumber { get; set; } = "";
+        public string CertificationBody { get; set; } = "";
+        public string Jurisdiction { get; set; } = "MY";
+        public DateTimeOffset IssueDate { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset ExpiryDate { get; set; } = DateTimeOffset.UtcNow.AddYears(2);
+        public string? Scope { get; set; }
+    }
+
+    private async Task Submit()
+    {
+        _submitting = true; _error = null;
+        var req = new SubmitCertificateRequest
+        {
+            CertificateNumber = _form.CertificateNumber,
+            CertificationBody = _form.CertificationBody,
+            Jurisdiction = _form.Jurisdiction,
+            IssueDate = _form.IssueDate,
+            ExpiryDate = _form.ExpiryDate,
+            Scope = _form.Scope
+        };
+        var result = await Api.SubmitCertificateAsync(Id, req);
+        _submitting = false;
+        if (result.IsSuccess) { Toast.Success("Certificate submitted for review."); Nav.NavigateTo("/vendor"); }
+        else _error = result.Status == ApiStatus.Forbidden ? "Vendor authorization required to submit a certificate." : (result.Error ?? "Could not submit certificate.");
+    }
+}

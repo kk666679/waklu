@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HalalChain · Enterprise Dashboard 2026</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        /* ───────────── Reset & Variables ───────────── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 2026 Dark Theme – Gradient Accent: Indigo → Violet → Cyan */
+            --bg-primary: #0b0d14;
+            --bg-secondary: #12161f;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.06);
+            --text-primary: #f0f2f8;
+            --text-secondary: #a0a8b8;
+            --text-muted: #6a7282;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            --radius: 16px;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --transition: 0.25s ease;
+
+            /* Accent gradient */
+            --accent-start: #6c5ce7;
+            --accent-mid: #a855f7;
+            --accent-end: #06b6d4;
+            --accent-glow: rgba(108, 92, 231, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ───────────── Scrollbar ───────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-mid);
+        }
+
+        /* ───────────── Sidebar ───────────── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform var(--transition);
+            overflow-y: auto;
+            z-index: 100;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .sidebar-brand {
+            padding: 1.5rem 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-brand i {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-brand span {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .sidebar-brand small {
+            font-size: 0.65rem;
+            opacity: 0.5;
+            display: block;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            -webkit-text-fill-color: var(--text-muted);
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.5rem 0.75rem;
+        }
+        .sidebar-nav .nav-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+        }
+        .sidebar-nav .nav-label:first-child {
+            margin-top: 0;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .sidebar-nav a i {
+            width: 1.4rem;
+            font-size: 1rem;
+            text-align: center;
+            opacity: 0.7;
+        }
+        .sidebar-nav a:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .sidebar-nav a.active {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(6, 182, 212, 0.15));
+            color: white;
+            font-weight: 500;
+            box-shadow: inset 0 0 0 1px rgba(108, 92, 231, 0.2);
+        }
+        .sidebar-nav a.active i {
+            opacity: 1;
+            color: var(--accent-mid);
+        }
+        .sidebar-nav a .badge {
+            margin-left: auto;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-mid));
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ───────────── Main Content ───────────── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            height: 100vh;
+        }
+
+        /* ───────────── Top Header ───────────── */
+        .topbar {
+            height: var(--header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            gap: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+        .topbar .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        .topbar .search {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        .topbar .search input {
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            outline: none;
+        }
+        .topbar .search input::placeholder {
+            color: var(--text-muted);
+        }
+        .topbar .search input:focus {
+            border-color: var(--accent-mid);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .topbar .search i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        .topbar .actions {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+        .topbar .actions .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: var(--transition);
+        }
+        .topbar .actions .icon-btn:hover {
+            color: var(--accent-mid);
+        }
+        .topbar .actions .icon-btn .dot {
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            width: 8px;
+            height: 8px;
+            background: #f43f5e;
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+        }
+        .topbar .user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: default;
+        }
+        .topbar .user img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-mid);
+        }
+        .topbar .user .name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .topbar .user .role {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* ───────────── Content Area ───────────── */
+        .content {
+            padding: 1.5rem 2rem 2rem;
+        }
+
+        /* ───────────── Stats Cards ───────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(4px);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--transition);
+        }
+        .stat-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            border-color: rgba(108, 92, 231, 0.3);
+        }
+        .stat-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+        }
+        .stat-card .info {
+            flex: 1;
+        }
+        .stat-card .info .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .stat-card .info .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .stat-card .info .trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.15rem;
+        }
+        .stat-card .info .trend.up {
+            color: #34d399;
+        }
+        .stat-card .info .trend.down {
+            color: #f87171;
+        }
+
+        /* ───────────── Charts row ───────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-box {
+            background: var(--bg-card);
+            backdrop-filter: blur(4px);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .chart-box h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .chart-box h3 i {
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .chart-box canvas {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 200px;
+        }
+
+        /* ───────────── Activity & Quick Actions ───────────── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+        .activity-box {
+            background: var(--bg-card);
+            backdrop-filter: blur(4px);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .activity-box h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .activity-box h3 i {
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        .activity-item .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+            color: white;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+        }
+        .activity-item .content {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        .activity-item .content .title {
+            font-weight: 500;
+        }
+        .activity-item .content .time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .quick-action {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            transition: var(--transition);
+            cursor: default;
+        }
+        .quick-action:hover {
+            border-color: var(--accent-mid);
+            background: var(--bg-card-hover);
+            transform: scale(1.02);
+        }
+        .quick-action i {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+        .quick-action .label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* ───────────── Status badges ───────────── */
+        .status-badge {
+            display: inline-block;
+            padding: 0.1rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .status-badge.green {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+        }
+        .status-badge.amber {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+        .status-badge.red {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        /* ───────────── Responsive ───────────── */
+        @media (max-width: 992px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                width: 280px;
+                box-shadow: 2px 0 20px rgba(0, 0, 0, 0.8);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .topbar .menu-toggle {
+                display: block;
+            }
+            .topbar {
+                padding: 0 1rem;
+            }
+            .content {
+                padding: 1rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .stat-card .info .number {
+                font-size: 1.4rem;
+            }
+            .quick-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .topbar .user .name {
+                display: none;
+            }
+            .topbar .search {
+                max-width: 150px;
+            }
+        }
+
+        /* ───────────── Overlay for mobile ───────────── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 90;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* ───────────── Misc ───────────── */
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .mt-1 {
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── Sidebar Overlay ─── -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ─── Sidebar ─── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-crown"></i>
+            <div>
+                <span>HalalChain</span>
+                <small>Enterprise · 2026</small>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href="#" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="#"><i class="fas fa-store"></i> Marketplace</a>
+            <a href="#"><i class="fas fa-handshake"></i> B2B</a>
+            <a href="#"><i class="fas fa-gavel"></i> Certification</a>
+
+            <div class="nav-label">Commerce</div>
+            <a href="#"><i class="fas fa-boxes"></i> Products</a>
+            <a href="#"><i class="fas fa-shopping-cart"></i> Orders <span class="badge">34</span></a>
+            <a href="#"><i class="fas fa-users"></i> Vendors</a>
+
+            <div class="nav-label">Trust & Compliance</div>
+            <a href="#"><i class="fas fa-file-certificate"></i> Certificates</a>
+            <a href="#"><i class="fas fa-clipboard-check"></i> Verifications</a>
+            <a href="#"><i class="fas fa-link"></i> Blockchain</a>
+
+            <div class="nav-label">System</div>
+            <a href="#"><i class="fas fa-user-shield"></i> RBAC+ABAC</a>
+            <a href="#"><i class="fas fa-robot"></i> AI / MCP</a>
+            <a href="#"><i class="fas fa-cogs"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <span>v2.0.2026</span>
+            <span><i class="fas fa-circle" style="color:#34d399;font-size:0.5rem;"></i> All systems nominal</span>
+        </div>
+    </aside>
+
+    <!-- ─── Main ─── -->
+    <div class="main">
+
+        <!-- ─── Topbar ─── -->
+        <header class="topbar">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search products, orders, vendors...">
+            </div>
+            <div class="actions">
+                <button class="icon-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="dot"></span>
+                </button>
+                <button class="icon-btn" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
+                </button>
+                <div class="user">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=6c5ce7&color=fff&size=36" alt="Avatar">
+                    <div>
+                        <div class="name">Aisha Rahman</div>
+                        <div class="role">Platform Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ─── Content ─── -->
+        <div class="content">
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                    <div class="info">
+                        <div class="number">$12.4M</div>
+                        <div class="label">Total GMV</div>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i> +18.2%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="info">
+                        <div class="number">3,842</div>
+                        <div class="label">Orders (30d)</div>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i> +12%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-store-alt"></i></div>
+                    <div class="info">
+                        <div class="number">1,247</div>
+                        <div class="label">Active Vendors</div>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i> +9%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-file-certificate"></i></div>
+                    <div class="info">
+                        <div class="number">2,341</div>
+                        <div class="label">Halal Certificates</div>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i> +14%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-box">
+                    <h3><i class="fas fa-chart-line"></i> Revenue Trend (30 days)</h3>
+                    <canvas id="revenueChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3><i class="fas fa-chart-pie"></i> Orders by Category</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bottom: Activity + Quick Actions -->
+            <div class="bottom-grid">
+                <div class="activity-box">
+                    <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                    <div class="activity-item">
+                        <div class="icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="content">
+                            <div class="title">Certificate #HC-2026-0842 verified on-chain</div>
+                            <div class="time"><i class="far fa-clock"></i> 2 min ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="icon"><i class="fas fa-box"></i></div>
+                        <div class="content">
+                            <div class="title">Order #ORD-8472 shipped (B2B, 240 units)</div>
+                            <div class="time"><i class="far fa-clock"></i> 18 min ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="icon"><i class="fas fa-user-plus"></i></div>
+                        <div class="content">
+                            <div class="title">Vendor "Halal Harvest" approved</div>
+                            <div class="time"><i class="far fa-clock"></i> 1 hour ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="icon"><i class="fas fa-robot"></i></div>
+                        <div class="content">
+                            <div class="title">AI recommendation model retrained (v3.2)</div>
+                            <div class="time"><i class="far fa-clock"></i> 3 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="icon"><i class="fas fa-database"></i></div>
+                        <div class="content">
+                            <div class="title">Outbox processed 47 events (100% success)</div>
+                            <div class="time"><i class="far fa-clock"></i> 6 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="activity-box">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    <div class="quick-actions">
+                        <div class="quick-action">
+                            <i class="fas fa-sync-alt"></i>
+                            <div class="label">Re-index Events</div>
+                        </div>
+                        <div class="quick-action">
+                            <i class="fas fa-play"></i>
+                            <div class="label">Run Verification</div>
+                        </div>
+                        <div class="quick-action">
+                            <i class="fas fa-file-export"></i>
+                            <div class="label">Compliance Report</div>
+                        </div>
+                        <div class="quick-action">
+                            <i class="fas fa-robot"></i>
+                            <div class="label">AI Health Check</div>
+                        </div>
+                        <div class="quick-action">
+                            <i class="fas fa-boxes"></i>
+                            <div class="label">Sync Catalog</div>
+                        </div>
+                        <div class="quick-action">
+                            <i class="fas fa-check-double"></i>
+                            <div class="label">Run Tests</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+                        <div class="flex" style="justify-content:space-between;font-size:0.8rem;">
+                            <span><span class="status-badge green">●</span> API</span>
+                            <span><span class="status-badge green">●</span> Database</span>
+                            <span><span class="status-badge green">●</span> Outbox</span>
+                            <span><span class="status-badge green">●</span> Blockchain</span>
+                            <span><span class="status-badge green">●</span> AI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /content -->
+    </div><!-- /main -->
+
+    <script>
+        // ─── Sidebar Toggle ───
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        menuToggle.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+
+        // Close sidebar on resize to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+        });
+
+        // ─── Charts ───
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Aug 01', 'Aug 05', 'Aug 09', 'Aug 13', 'Aug 17', 'Aug 21', 'Aug 25', 'Aug 29'],
+                datasets: [{
+                    label: 'Revenue (USD)',
+                    data: [32000, 28000, 41000, 36000, 52000, 48000, 61000, 57000],
+                    borderColor: '#6c5ce7',
+                    backgroundColor: 'rgba(108, 92, 231, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#a855f7',
+                    pointRadius: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '$' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: {
+                            color: '#a0a8b8',
+                            callback: function(value) { return '$' + value.toLocaleString(); }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a8b8' }
+                    }
+                }
+            }
+        });
+
+        // Category Chart (Doughnut)
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Food & Beverage', 'Personal Care', 'Pharmaceuticals', 'Cosmetics', 'Other'],
+                datasets: [{
+                    data: [45, 25, 15, 10, 5],
+                    backgroundColor: ['#6c5ce7', '#a855f7', '#06b6d4', '#34d399', '#fbbf24'],
+                    borderColor: '#0b0d14',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 10,
+                            padding: 10,
+                            font: { size: 10, color: '#a0a8b8' }
+                        }
+                    }
+                },
+                cutout: '70%',
+            }
+        });
+    </script>
+
+</body>
+</html>

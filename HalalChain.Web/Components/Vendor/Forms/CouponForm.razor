@@ -1,0 +1,30 @@
+@inject IPromotionService Promotions
+@inject AppNotificationService Notify
+
+<RadzenTemplateForm TItem="Coupon" Data="@Coupon" Submit="@OnSubmit">
+    <RadzenStack Gap="1rem">
+        <RadzenFormField Text="Code"><RadzenTextBox @bind-Value="Coupon.Code" /></RadzenFormField>
+        <RadzenFormField Text="Description"><RadzenTextBox @bind-Value="Coupon.Description" /></RadzenFormField>
+        <RadzenFormField Text="Type">
+            <RadzenDropDown @bind-Value="Coupon.Type" Data="@_types" />
+        </RadzenFormField>
+        <RadzenFormField Text="Value"><RadzenNumeric @bind-Value="Coupon.Value" /></RadzenFormField>
+        <RadzenRow>
+            <RadzenColumn Size="6"><RadzenFormField Text="Starts"><RadzenDatePicker @bind-Value="Coupon.StartsAt" /></RadzenFormField></RadzenColumn>
+            <RadzenColumn Size="6"><RadzenFormField Text="Expires"><RadzenDatePicker @bind-Value="Coupon.ExpiresAt" /></RadzenFormField></RadzenColumn>
+        </RadzenRow>
+        <RadzenButton ButtonType="ButtonType.Submit" Text="Save" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenStack>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public Coupon Coupon { get; set; } = new();
+    private List<CouponType> _types = new() { CouponType.Percentage, CouponType.FixedAmount };
+
+    private async Task OnSubmit(Coupon c)
+    {
+        if (c.Id == 0) await Promotions.CreateAsync(c);
+        else await Promotions.UpdateAsync(c);
+        Notify.Success("Saved", c.Code);
+    }
+}

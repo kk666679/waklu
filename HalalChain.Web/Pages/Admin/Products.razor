@@ -1,0 +1,74 @@
+@page "/admin/products"
+@layout AdminLayout
+@inject AppState State
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Products</h2>
+    <RadzenButton Click="@(() => NotificationService.Notify(NotificationSeverity.Info, "Add Product", "Feature coming soon"))" Icon="add" Text="Add Product" ButtonStyle="ButtonStyle.Primary" />
+</div>
+
+@if (State.IsLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" class="mb-4" />
+}
+else
+{
+    <RadzenDataGrid TItem="ProductDto"
+                    Data="@State.Products"
+                    AllowSorting="true"
+                    AllowPaging="true"
+                    PageSize="10"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid">
+        <Columns>
+            <RadzenDataGridColumn TItem="ProductDto" Property="Title" Title="Product" Sortable="true" Filterable="false">
+                <Template Context="p">
+                    <div>
+                        <div class="font-medium">@p.Title</div>
+                        <div class="text-xs text-muted">@p.Slug</div>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Property="VendorName" Title="Vendor" Sortable="true" Filterable="false" />
+            <RadzenDataGridColumn TItem="ProductDto" Property="CategoryName" Title="Category" Sortable="true" Filterable="false" />
+            <RadzenDataGridColumn TItem="ProductDto" Property="Price" Title="Price" Sortable="true" Filterable="false">
+                <Template Context="p">
+                    <span class="font-semibold">@p.Currency @p.Price.ToString("N2")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Property="Inventory" Title="Stock" Sortable="true" Filterable="false">
+                <Template Context="p">
+                    <RadzenBadge Text="@p.Inventory.ToString()"
+                                 BadgeStyle="@(p.Inventory > 0 ? BadgeStyle.Success : BadgeStyle.Danger)" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Title="Halal Status" Sortable="false" Filterable="false">
+                <Template Context="p">
+                    <RadzenBadge Text="@(p.HalalStatus?.Status ?? "N/A")"
+                                 BadgeStyle="@(p.HalalStatus?.Status == "Verified" ? BadgeStyle.Success : BadgeStyle.Warning)" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ProductDto" Title="Actions" Sortable="false" Filterable="false">
+                <Template Context="p">
+                    <RadzenButton Click="@(() => NotificationService.Notify(NotificationSeverity.Info, "Edit", $"Editing {p.Title}"))" 
+                                  Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadProductsAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnChanged;
+}

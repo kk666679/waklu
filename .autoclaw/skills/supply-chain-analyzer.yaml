@@ -1,0 +1,106 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Supply Chain Analyzer Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: supply-chain-analyzer
+version: 2.0.0
+description: Analyzes supply chain for halal compliance risks
+type: sync
+timeout: 15s
+
+input:
+  schema:
+    type: object
+    properties:
+      supplier:
+        type: string
+        description: Supplier name
+        required: true
+      supplier_id:
+        type: string
+        description: Supplier ID
+        required: false
+      product:
+        type: string
+        description: Product name
+        required: true
+      product_id:
+        type: string
+        description: Product ID
+        required: false
+      batch_number:
+        type: string
+        description: Batch number
+        required: false
+      certification:
+        type: string
+        description: Supplier certification
+        required: false
+      country:
+        type: string
+        description: Country of origin
+        required: false
+      handling_procedures:
+        type: string
+        description: Handling and processing procedures
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [COMPLIANT, NON_COMPLIANT, RISK_IDENTIFIED, PENDING_REVIEW]
+      supplier:
+        type: string
+        description: Verified supplier name
+      certification_status:
+        type: string
+      traceability:
+        type: string
+        enum: [FULL, PARTIAL, NONE]
+      handling_risk:
+        type: string
+        enum: [LOW, MEDIUM, HIGH]
+      contamination_risk:
+        type: string
+        enum: [LOW, MEDIUM, HIGH]
+      concerns:
+        type: array
+        items:
+          type: string
+      recommendations:
+        type: array
+        items:
+          type: string
+      risk_score:
+        type: number
+        minimum: 0
+        maximum: 100
+      audit_required:
+        type: boolean
+
+execution:
+  provider: python
+  source: skills/implementations/supply_chain_analyzer.py
+  entrypoint: analyze_supply_chain
+  
+  dependencies:
+    - yaml
+    - requests
+
+knowledge_sources:
+  - .autoclaw/kg/proprietary_rules.yaml
+
+security:
+  required_permissions: [supply_chain:read, kg:read]
+  data_classification: level_2
+  input_sanitization: true
+  output_sanitization: true
+
+caching:
+  enabled: true
+  ttl: 7200
+  max_entries: 1000

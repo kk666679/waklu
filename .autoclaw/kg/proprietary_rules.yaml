@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — Internal HalalChain Compliance Rules
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+# ⚠️ RESTRICTED ACCESS — Internal use only
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Internal proprietary compliance rules
+
+rules:
+  - id: R001
+    name: JAKIM Priority
+    description: JAKIM certificates have highest priority
+    condition: certificate_authority == "JAKIM"
+    action: accept_with_priority
+    
+  - id: R002
+    name: Multiple Certificates
+    description: If multiple certificates exist, use the highest priority
+    condition: multiple_certificates
+    action: select_highest_priority
+
+  - id: R101
+    name: Alcohol Detection
+    description: Any detection of alcohol triggers HARAM
+    condition: alcohol_detected
+    action: HARAM
+    
+  - id: R102
+    name: Pork Detection
+    description: Any detection of pork triggers HARAM
+    condition: pork_detected
+    action: HARAM
+    
+  - id: R103
+    name: Blood Detection
+    description: Any detection of blood triggers HARAM
+    condition: blood_detected
+    action: HARAM
+
+  - id: R201
+    name: Missing Certificate
+    description: Missing certificate requires additional review
+    condition: certificate_missing
+    action: MASHBOOH
+    
+  - id: R202
+    name: Expired Certificate
+    description: Expired certificate requires re-certification
+    condition: certificate_expired
+    action: MASHBOOH
+    
+  - id: R203
+    name: Unknown E-Code
+    description: Unknown E-code requires verification
+    condition: e_code_unknown
+    action: MASHBOOH

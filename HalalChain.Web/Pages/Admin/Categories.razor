@@ -1,0 +1,56 @@
+@page "/admin/categories"
+@layout AdminLayout
+@inject AppState State
+@inject NotificationService NotificationService
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Categories</h2>
+    <RadzenButton Click="@(() => NotificationService.Notify(NotificationSeverity.Info, "Add Category", "Feature coming soon"))" Icon="add" Text="Add Category" ButtonStyle="ButtonStyle.Primary" />
+</div>
+
+@if (State.IsLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+}
+else
+{
+    <div class="grid grid-3">
+        @foreach (var c in State.Categories)
+        {
+            var verifiedCount = State.Products.Count(p => p.CategoryName == c.Name && p.HalalStatus?.Status == "Verified");
+            <RadzenCard class="category-card">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold">@c.Name</h3>
+                    <RadzenBadge Text="@c.ProductCount.ToString()" BadgeStyle="BadgeStyle.Info" />
+                </div>
+                <div class="flex justify-between text-sm mb-3">
+                    <span class="text-muted">Products</span>
+                    <span class="font-medium">@c.ProductCount</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-muted">Verified</span>
+                    <span class="text-success font-medium">@verifiedCount</span>
+                </div>
+                <div style="margin-top:var(--space-3)">
+                    <RadzenLink href="@($"/products?category={c.Slug}")" class="rz-button rz-button-md rz-variant-flat rz-theme-dark w-100" style="text-align:center">
+                        View Products
+                    </RadzenLink>
+                </div>
+            </RadzenCard>
+        }
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadCategoriesAsync();
+        if (!State.Products.Any())
+            await State.LoadProductsAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnChanged;
+}

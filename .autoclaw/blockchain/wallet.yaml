@@ -1,0 +1,82 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Wallet Configuration
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+# ⚠️ RESTRICTED ACCESS — Sensitive wallet configuration
+#
+# All values below are environment-variable placeholders.
+# NEVER commit real key material, mnemonics, or vault tokens to this
+# file. Real secrets must come from a secret manager (HSM / vault)
+# at runtime, consistent with .autoclaw/security/policy.yaml.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Wallet configuration for blockchain interactions
+
+# ============================================================
+# Wallet Settings
+# ============================================================
+wallet:
+  type: deterministic
+  mnemonic: ${WALLET_MNEMONIC}
+  derivation_path: "m/44'/60'/0'/0/0"
+
+  addresses:
+    mainnet: ${MAINNET_ADDRESS}
+    testnet: ${TESTNET_ADDRESS}
+
+  # Private keys (encrypted)
+  private_keys:
+    mainnet: ${MAINNET_PRIVATE_KEY}
+    testnet: ${TESTNET_PRIVATE_KEY}
+
+# ============================================================
+# Key Management
+# ============================================================
+key_management:
+  type: vault
+  vault_url: ${VAULT_URL}
+  vault_token: ${VAULT_TOKEN}
+  key_name: halalchain-wallet
+
+  encryption:
+    algorithm: AES-256-GCM
+    key_rotation_days: 90
+
+# ============================================================
+# Multi-Sig Configuration
+# ============================================================
+multisig:
+  enabled: true
+  required_signatures: 2
+  signers:
+    - address: 0x0000000000000000000000000000000000001000
+      name: compliance-officer
+    - address: 0x0000000000000000000000000000000000001001
+      name: operations-manager
+    - address: 0x0000000000000000000000000000000000001002
+      name: auditor
+
+# ============================================================
+# Fee Management
+# ============================================================
+fees:
+  gas:
+    strategy: dynamic
+    max_gas_price: 100000000000
+    min_gas_price: 1000000000
+    speed: standard
+
+  transaction:
+    min_value: 0.001
+    max_value: 10
+
+# ============================================================
+# Monitoring
+# ============================================================
+monitoring:
+  balance_threshold: 10
+  alert_on_low_balance: true
+  auto_topup: false
+  topup_threshold: 5
+  topup_amount: 20

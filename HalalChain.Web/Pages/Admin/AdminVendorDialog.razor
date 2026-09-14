@@ -1,0 +1,76 @@
+@inject DialogService DialogService
+@inject PlatformApiClient Api
+@inject NotificationService NotificationService
+@using HalalChain.Platform.Contracts.Vendors.Requests
+
+<RadzenTemplateForm TItem="VendorFormModel" Data="@Model" Submit="@OnSubmit">
+    <RadzenStack Gap="1rem">
+        <RadzenFormField Text="Vendor Name *" Variant="Variant.Outlined">
+            <RadzenTextBox @bind-Value="@Model.Name" Placeholder="Enter vendor name" class="w-100" />
+        </RadzenFormField>
+
+        <RadzenFormField Text="Country *" Variant="Variant.Outlined">
+            <RadzenDropDown @bind-Value="@Model.Country"
+                           Placeholder="Select country"
+                           Data="@Countries"
+                           class="w-100" />
+        </RadzenFormField>
+    </RadzenStack>
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="mt-4">
+        <RadzenButton Text="Cancel" Click="@(() => DialogService.Close())" ButtonStyle="ButtonStyle.Light" />
+        <RadzenButton Text="Add Vendor" ButtonType="ButtonType.Submit" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenStack>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public VendorDto? Vendor { get; set; }
+
+    public VendorFormModel Model { get; set; } = new();
+
+    public static readonly string[] Countries =
+    [
+        "Malaysia", "Indonesia", "Singapore", "Thailand", "Pakistan",
+        "UAE", "Turkey", "Australia", "Brunei", "Saudi Arabia"
+    ];
+
+    protected override void OnInitialized()
+    {
+        if (Vendor != null)
+        {
+            Model.Name = Vendor.Name;
+            Model.Country = Vendor.Country ?? "";
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(Model.Name) || string.IsNullOrWhiteSpace(Model.Country))
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Please fill in all required fields");
+            return;
+        }
+
+        try
+        {
+            if (Vendor == null)
+            {
+                var result = await Api.RegisterVendorAsync(new RegisterVendorRequest(Model.Name, Model.Country));
+                if (result != null)
+                {
+                    DialogService.Close(result);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to save vendor: {ex.Message}");
+        }
+    }
+
+    public class VendorFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Country { get; set; } = "";
+    }
+}

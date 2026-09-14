@@ -1,0 +1,62 @@
+@using Radzen.Blazor
+@using Radzen
+
+<div class="admin-chart @AdditionalClass">
+    <div class="admin-chart__header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+        <h4 class="admin-chart__title font-semibold">@Title</h4>
+        <div class="admin-chart__tabs">
+            @foreach (var tab in ChartTypes)
+            {
+                <button class="admin-chart__tab @(SelectedChartType == tab ? "admin-chart__tab--active" : "")"
+                        @onclick="() => SelectChartType(tab)">
+                    @tab
+                </button>
+            }
+        </div>
+    </div>
+    @if (Loading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="height:200px" />
+    }
+    else
+    {
+        <DataChart Data="@Data"
+                   CategoryProperty="@CategoryProperty"
+                   ValueProperty="@ValueProperty"
+                   ChartType="@GetChartSeriesType()"
+                   Height="@Height"
+                   ShowLegend="@ShowLegend"
+                   ValueFormat="@ValueFormat"
+                   Title="@ChartTitle" />
+    }
+</div>
+
+@code {
+    [Parameter] public object?[]? Data { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? ChartTitle { get; set; }
+    [Parameter] public string? CategoryProperty { get; set; }
+    [Parameter] public string? ValueProperty { get; set; }
+    [Parameter] public string Height { get; set; } = "300px";
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool ShowLegend { get; set; } = true;
+    [Parameter] public string ValueFormat { get; set; } = "{0:N0}";
+    [Parameter] public string[] ChartTypes { get; set; } = ["Bar", "Line", "Pie"];
+    [Parameter] public string SelectedChartType { get; set; } = "Bar";
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string> OnChartTypeChanged { get; set; }
+
+    private async Task SelectChartType(string type)
+    {
+        SelectedChartType = type;
+        await OnChartTypeChanged.InvokeAsync(type);
+    }
+
+    private string GetChartSeriesType() => SelectedChartType.ToLowerInvariant() switch
+    {
+        "line" => "Line",
+        "pie" => "Pie",
+        "area" => "Area",
+        _ => "Column"
+    };
+}

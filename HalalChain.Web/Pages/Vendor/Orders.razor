@@ -1,0 +1,343 @@
+@page "/vendor/orders"
+@layout VendorLayout
+@inject PlatformApiClient Api
+@inject NotificationState Notify
+@implements IDisposable
+
+<div class="vendor-orders">
+    <div class="page-header">
+        <div>
+            <h1>Orders</h1>
+            <p>Track and manage your orders</p>
+        </div>
+        <div class="flex gap-2">
+            <select class="form-select" @bind="_statusFilter">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body" style="padding:0">
+            @if (_loading)
+            {
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading orders...</p>
+                </div>
+            }
+            else if (_orders == null || !_orders.Any())
+            {
+                <div class="empty-state">
+                    <i class="fas fa-shopping-bag" style="font-size:3rem;opacity:0.3"></i>
+                    <h3>No orders yet</h3>
+                    <p>Orders will appear here when customers place them</p>
+                </div>
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in _filteredOrders ?? [])
+                        {
+                            <tr>
+                                <td class="font-medium">#@order.Id.ToString()[..8].ToUpper()</td>
+                                <td>@order.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                <td>
+                                    @{
+                                        var itemCount = order.VendorOrders.Sum(vo => vo.Items.Sum(i => i.Quantity));
+                                    }
+                                    @itemCount items
+                                </td>
+                                <td class="font-semibold">@order.Currency @order.Total.ToString("N2")</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(order.Status)">@order.Status</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => ViewOrder(order)">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_showOrderDetail && _selectedOrder != null)
+{
+    <div class="modal-overlay" @onclick="CloseOrderDetail">
+        <div class="modal modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Order #@_selectedOrder.Id.ToString()[..8].ToUpper()</h3>
+                <button class="btn btn-ghost btn-sm" @onclick="CloseOrderDetail"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="order-meta">
+                    <div><strong>Date:</strong> @_selectedOrder.CreatedAt.ToString("MMMM dd, yyyy HH:mm")</div>
+                    <div><strong>Status:</strong> <span class="badge @GetStatusBadgeClass(_selectedOrder.Status)">@_selectedOrder.Status</span></div>
+                </div>
+
+                <hr />
+
+                @foreach (var vendorOrder in _selectedOrder.VendorOrders)
+                {
+                    <div class="vendor-order-section">
+                        <div class="vendor-order-header">
+                            <strong>@vendorOrder.VendorName</strong>
+                            <span class="badge @GetStatusBadgeClass(vendorOrder.Status)">@vendorOrder.Status</span>
+                        </div>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in vendorOrder.Items)
+                                {
+                                    <tr>
+                                        <td>@item.ProductTitle</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.Currency @item.UnitPrice.ToString("N2")</td>
+                                        <td>@item.Currency @((item.UnitPrice * item.Quantity).ToString("N2"))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="vendor-order-total">
+                            Subtotal: @vendorOrder.Currency @vendorOrder.Subtotal.ToString("N2")
+                        </div>
+                    </div>
+                }
+
+                <hr />
+                <div class="order-total">
+                    <strong>Total:</strong> @_selectedOrder.Currency @_selectedOrder.Total.ToString("N2")
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="CloseOrderDetail">Close</button>
+                @if (_selectedOrder.Status == "Pending")
+                {
+                    <button class="btn btn-primary" @onclick="ProcessOrder">
+                        <i class="fas fa-check"></i> Process Order
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .vendor-orders {
+        padding: var(--space-6);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-6);
+    }
+
+    .page-header h1 {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        margin-bottom: var(--space-1);
+    }
+
+    .page-header p {
+        color: var(--color-text-secondary);
+    }
+
+    .loading-state {
+        padding: var(--space-12);
+        text-align: center;
+        color: var(--color-text-muted);
+    }
+
+    .badge-success { background: var(--color-success-100); color: var(--color-success-700); }
+    .badge-warning { background: var(--color-warning-100); color: var(--color-warning-700); }
+    .badge-danger { background: var(--color-danger-100); color: var(--color-danger-700); }
+
+    .order-meta {
+        display: flex;
+        gap: var(--space-6);
+        margin-bottom: var(--space-4);
+    }
+
+    .vendor-order-section {
+        margin-bottom: var(--space-4);
+    }
+
+    .vendor-order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-3);
+    }
+
+    .vendor-order-total {
+        text-align: right;
+        font-weight: var(--font-medium);
+        margin-top: var(--space-2);
+    }
+
+    .order-total {
+        text-align: right;
+        font-size: var(--text-lg);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: white;
+        border-radius: var(--radius-xl);
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .modal-lg {
+        max-width: 700px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--color-border);
+        position: sticky;
+        top: 0;
+        background: white;
+    }
+
+    .modal-header h3 { font-weight: var(--font-semibold); }
+
+    .modal-body { padding: var(--space-6); }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        border-top: 1px solid var(--color-border);
+    }
+
+    .table-sm th, .table-sm td { padding: var(--space-2) var(--space-3); }
+</style>
+
+@code {
+    private OrderDto[]? _orders;
+    private OrderDto[]? _filteredOrders;
+    private bool _loading = true;
+    private string _statusFilter = "";
+    private bool _showOrderDetail;
+    private OrderDto? _selectedOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        _loading = true;
+        try
+        {
+            _orders = await Api.GetOrdersAsync();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Failed to load orders: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (_orders == null)
+        {
+            _filteredOrders = [];
+            return;
+        }
+
+        _filteredOrders = string.IsNullOrEmpty(_statusFilter)
+            ? _orders
+            : _orders.Where(o => o.Status == _statusFilter).ToArray();
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Delivered" => "badge-success",
+        "Shipped" => "badge-info",
+        "Processing" => "badge-warning",
+        "Pending" => "badge-secondary",
+        "Cancelled" => "badge-danger",
+        _ => "badge-secondary"
+    };
+
+    private void ViewOrder(OrderDto order)
+    {
+        _selectedOrder = order;
+        _showOrderDetail = true;
+    }
+
+    private void CloseOrderDetail()
+    {
+        _showOrderDetail = false;
+        _selectedOrder = null;
+    }
+
+    private async Task ProcessOrder()
+    {
+        if (_selectedOrder == null) return;
+        Notify.Success($"Order #{_selectedOrder.Id.ToString()[..8].ToUpper()} is being processed");
+        CloseOrderDetail();
+        await LoadOrdersAsync();
+    }
+
+    public void Dispose() { }
+}

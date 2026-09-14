@@ -1,0 +1,46 @@
+@using HalalChain.Platform.Contracts.Catalog
+@code {
+    [Parameter, EditorRequired] public HalalProfileDto? Profile { get; set; }
+
+    private bool IsVerified => Profile != null && (Profile.Status == 1 || Profile.Status == 2);
+    private bool IsPlatformVerified => Profile != null && Profile.Status == 2;
+    private bool IsMuslimFriendly => Profile != null && Profile.Status == 3;
+    private bool IsPending => Profile != null && Profile.Status == 5;
+    private bool IsNotApplicable => Profile != null && Profile.Status == 6;
+    private bool IsExpired => Profile != null && Profile.CertificateExpires.HasValue && Profile.CertificateExpires < DateOnly.FromDateTime(DateTime.UtcNow);
+
+    private string StatusLabel
+    {
+        get
+        {
+            if (Profile == null) return "Unverified";
+            if (IsVerified) return "Certified";
+            if (IsPlatformVerified) return "Platform Verified";
+            if (IsMuslimFriendly) return "Muslim-Friendly";
+            if (IsPending) return "Pending Review";
+            if (IsNotApplicable) return "Not Applicable";
+            return Profile.StatusName ?? "Unknown";
+        }
+    }
+
+    private string StatusClass => (Profile == null || (!IsVerified && !IsPlatformVerified && !IsMuslimFriendly) || IsExpired) ? "unverified" : "verified";
+
+    private string? StatusIcon => IsVerified || IsPlatformVerified ? "✓" : IsMuslimFriendly ? "★" : IsPending ? "⧖" : IsNotApplicable ? "—" : null;
+}
+
+@if (Profile != null && !IsNotApplicable && (IsVerified || IsPlatformVerified || IsMuslimFriendly))
+{
+    <span class="halal-status-pill @StatusClass">@StatusIcon Halal Verified</span>
+}
+else if (IsPending)
+{
+    <span class="halal-status-pill pending">⧖ Pending verification</span>
+}
+else if (IsNotApplicable)
+{
+    <span class="halal-status-pill unverified">Not applicable</span>
+}
+else
+{
+    <span class="halal-status-pill unverified">Unverified</span>
+}

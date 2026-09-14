@@ -1,0 +1,139 @@
+@using Radzen.Blazor
+
+<div class="settings-form @AdditionalClass">
+    <AdminTabs Tabs="@_tabs" OnTabChanged="@OnTabChanged" />
+</div>
+
+@code {
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string> OnSave { get; set; }
+
+    private List<AdminTabs.AdminTab> _tabs = new();
+
+    private SettingsModel _settings = new();
+
+    private List<string> Currencies = ["MYR", "USD", "SAR", "AED", "IDR", "SGD"];
+
+    protected override void OnInitialized()
+    {
+        _settings = new SettingsModel
+        {
+            PlatformName = "HalalChain",
+            PlatformUrl = "https://halalchain.com",
+            DefaultCurrency = "MYR",
+            EmailNotifications = true,
+            SmsNotifications = false,
+            TwoFactorAuth = true,
+            BlockchainVerification = true
+        };
+
+        _tabs = BuildTabs();
+    }
+
+    private List<AdminTabs.AdminTab> BuildTabs()
+    {
+        var general = new AdminTabs.AdminTab(
+            "general", "General", "settings",
+            Content: builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.OpenElement(1, "div"); builder.AddAttribute(2, "class", "form-group");
+                builder.OpenComponent<RadzenLabel>(3); builder.AddAttribute(4, "Text", "Platform Name"); builder.CloseComponent();
+                builder.OpenComponent<RadzenTextBox>(5);
+                builder.AddAttribute(6, "Value", _settings.PlatformName);
+                builder.AddAttribute(7, "class", "w-100");
+                builder.AddAttribute(8, "ValueChanged", EventCallback.Factory.Create<string>(this, v => _settings.PlatformName = v));
+                builder.CloseComponent();
+                builder.CloseElement();
+
+                builder.OpenElement(9, "div"); builder.AddAttribute(10, "class", "form-group");
+                builder.OpenComponent<RadzenLabel>(11); builder.AddAttribute(12, "Text", "Platform URL"); builder.CloseComponent();
+                builder.OpenComponent<RadzenTextBox>(13);
+                builder.AddAttribute(14, "Value", _settings.PlatformUrl);
+                builder.AddAttribute(15, "class", "w-100");
+                builder.AddAttribute(16, "ValueChanged", EventCallback.Factory.Create<string>(this, v => _settings.PlatformUrl = v));
+                builder.CloseComponent();
+                builder.CloseElement();
+
+                builder.OpenElement(17, "div"); builder.AddAttribute(18, "class", "form-group");
+                builder.OpenComponent<RadzenLabel>(19); builder.AddAttribute(20, "Text", "Default Currency"); builder.CloseComponent();
+                builder.OpenComponent<RadzenDropDown<string>>(21);
+                builder.AddAttribute(22, "Value", _settings.DefaultCurrency);
+                builder.AddAttribute(23, "Data", Currencies);
+                builder.AddAttribute(24, "class", "w-100");
+                builder.AddAttribute(25, "ValueChanged", EventCallback.Factory.Create<string>(this, v => _settings.DefaultCurrency = v));
+                builder.CloseComponent();
+                builder.CloseElement();
+                builder.CloseElement();
+            });
+
+        var notifications = new AdminTabs.AdminTab(
+            "notifications", "Notifications", "notifications",
+            Content: builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.OpenElement(1, "div"); builder.AddAttribute(2, "class", "form-group");
+                builder.OpenComponent<RadzenSwitch>(3);
+                builder.AddAttribute(4, "Value", _settings.EmailNotifications);
+                builder.AddAttribute(5, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => _settings.EmailNotifications = v));
+                builder.CloseComponent();
+                builder.OpenComponent<RadzenLabel>(6); builder.AddAttribute(7, "Text", "Email Notifications"); builder.AddAttribute(8, "Style", "margin-left:0.5rem"); builder.CloseComponent();
+                builder.CloseElement();
+
+                builder.OpenElement(9, "div"); builder.AddAttribute(10, "class", "form-group");
+                builder.OpenComponent<RadzenSwitch>(11);
+                builder.AddAttribute(12, "Value", _settings.SmsNotifications);
+                builder.AddAttribute(13, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => _settings.SmsNotifications = v));
+                builder.CloseComponent();
+                builder.OpenComponent<RadzenLabel>(14); builder.AddAttribute(15, "Text", "SMS Notifications"); builder.AddAttribute(16, "Style", "margin-left:0.5rem"); builder.CloseComponent();
+                builder.CloseElement();
+                builder.CloseElement();
+            });
+
+        var security = new AdminTabs.AdminTab(
+            "security", "Security", "security",
+            Content: builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.OpenElement(1, "div"); builder.AddAttribute(2, "class", "form-group");
+                builder.OpenComponent<RadzenSwitch>(3);
+                builder.AddAttribute(4, "Value", _settings.TwoFactorAuth);
+                builder.AddAttribute(5, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => _settings.TwoFactorAuth = v));
+                builder.CloseComponent();
+                builder.OpenComponent<RadzenLabel>(6); builder.AddAttribute(7, "Text", "Two-Factor Authentication"); builder.AddAttribute(8, "Style", "margin-left:0.5rem"); builder.CloseComponent();
+                builder.CloseElement();
+
+                builder.OpenElement(9, "div"); builder.AddAttribute(10, "class", "form-group");
+                builder.OpenComponent<RadzenSwitch>(11);
+                builder.AddAttribute(12, "Value", _settings.BlockchainVerification);
+                builder.AddAttribute(13, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => _settings.BlockchainVerification = v));
+                builder.CloseComponent();
+                builder.OpenComponent<RadzenLabel>(14); builder.AddAttribute(15, "Text", "Blockchain Verification"); builder.AddAttribute(16, "Style", "margin-left:0.5rem"); builder.CloseComponent();
+                builder.CloseElement();
+                builder.CloseElement();
+            });
+
+        return new List<AdminTabs.AdminTab> { general, notifications, security };
+    }
+
+    private async Task OnTabChanged(string tabId)
+    {
+        await OnSave.InvokeAsync(tabId);
+    }
+
+    private async Task SaveSettings()
+    {
+        await OnSave.InvokeAsync("general");
+    }
+
+    public record SettingsModel
+    {
+        public string PlatformName { get; set; } = "";
+        public string PlatformUrl { get; set; } = "";
+        public string DefaultCurrency { get; set; } = "MYR";
+        public bool EmailNotifications { get; set; }
+        public bool SmsNotifications { get; set; }
+        public bool TwoFactorAuth { get; set; }
+        public bool BlockchainVerification { get; set; }
+    }
+}

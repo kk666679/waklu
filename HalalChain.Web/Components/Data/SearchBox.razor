@@ -1,0 +1,124 @@
+@using Radzen.Blazor
+
+<div class="search-box @(IsFocused ? "search-box--focused" : "") @AdditionalClass" @ref="_searchBoxRef">
+    <div class="search-box__wrapper">
+        <RadzenIcon Icon="search" class="search-box__icon" />
+        <RadzenTextBox @bind-Value="_query"
+                       Placeholder="@Placeholder"
+                       Change="@OnSearchChanged"
+                       Focus="@(() => OnFocus())"
+                       Blur="@(() => OnBlur())"
+                       class="search-box__input"
+                       Style="width:100%" />
+        @if (!string.IsNullOrEmpty(_query) && Clearable)
+        {
+            <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSearch" />
+        }
+        @if (DebounceMs > 0 && IsSearching)
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="width:24px;height:24px" />
+        }
+    </div>
+    @if (_results.Any() && IsFocused)
+    {
+        <div class="search-box__dropdown">
+            @foreach (var result in _results.Take(MaxResults))
+            {
+                <div class="search-box__item" @onclick="() => SelectResult(result)">
+                    <div class="search-box__item-content">
+                        <span class="search-box__item-title">@result.Title</span>
+                        <span class="search-box__item-meta">@result.Category</span>
+                    </div>
+                    @if (result.Price.HasValue)
+                    {
+                        <span class="search-box__item-price">@result.Price.Value.ToString("N2")</span>
+                    }
+                </div>
+            }
+            @if (_results.Count > MaxResults)
+            {
+                <div class="search-box__more">
+                    <RadzenLink href="@($"/products?q={Uri.EscapeDataString(_query)}")" class="search-box__more-link">
+                        View all @_results.Count results for "@_query"
+                    </RadzenLink>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Placeholder { get; set; } = "Search...";
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public int DebounceMs { get; set; } = 300;
+    [Parameter] public int MaxResults { get; set; } = 8;
+    [Parameter] public string? InitialQuery { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string> OnSearch { get; set; }
+    [Parameter] public EventCallback<SearchResult> OnSelect { get; set; }
+
+    private string _query = "";
+    private bool IsFocused { get; set; }
+    private bool IsSearching { get; set; }
+    private List<SearchResult> _results = [];
+    private ElementReference _searchBoxRef;
+    private System.Timers.Timer? _debounceTimer;
+
+    protected override void OnInitialized()
+    {
+        _query = InitialQuery ?? "";
+        _debounceTimer = new System.Timers.Timer(DebounceMs) { AutoReset = false };
+        _debounceTimer.Elapsed += async (sender, e) => await InvokeAsync(async () => await PerformSearch());
+    }
+
+    private async Task OnSearchChanged()
+    {
+        _debounceTimer?.Stop();
+        if (string.IsNullOrWhiteSpace(_query) || _query.Length < 2)
+        {
+            _results.Clear();
+            StateHasChanged();
+            return;
+        }
+        _debounceTimer?.Start();
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        IsSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            await OnSearch.InvokeAsync(_query);
+        }
+        finally
+        {
+            IsSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnFocus() { IsFocused = true; StateHasChanged(); }
+    private void OnBlur() { IsFocused = false; StateHasChanged(); }
+
+    private void ClearSearch()
+    {
+        _query = "";
+        _results.Clear();
+        StateHasChanged();
+    }
+
+    private async Task SelectResult(SearchResult result)
+    {
+        await OnSelect.InvokeAsync(result);
+        _query = result.Title;
+        _results.Clear();
+        StateHasChanged();
+    }
+
+    public void SetResults(List<SearchResult> results) { _results = results; StateHasChanged(); }
+
+    public record SearchResult(string Title, string Category, decimal? Price);
+}

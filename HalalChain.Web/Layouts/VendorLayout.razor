@@ -1,0 +1,53 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IUserContext UserContext
+@inject IAuthService Auth
+@inject NotificationState Notify
+@inject NotificationService NotificationService
+@inject IThemeService ThemeService
+
+<RadzenLayout class="@LayoutClass">
+    <RadzenHeader class="vendor-header">
+        <div class="vendor-header__inner">
+            <div class="vendor-header__brand">
+                <a href="/" class="brand-link" aria-label="HalalChain Home">
+                    <span class="brand-text"><span class="text-primary">Halal</span>Chain</span>
+                    <span class="vendor-badge">Vendor Portal</span>
+                </a>
+            </div>
+
+            <nav class="vendor-nav" aria-label="Vendor Navigation">
+                <NavLink href="/vendor" class="vendor-nav-link" Match="NavLinkMatch.All">Dashboard</NavLink>
+                <NavLink href="/vendor/products" class="vendor-nav-link">Products</NavLink>
+                <NavLink href="/vendor/orders" class="vendor-nav-link">Orders</NavLink>
+                <NavLink href="/vendor/certificates" class="vendor-nav-link">Certificates</NavLink>
+            </nav>
+
+            <div class="vendor-header__actions">
+                <div class="vendor-user">
+                    <img src="@UserContext.AvatarUrl" alt="@UserContext.UserName" class="vendor-avatar" />
+                    <span>@UserContext.UserName</span>
+                </div>
+            </div>
+        </div>
+    </RadzenHeader>
+
+    <RadzenBody>
+        <div class="vendor-body">
+            @Body
+        </div>
+    </RadzenBody>
+
+    <RadzenFooter>
+        <div class="container">
+            <span>&copy; @DateTime.UtcNow.Year HalalChain Vendor Portal</span>
+        </div>
+    </RadzenFooter>
+</RadzenLayout>
+
+@code {
+    private string LayoutClass => ThemeService.CurrentTheme == "dark" ? "theme-dark" : "theme-light";
+
+    public void Dispose() { }
+}

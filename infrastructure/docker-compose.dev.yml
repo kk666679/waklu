@@ -1,0 +1,63 @@
+# =============================================================================
+# HalalChain — development compose overlay
+# =============================================================================
+# This file is an INTENDED OVERLAY, not a parallel definition of the full
+# stack. It is designed to be merged on top of the root `docker-compose.yml`
+# via the `-f` flag:
+#
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f infrastructure/docker-compose.dev.yml \
+#     --profile chain up --build
+#
+# It adds services that are useful in development but not part of the
+# canonical platform topology (e.g. IPFS via kubo, an Anvil Polygon-fork
+# chain for end-to-end contract testing). The overlay does NOT redefine
+# postgres / redis / qdrant / neo4j — those are inherited from the root
+# compose file. If you need to override one of them locally, drop a
+# `docker-compose.override.yml` next to the root file instead.
+# =============================================================================
+
+services:
+  # ── IPFS local node (kubo) — used by the API in dev ─────────────────────
+  ipfs:
+    image: ipfs/kubo:v0.27.0
+    environment:
+      IPFS_PROFILE: server
+    ports:
+      - "5011:5001"  # RPC API (used by LocalKuboStorageService)
+      - "8081:8080"  # Gateway (used to fetch CIDs back)
+    volumes:
+      - ipfsdata:/data/ipfs
+    healthcheck:
+      test: ["CMD", "ipfs", "diag", "sys"]
+      interval: 10s
+      retries: 6
+
+  # ── Anvil (Polygon Amoy fork) — local chain for end-to-end testing ─────
+  # The mnemonic / private keys are NEVER committed. Operators must supply
+  # them through the environment. The setup-dev.sh script generates a
+  # throw-away development mnemonic and exports it as ANVIL_MNEMONIC before
+  # invoking docker compose.
+  polygon-fork:
+    image: ghcr.io/foundry-rs/foundry:nightly-de39b018af6faf8292c9f7086a80f8d7df90cea4
+    command: >
+      sh -c "anvil
+            --host 0.0.0.0
+            --port 8545
+            --chain-id 80002
+            --balance 10000
+            --gas-limit 30000000
+            --block-time 1
+            --accounts 20
+            --mnemonic $${ANVIL_MNEMONIC:?Set ANVIL_MNEMONIC in .env or environment}
+            --fork-url $${AMOY_RPC_URL:?Set AMOY_RPC_URL in .env or environment (e.g. https://rpc-amoy.polygon.technology)}"
+    environment:
+      - ANVIL_MNEMONIC=${ANVIL_MNEMONIC:?Set ANVIL_MNEMONIC}
+      - AMOY_RPC_URL=${AMOY_RPC_URL:?Set AMOY_RPC_URL}
+    ports:
+      - "8545:8545"
+    profiles: ["chain"]
+
+volumes:
+  ipfsdata:

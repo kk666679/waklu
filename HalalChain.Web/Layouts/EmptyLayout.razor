@@ -1,0 +1,38 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IThemeService ThemeService
+
+<RadzenLayout class="@LayoutClass">
+    <div class="empty-shell">
+        <header class="empty-topbar">
+            <a href="/" class="empty-brand" aria-label="HalalChain Home">
+                <span class="hc-brand-mark"><i class="fas fa-shield-halved" aria-hidden="true"></i></span>
+                <span><span class="text-primary">Halal</span>Chain</span>
+            </a>
+            <button type="button" class="empty-theme-toggle" aria-label="Toggle theme" @onclick="ToggleTheme">
+                <i class="fas @(ThemeService.CurrentTheme == "dark" ? "fa-sun" : "fa-moon")" aria-hidden="true"></i>
+            </button>
+        </header>
+        <main class="empty-main">
+            @Body
+        </main>
+    </div>
+</RadzenLayout>
+
+@code {
+    private string LayoutClass => "empty-layout" + (ThemeService.CurrentTheme == "dark" ? " empty-layout--dark" : "");
+
+    private void ToggleTheme() => ThemeService.ToggleTheme();
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+    }
+}

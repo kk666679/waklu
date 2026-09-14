@@ -1,0 +1,173 @@
+@using Radzen.Blazor
+@inject AppState State
+
+<RadzenCard class="@($"verification-panel {AdditionalClass}")">
+    <div class="verification-panel__header">
+        <h3 class="verification-panel__title font-semibold">Verification Management</h3>
+        <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@RefreshVerifications" />
+    </div>
+
+    <div class="verification-panel__filters" style="display:flex;gap:var(--space-4);margin-bottom:var(--space-4)">
+        <RadzenDropDown @bind-Value="@_selectedStatus"
+                        Data="@StatusOptions"
+                        Placeholder="All Statuses"
+                        Style="width:200px"
+                        Change="@OnFilterChanged" />
+        <RadzenDropDown @bind-Value="@_selectedBody"
+                        Data="@CertificationBodies"
+                        TextProperty="Name"
+                        ValueProperty="Id"
+                        Placeholder="All Certification Bodies"
+                        Style="width:250px"
+                        Change="@OnFilterChanged" />
+    </div>
+
+    <AdminDataGrid TItem="ProductDto"
+                   Items="@FilteredProducts.ToList()"
+                   Columns="@_columns"
+                   ShowPagination="true"
+                   PageSize="10"
+                   AdditionalClass="verification-datagrid" />
+</RadzenCard>
+
+@code {
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    private string _selectedStatus = "";
+    private string _selectedBody = "";
+    private List<ColumnDef<ProductDto>> _columns = new();
+
+    protected override void OnInitialized()
+    {
+        _columns = new()
+        {
+            new ColumnDef<ProductDto>
+            {
+                Header = "Product",
+                Property = "Title",
+                Template = p => builder =>
+                {
+                    builder.OpenElement(0, "div");
+                    builder.OpenElement(1, "div");
+                    builder.AddAttribute(2, "class", "font-medium");
+                    builder.AddContent(3, p.Title);
+                    builder.CloseElement();
+                    builder.OpenElement(4, "div");
+                    builder.AddAttribute(5, "class", "text-xs text-muted");
+                    builder.AddContent(6, p.VendorName);
+                    builder.CloseElement();
+                    builder.CloseElement();
+                },
+                SearchValue = p => p.Title + " " + p.VendorName
+            },
+            new ColumnDef<ProductDto>
+            {
+                Header = "Category",
+                Property = "CategoryName",
+                Sortable = true
+            },
+            new ColumnDef<ProductDto>
+            {
+                Header = "Status",
+                Template = p => builder =>
+                {
+                    builder.OpenComponent<StatusBadge>(0);
+                    builder.AddAttribute(1, "Text", p.HalalStatus?.Status ?? "Unknown");
+                    builder.AddAttribute(2, "Status", p.HalalStatus?.Status ?? "Unknown");
+                    builder.CloseComponent();
+                }
+            },
+            new ColumnDef<ProductDto>
+            {
+                Header = "Certificate",
+                Template = p => builder =>
+                {
+                    if (!string.IsNullOrEmpty(p.HalalStatus?.CertificateNumber))
+                    {
+                        builder.OpenComponent<RadzenBadge>(0);
+                        builder.AddAttribute(1, "Text", p.HalalStatus.CertificateNumber);
+                        builder.AddAttribute(2, "BadgeStyle", BadgeStyle.Info);
+                        builder.CloseComponent();
+                    }
+                    else
+                    {
+                        builder.AddContent(0, "—");
+                    }
+                }
+            },
+            new ColumnDef<ProductDto>
+            {
+                Header = "Actions",
+                Template = p => builder =>
+                {
+                    builder.OpenComponent<RadzenButton>(0);
+                    builder.AddAttribute(1, "Icon", "verified");
+                    builder.AddAttribute(2, "ButtonStyle", ButtonStyle.Light);
+                    builder.AddAttribute(3, "Size", ButtonSize.Small);
+                    builder.AddAttribute(4, "Click", EventCallback.Factory.Create(this, () => VerifyProduct(p.Id)));
+                    builder.AddAttribute(5, "class", "me-1");
+                    builder.CloseComponent();
+
+                    builder.OpenComponent<RadzenButton>(0);
+                    builder.AddAttribute(1, "Icon", "visibility");
+                    builder.AddAttribute(2, "ButtonStyle", ButtonStyle.Light);
+                    builder.AddAttribute(3, "Size", ButtonSize.Small);
+                    builder.AddAttribute(4, "Click", EventCallback.Factory.Create(this, () => ViewCertificate(p.Id)));
+                    builder.CloseComponent();
+                }
+            }
+        };
+    }
+
+    private ProductDto[] FilteredProducts
+    {
+        get
+        {
+            var products = State.Products;
+            if (!string.IsNullOrEmpty(_selectedStatus))
+                products = products.Where(p => p.HalalStatus?.Status == _selectedStatus).ToArray();
+            if (!string.IsNullOrEmpty(_selectedBody))
+                products = products.Where(p => p.HalalStatus?.CertificationBody == _selectedBody).ToArray();
+            return products;
+        }
+    }
+
+    private List<string> StatusOptions = ["Verified", "VerifiedByPlatform", "MuslimFriendly", "SelfDeclared", "Pending"];
+    private List<object> CertificationBodies = new()
+    {
+        new { Id = "jakim", Name = "JAKIM (Malaysia)" },
+        new { Id = "mui", Name = "MUI (Indonesia)" },
+        new { Id = "esma", Name = "ESMA (UAE)" },
+        new { Id = "sfda", Name = "SFDA (Saudi)" },
+        new { Id = "gac", Name = "GAC (Global)" },
+        new { Id = "muis", Name = "MUIS (Singapore)" }
+    };
+
+    private void OnFilterChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task RefreshVerifications()
+    {
+        await OnRefresh.InvokeAsync();
+    }
+
+    private async Task VerifyProduct(Guid productId)
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Verification", $"Verification started for product {productId}");
+    }
+
+    private async Task ViewCertificate(Guid productId)
+    {
+        var product = State.Products.FirstOrDefault(p => p.Id == productId);
+        if (product?.HalalStatus?.CertificateNumber != null)
+        {
+            Nav.NavigateTo($"/verify/{product.Slug}");
+        }
+    }
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+}

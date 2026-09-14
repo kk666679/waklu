@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      The Domain project is the authoritative home for business concepts.
+      It must depend only on the .NET BCL. It must NOT depend on:
+        - EF Core
+        - ASP.NET Core
+        - Radzen
+        - Infrastructure
+        - Application
+        - API
+        - UI
+        - MCP
+        - external provider SDKs
+      See HalalChain.Architecture.Tests for the guardrail.
+    -->
+  </PropertyGroup>
+
+</Project>

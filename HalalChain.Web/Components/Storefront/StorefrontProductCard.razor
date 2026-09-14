@@ -1,0 +1,118 @@
+@using Radzen.Blazor
+@using HalalChain.Services
+@inject NavigationManager Nav
+@inject CartState CartState
+@inject IWishlistService Wishlist
+
+<div class="product-card @(IsInWishlist ? "product-card--wishlisted" : "") @AdditionalClass" @onclick="NavigateToProduct">
+    <div class="product-card__media">
+        <div class="product-card__image" style="aspect-ratio:1;background:var(--color-neutral-100);display:flex;align-items:center;justify-content:center">
+            <span style="font-size:1.5rem;font-weight:600;color:var(--color-neutral-400);text-align:center;padding:var(--space-4)">@Product.Title</span>
+        </div>
+        @if (Product.DiscountPercentage.HasValue)
+        {
+            <RadzenBadge Text="@($"-{Product.DiscountPercentage.Value:F0}%")" BadgeStyle="BadgeStyle.Danger" class="product-card__discount" />
+        }
+        else if (Product.IsNew)
+        {
+            <RadzenBadge Text="NEW" BadgeStyle="BadgeStyle.Info" class="product-card__new" />
+        }
+        @if (!string.IsNullOrEmpty(HalalStatusText))
+        {
+            <RadzenBadge Text="@HalalStatusText" BadgeStyle="@GetHalalBadgeStyle()" class="product-card__halal" />
+        }
+        <button class="product-card__wishlist @(IsInWishlist ? "product-card__wishlist--active" : "")"
+                @onclick:stopPropagation="true"
+                @onclick="ToggleWishlist"
+                aria-label="Add to wishlist">
+            <RadzenIcon Icon="@(IsInWishlist ? "favorite" : "favorite_border")" />
+        </button>
+    </div>
+    <div class="product-card__body">
+        <p class="product-card__vendor text-xs text-muted mb-1">@Product.VendorName</p>
+        <h3 class="product-card__title font-semibold text-sm truncate" style="color:var(--color-neutral-800)">@Product.Title</h3>
+        <div class="product-card__rating" style="display:flex;align-items:center;gap:0.25rem">
+            @if (Product.Rating.HasValue)
+            {
+                <RadzenIcon Icon="star" Style="font-size:0.875rem;color:#fbbf24" />
+                <span class="text-sm font-medium">@Product.Rating.Value.ToString("F1")</span>
+                <span class="text-xs text-muted">(@Product.ReviewCount)</span>
+            }
+            else
+            {
+                <span class="text-xs text-muted">No reviews yet</span>
+            }
+        </div>
+        <div class="product-card__price-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:var(--space-3)">
+            <div>
+                <span class="font-bold text-lg">@Product.Currency @Product.Price.ToString("N2")</span>
+                @if (Product.CompareAtPrice.HasValue && Product.CompareAtPrice > Product.Price)
+                {
+                    <span class="text-sm text-muted" style="text-decoration:line-through;margin-left:0.5rem">@Product.Currency @Product.CompareAtPrice.Value.ToString("N2")</span>
+                }
+            </div>
+            <RadzenBadge Text="@(Product.Inventory > 0 ? "In Stock" : "Out of Stock")"
+                         BadgeStyle="@(Product.Inventory > 0 ? BadgeStyle.Success : BadgeStyle.Danger)" />
+        </div>
+        @if (Product.Inventory > 0)
+        {
+            <button class="btn btn-primary btn-sm" style="width:100%;margin-top:var(--space-3)" @onclick:stopPropagation="true" @onclick="AddToCart">
+                <RadzenIcon Icon="shopping_bag" Style="margin-right:0.25rem" />
+                Add to Cart
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:var(--space-3)" @onclick:stopPropagation="true" @onclick="NotifyWhenAvailable">
+                <RadzenIcon Icon="notifications" Style="margin-right:0.25rem" />
+                Notify Me
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public ExtendedProductDto Product { get; set; } = default!;
+    [Parameter] public bool ShowWishlist { get; set; } = true;
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private bool IsInWishlist => Wishlist.IsInWishlist(Product.Id);
+    private string HalalStatusText => Product.HalalStatus?.Status ?? "";
+
+    private void NavigateToProduct() => Nav.NavigateTo("/products/" + Product.Slug);
+
+    private void AddToCart()
+    {
+        CartState.AddItem(Product.Id.ToString(), Product.Title, Product.Price, Product.Currency);
+    }
+
+    private void NotifyWhenAvailable()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Coming Soon", "We will notify you when this product is back in stock.");
+    }
+
+    [Inject] private NotificationService NotificationService { get; set; } = default!;
+
+    private void ToggleWishlist()
+    {
+        if (IsInWishlist)
+            Wishlist.RemoveFromWishlist(Product.Id);
+        else
+            Wishlist.AddToWishlist(Product.Id, Product.Title, Product.Price, Product.Currency);
+        StateHasChanged();
+    }
+
+    private BadgeStyle GetHalalBadgeStyle()
+    {
+        return Product.HalalStatus?.Status switch
+        {
+            "Verified" => BadgeStyle.Success,
+            "VerifiedByPlatform" => BadgeStyle.Info,
+            "Certified" => BadgeStyle.Success,
+            "MuslimFriendly" => BadgeStyle.Light,
+            "SelfDeclared" => BadgeStyle.Warning,
+            "Pending" => BadgeStyle.Warning,
+            _ => BadgeStyle.Secondary
+        };
+    }
+}

@@ -1,0 +1,20 @@
+@inject CartState Cart
+
+<nav class="sf-nav" aria-label="Storefront Navigation">
+    <ul class="sf-nav__list">
+        <li><a href="/" class="sf-nav__link" Match="NavLinkMatch.All">Home</a></li>
+        <li><a href="/products" class="sf-nav__link">Shop</a></li>
+        <li><a href="/categories" class="sf-nav__link">Categories</a></li>
+        <li><a href="/wishlist" class="sf-nav__link">Wishlist</a></li>
+        <li>
+            <a href="/cart" class="sf-nav__link sf-nav__cart">
+                <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                Cart
+                @if (Cart.Items.Count > 0)
+                {
+                    <span class="sf-nav__badge">@Cart.Items.Count</span>
+                }
+            </a>
+        </li>
+    </ul>
+</nav>

@@ -1,0 +1,65 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="promo-banner @Variant @AdditionalClass" @onclick="HandleClick">
+    <div class="promo-banner__content">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <div class="promo-banner__icon">
+                <RadzenIcon Icon="@Icon" />
+            </div>
+        }
+        <div class="promo-banner__text">
+            <h3 class="promo-banner__title">@Title</h3>
+            <p class="promo-banner__description">@Description</p>
+        </div>
+        @if (!string.IsNullOrEmpty(ButtonText))
+        {
+            <RadzenLink href="@Href" class="promo-banner__button">
+                <RadzenButton Text="@ButtonText" ButtonStyle="@GetButtonStyle()" Size="ButtonSize.Large" Click="@HandleClick" />
+            </RadzenLink>
+        }
+    </div>
+    @if (Dismissible)
+    {
+        <button class="promo-banner__dismiss" @onclick:stopPropagation="true" @onclick="Dismiss" aria-label="Dismiss">
+            <RadzenIcon Icon="close" />
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? ButtonText { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string Variant { get; set; } = "primary";
+    [Parameter] public bool Dismissible { get; set; } = false;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (!string.IsNullOrEmpty(Href))
+        {
+            Nav.NavigateTo(Href);
+        }
+        await OnClick.InvokeAsync();
+    }
+
+    private async Task Dismiss()
+    {
+        await OnDismiss.InvokeAsync();
+    }
+
+    private ButtonStyle GetButtonStyle() => Variant switch
+    {
+        "secondary" => ButtonStyle.Light,
+        "success" => ButtonStyle.Success,
+        "danger" => ButtonStyle.Danger,
+        "warning" => ButtonStyle.Warning,
+        _ => ButtonStyle.Primary
+    };
+}

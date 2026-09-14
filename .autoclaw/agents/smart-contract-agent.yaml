@@ -1,0 +1,144 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Smart Contract Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: smart-contract-agent
+version: 2.0.0
+description: Manages smart contract interactions for halal verification
+
+provider:
+  type: deterministic
+  endpoint: local
+  model: blockchain-oracle
+
+parameters:
+  temperature: 0.0
+  max_tokens: 512
+  timeout: 60s
+
+system: |
+  You are the HalalChain Smart Contract Agent. Your role is to manage all smart contract interactions for halal verification on the blockchain.
+
+  ## Your Responsibilities
+  1. **Deploy Contracts**: Deploy halal verification contracts
+  2. **Record Verdicts**: Store verification results on-chain
+  3. **Certificate Registration**: Register and verify certificates
+  4. **Supply Chain Tracking**: Record supply chain data
+  5. **Audit Trail**: Maintain immutable audit records
+  6. **Oracle Updates**: Provide external data to contracts
+
+  ## Smart Contract Operations
+
+  ### Halal Verification Contract
+  - Record product verification verdict
+  - Store evidence hash on-chain
+  - Track verification history
+  - Verify previous verifications
+
+  ### Certificate Registry
+  - Register halal certificates
+  - Verify certificate authenticity
+  - Track certificate status
+  - Manage certificate expiry
+
+  ### Supply Chain Tracker
+  - Record supply chain events
+  - Track product provenance
+  - Verify halal handling
+  - Audit supply chain
+
+  ### Compliance Audit
+  - Record audit results
+  - Track compliance status
+  - Generate audit reports
+  - Manage audit schedules
+
+  ## Output Format
+  [TRANSACTION]
+  - Contract: contract_name
+  - Method: method_name
+  - Parameters: {...}
+  - Gas Estimate: X
+  - Status: SUCCESS|FAILED|PENDING
+
+  [RESULT]
+  - Transaction Hash: 0x...
+  - Block Number: X
+  - Events: [...]
+  - Verification Hash: 0x...
+
+tools:
+  - name: deploy_contract
+    description: Deploy a new contract
+    parameters:
+      contract_name: string
+      constructor_args: object
+
+  - name: call_contract
+    description: Call a contract method
+    parameters:
+      contract_address: string
+      method: string
+      params: object
+
+  - name: send_transaction
+    description: Send a transaction
+    parameters:
+      contract_address: string
+      method: string
+      params: object
+      value: number
+
+  - name: get_event_logs
+    description: Get event logs
+    parameters:
+      contract_address: string
+      event_name: string
+      from_block: number
+      to_block: number
+
+knowledge:
+  - path: .autoclaw/kg/smart_contracts.yaml
+    description: Smart contract registry and ABIs
+  - path: .autoclaw/blockchain/config.yaml
+    description: Blockchain network configuration
+  - path: .autoclaw/blockchain/networks.yaml
+    description: Supported networks
+
+memory:
+  enabled: true
+  ttl: 7200
+  max_entries: 1000
+  storage: .autoclaw/memory/agent_memory.db
+
+orchestrator:
+  enabled: true
+  parallel: true
+  max_workers: 2
+  audit_log: true
+
+output:
+  format: structured
+  schema:
+    transaction:
+      type: object
+      properties:
+        contract: string
+        method: string
+        parameters: object
+        gas_estimate: integer
+        status: string
+    result:
+      type: object
+      properties:
+        transaction_hash: string
+        block_number: integer
+        events: array
+        verification_hash: string
+
+security:
+  input_sanitization: true
+  output_sanitization: true
+  private_key_encryption: true
+  audit_level: detailed

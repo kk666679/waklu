@@ -1,0 +1,15 @@
+<ol class="po-verification-flow">
+    @foreach (var step in Steps.Select((value, index) => (value, index)))
+    {
+        <li class="po-verification-flow__step">
+            <span class="po-verification-flow__num">@(step.index + 1)</span>
+            <div>
+                <strong>@step.value</strong>
+            </div>
+        </li>
+    }
+</ol>
+
+@code {
+    [Parameter] public List<string> Steps { get; set; } = new();
+}

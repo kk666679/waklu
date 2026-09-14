@@ -1,0 +1,123 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Smart Contract Registry
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Registry of smart contracts for halal verification
+
+contracts:
+  # ===== Main Verification Contract =====
+  HalalVerification:
+    name: HalalVerification
+    version: 1.0.0
+    description: Main contract for halal product verification
+    network: halalchain
+    address: 0x0000000000000000000000000000000000000001
+    methods:
+      - recordVerification
+      - getVerification
+      - verifyProduct
+      - getVerificationHistory
+    events:
+      - VerificationRecorded
+      - VerificationVerified
+    dependencies: []
+
+  # ===== Certificate Registry =====
+  CertificateRegistry:
+    name: CertificateRegistry
+    version: 1.0.0
+    description: Registry for halal certificates
+    network: halalchain
+    address: 0x0000000000000000000000000000000000000002
+    methods:
+      - registerCertificate
+      - verifyCertificate
+      - revokeCertificate
+      - getCertificateStatus
+    events:
+      - CertificateRegistered
+      - CertificateVerified
+      - CertificateRevoked
+    dependencies:
+      - HalalVerification
+
+  # ===== Supply Chain Tracker =====
+  SupplyChainTracker:
+    name: SupplyChainTracker
+    version: 1.0.0
+    description: Tracks product supply chain on-chain
+    network: halalchain
+    address: 0x0000000000000000000000000000000000000003
+    methods:
+      - recordEvent
+      - getProvenance
+      - verifyHandling
+      - getTraceability
+    events:
+      - EventRecorded
+      - ProvenanceVerified
+      - HandlingViolation
+    dependencies:
+      - HalalVerification
+
+  # ===== Compliance Audit =====
+  ComplianceAudit:
+    name: ComplianceAudit
+    version: 1.0.0
+    description: Records compliance audit results
+    network: halalchain
+    address: 0x0000000000000000000000000000000000000004
+    methods:
+      - recordAudit
+      - getAuditResult
+      - scheduleAudit
+      - verifyCompliance
+    events:
+      - AuditRecorded
+      - ComplianceVerified
+      - AuditScheduled
+    dependencies:
+      - HalalVerification
+      - CertificateRegistry
+
+  # ===== Verification Oracle =====
+  VerificationOracle:
+    name: VerificationOracle
+    version: 1.0.0
+    description: Oracle for off-chain verification data
+    network: halalchain
+    address: 0x0000000000000000000000000000000000000005
+    methods:
+      - submitData
+      - getData
+      - verifyData
+      - updateOracle
+    events:
+      - DataSubmitted
+      - DataVerified
+      - OracleUpdated
+    dependencies:
+      - HalalVerification
+
+deployments:
+  mainnet:
+    network: halalchain
+    chain_id: 1
+    contracts:
+      HalalVerification: 0x0000000000000000000000000000000000000001
+      CertificateRegistry: 0x0000000000000000000000000000000000000002
+      SupplyChainTracker: 0x0000000000000000000000000000000000000003
+      ComplianceAudit: 0x0000000000000000000000000000000000000004
+      VerificationOracle: 0x0000000000000000000000000000000000000005
+
+  testnet:
+    network: halalchain-testnet
+    chain_id: 1337
+    contracts:
+      HalalVerification: 0x0000000000000000000000000000000000000001
+      CertificateRegistry: 0x0000000000000000000000000000000000000002
+      SupplyChainTracker: 0x0000000000000000000000000000000000000003
+      ComplianceAudit: 0x0000000000000000000000000000000000000004
+      VerificationOracle: 0x0000000000000000000000000000000000000005

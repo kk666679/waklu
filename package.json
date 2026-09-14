@@ -1,0 +1,26 @@
+{
+  "name": "halalchain-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-native halal commerce platform — monorepo root",
+  "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "sass": "1.83.0"
+  },
+  "workspaces": [
+    "HalalChain-Cli"
+  ],
+  "scripts": {
+    "halalchain:cli": "npm run dev -w HalalChain-Cli",
+    "scss:build": "node scripts/build-scss.mjs",
+    "scss:watch": "node scripts/watch-scss.mjs",
+    "test": "node --test HalalChain-Cli/test/store.test.mjs HalalChain-Cli/test/commands.test.mjs",
+    "lint": "eslint HalalChain-Cli"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true
+  }
+}

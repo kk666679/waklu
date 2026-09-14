@@ -1,0 +1,31 @@
+@page "/vendors"
+@inject IPlatformApiClient Api
+
+<PageTitle>Trusted vendors</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Trusted vendors</h1>
+    @if (_vendors == null)
+    {
+        <p class="muted">Loading vendors…</p>
+    }
+    else if (_vendors.Length == 0)
+    {
+        <EmptyState Icon="🏪" Title="No vendors available" />
+    }
+    else
+    {
+        <div class="grid grid-4">
+            @foreach (var v in _vendors) { <VendorCard Vendor="v" /> }
+        </div>
+    }
+</section>
+
+@code {
+    private VendorDto[]? _vendors;
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Api.GetVendorsAsync();
+        _vendors = result.IsSuccess ? result.Data ?? [] : Array.Empty<VendorDto>();
+    }
+}

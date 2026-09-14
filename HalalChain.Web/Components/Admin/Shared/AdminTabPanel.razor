@@ -1,0 +1,15 @@
+<RadzenTabs RenderMode="TabRenderMode.Client" class="admin-tabs">
+    <Tabs>
+        @foreach (var t in TabsList)
+        {
+            <RadzenTabsItem Text="@t.Title">
+                @t.Content
+            </RadzenTabsItem>
+        }
+    </Tabs>
+</RadzenTabs>
+
+@code {
+    [Parameter] public List<AdminTab> TabsList { get; set; } = new();
+    public record AdminTab(string Title, RenderFragment Content);
+}

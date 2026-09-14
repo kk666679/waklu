@@ -1,0 +1,128 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — Halal E-Code Classification Database
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Comprehensive halal/haram/mashbooh E-code classification
+
+codes:
+  # ===== HARAM (Forbidden) =====
+  E120:
+    name: Cochineal / Carmine
+    source: Insects (Dactylopius coccus)
+    status: MASHBOOH
+    notes: Derived from crushed insects; some scholars permit as non-food substance
+    references: 
+      - "MS 1500:2019"
+      - "Islamic dietary laws"
+  
+  E441:
+    name: Gelatin
+    source: Animal (usually porcine or bovine)
+    status: HARAM
+    notes: HARAM if from porcine; MASHBOOH if from bovine without halal certification
+    references:
+      - "Quran 2:173"
+      - "MS 1500:2019"
+  
+  E920:
+    name: L-Cysteine
+    source: Animal (hair/feathers) or synthetic
+    status: HARAM
+    notes: HARAM if from animal hair/feathers without halal certification
+    references:
+      - "Islamic Food and Nutrition Council"
+  
+  E921:
+    name: L-Cysteine HCl
+    source: Animal (hair/feathers) or synthetic
+    status: HARAM
+    notes: HARAM if from animal hair/feathers without halal certification
+    references:
+      - "Islamic Food and Nutrition Council"
+
+  # ===== MASHBOOH (Doubtful) =====
+  E471:
+    name: Mono/Diglycerides
+    source: Plant or animal
+    status: MASHBOOH
+    notes: Must verify source; if plant-derived then HALAL
+    references:
+      - "MS 1500:2019"
+      - "JAKIM Guidelines"
+  
+  E472:
+    name: Fatty Acid Esters
+    source: Plant or animal
+    status: MASHBOOH
+    notes: Must verify source; if plant-derived then HALAL
+    references:
+      - "MS 1500:2019"
+  
+  E476:
+    name: Polyglycerol Polyricinoleate (PGPR)
+    source: Plant (castor oil)
+    status: MASHBOOH
+    notes: Plant-derived but may be processed with animal products
+    references:
+      - "JAKIM Guidelines"
+
+  # ===== HALAL (Permitted) =====
+  E322:
+    name: Lecithin
+    source: Plant (soy, sunflower) or egg
+    status: HALAL
+    notes: HALAL if from plant; MASHBOOH if from egg without halal certification
+    references:
+      - "MS 1500:2019"
+      - "JAKIM Guidelines"
+  
+  E407:
+    name: Carrageenan
+    source: Seaweed
+    status: HALAL
+    notes: Plant-derived; universally permitted
+    references:
+      - "MS 1500:2019"
+  
+  E440:
+    name: Pectin
+    source: Plant (fruits)
+    status: HALAL
+    notes: Plant-derived; universally permitted
+    references:
+      - "MS 1500:2019"
+  
+  E901:
+    name: Beeswax
+    source: Insect (bees)
+    status: MASHBOOH
+    notes: Some scholars permit, others classify as MASHBOOH
+    references:
+      - "Islamic dietary laws"
+
+  # ===== Additional E-Codes =====
+  E100:
+    name: Curcumin
+    source: Plant (turmeric)
+    status: HALAL
+    notes: Plant-derived; universally permitted
+  
+  E160a:
+    name: Carotene
+    source: Plant
+    status: HALAL
+    notes: Plant-derived; universally permitted
+  
+  E210:
+    name: Benzoic Acid
+    source: Synthetic
+    status: HALAL
+    notes: Synthetic; universally permitted
+  
+  E270:
+    name: Lactic Acid
+    source: Plant, animal, or synthetic
+    status: MASHBOOH
+    notes: May be derived from animal sources

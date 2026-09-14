@@ -1,0 +1,79 @@
+@page "/admin/orders"
+@layout AdminLayout
+@inject AppState State
+@inject NotificationService NotificationService
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Orders</h2>
+</div>
+
+@if (State.IsLoading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+}
+else
+{
+    <RadzenDataGrid TItem="OrderDto"
+                    Data="@State.Orders"
+                    AllowSorting="true"
+                    AllowPaging="true"
+                    PageSize="10"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid">
+        <Columns>
+            <RadzenDataGridColumn TItem="OrderDto" Property="Id" Title="Order ID" Sortable="false">
+                <Template Context="o">
+                    <span class="font-mono text-sm">#@o.Id.ToString()[..8].ToUpper()</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OrderDto" Property="Status" Title="Status" Sortable="true">
+                <Template Context="o">
+                    <RadzenBadge Text="@o.Status" BadgeStyle="@GetStatusBadgeStyle(o.Status)" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OrderDto" Title="Vendors" Sortable="false">
+                <Template Context="o">
+                    @string.Join(", ", o.VendorOrders.Select(v => v.VendorName))
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OrderDto" Title="Items" Sortable="false">
+                <Template Context="o">
+                    @o.VendorOrders.Sum(v => v.Items.Sum(i => i.Quantity))
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OrderDto" Property="Total" Title="Total" Sortable="true">
+                <Template Context="o">
+                    <span class="font-semibold">@o.Currency @o.Total.ToString("N2")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OrderDto" Property="CreatedAt" Title="Date" Sortable="true">
+                <Template Context="o">
+                    <span class="text-sm text-muted">@o.CreatedAt.ToString("MMM dd, yyyy")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadOrdersAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private static BadgeStyle GetStatusBadgeStyle(string status) => status switch
+    {
+        "Delivered" => BadgeStyle.Success,
+        "Processing" => BadgeStyle.Info,
+        "Shipped" => BadgeStyle.Info,
+        "Pending" => BadgeStyle.Warning,
+        _ => BadgeStyle.Secondary
+    };
+
+    public void Dispose() => State.OnChange -= OnChanged;
+}

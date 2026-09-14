@@ -1,0 +1,33 @@
+@using HalalChain.Platform.Contracts.Catalog.Dto
+@inject WishlistService WishSvc
+@inject IProductService Products
+
+<RadzenCard class="rz-shadow-1">
+    <h3>My Wishlist</h3>
+    @if (_items.Count == 0)
+    {
+        <div class="text-muted">No items yet.</div>
+    }
+    else
+    {
+        <RadzenRow Gap="1rem">
+            @foreach (var p in _items)
+            {
+                <RadzenColumn Size="12" SizeMD="4">
+                    <ProductCard Product="p" />
+                </RadzenColumn>
+            }
+        </RadzenRow>
+    }
+</RadzenCard>
+
+@code {
+    private List<ProductDto> _items = new();
+
+    protected override void OnInitialized()
+    {
+        _items = WishSvc.ProductIds
+            .Select(id => new ProductDto(id, "Wishlist Item", "", null, "Wishlist", "", "", 0, "USD", 0, default!, DateTimeOffset.UtcNow))
+            .ToList();
+    }
+}

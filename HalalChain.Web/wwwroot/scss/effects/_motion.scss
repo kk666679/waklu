@@ -1,0 +1,187 @@
+/* ═══════════════════════════════════════════════════════════
+   Motion 2026 — HalalChain
+   Framer Motion-style interactions implemented in CSS:
+   spring keyframes, stagger, layout transitions, whileInView.
+   Respects prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ── */
+@keyframes page-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes scale-spring {
+    /* Framer Motion spring: slight overshoot, settle */
+    0%   { opacity: 0; transform: scale(0.9); }
+    60%  { opacity: 1; transform: scale(1.02); }
+    80%  { transform: scale(0.99); }
+    100% { transform: scale(1); }
+}
+@keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}
+@keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+}
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes scale-out {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.96); }
+}
+@keyframes skeleton-shimmer {
+    to { background-position: -200% 0; }
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+}
+@keyframes toast-enter {
+    from { opacity: 0; transform: translateX(100%) scale(0.98); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toast-exit {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes accordion-open {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(180deg); }
+}
+
+/* NEW: float (subtle hover bob — for hero illustrations / empty states) */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+
+/* NEW: shimmer-pulse for live indicators */
+@keyframes shimmer-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(71, 95, 53, 0.45); }
+    70%  { box-shadow: 0 0 0 10px rgba(71, 95, 53, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(71, 95, 53, 0); }
+}
+
+/* NEW: text-gradient shift */
+@keyframes gradient-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ═══ Animation utility classes ═══ */
+.animate-page-enter     { animation: page-enter var(--motion-medium) var(--ease-emphasized) both; }
+.animate-fade-in        { animation: fade-in var(--motion-medium) var(--ease-standard) both; }
+.animate-fade-in-up     { animation: fade-in-up var(--motion-medium) var(--ease-emphasized) both; }
+.animate-scale-in       { animation: scale-in var(--motion-medium) var(--ease-spring) both; }
+.animate-spring-in      { animation: scale-spring var(--motion-slow) var(--ease-spring) both; }
+.animate-slide-up       { animation: slide-up var(--motion-medium) var(--ease-emphasized) both; }
+.animate-slide-in-right { animation: slide-in-right var(--motion-medium) var(--ease-emphasized) both; }
+.animate-slide-in-left  { animation: slide-in-left var(--motion-medium) var(--ease-emphasized) both; }
+.animate-toast-enter    { animation: toast-enter var(--motion-medium) var(--ease-emphasized) both; }
+.animate-toast-exit     { animation: toast-exit var(--motion-fast) var(--ease-standard) both; }
+.animate-float          { animation: float 3.5s ease-in-out infinite; }
+.animate-live-pulse     { animation: shimmer-pulse 2s ease-out infinite; }
+
+/* ═══ Stagger delays (framer-motion staggerChildren equivalent) ═══ */
+.stagger-1 { animation-delay: 0ms;   }
+.stagger-2 { animation-delay: 40ms;  }
+.stagger-3 { animation-delay: 80ms;  }
+.stagger-4 { animation-delay: 120ms; }
+.stagger-5 { animation-delay: 160ms; }
+.stagger-6 { animation-delay: 200ms; }
+.stagger-7 { animation-delay: 240ms; }
+.stagger-8 { animation-delay: 280ms; }
+.stagger-9 { animation-delay: 320ms; }
+.stagger-10{ animation-delay: 360ms; }
+
+/* ═══ whileInView — scroll-triggered reveal ═══
+   Elements with [data-reveal] start hidden; motion.js adds
+   .is-visible which plays the entrance. Falls back to CSS-only
+   if JS is disabled (entries become visible after a beat). */
+[data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+        opacity 600ms var(--ease-emphasized),
+        transform 600ms var(--ease-emphasized);
+    will-change: opacity, transform;
+}
+[data-reveal].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+[data-reveal-stagger] > * {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+        opacity 500ms var(--ease-emphasized),
+        transform 500ms var(--ease-emphasized);
+}
+[data-reveal-stagger].is-visible > * {
+    opacity: 1;
+    transform: translateY(0);
+}
+[data-reveal-stagger].is-visible > *:nth-child(1)  { transition-delay: 0ms;   }
+[data-reveal-stagger].is-visible > *:nth-child(2)  { transition-delay: 60ms;  }
+[data-reveal-stagger].is-visible > *:nth-child(3)  { transition-delay: 120ms; }
+[data-reveal-stagger].is-visible > *:nth-child(4)  { transition-delay: 180ms; }
+[data-reveal-stagger].is-visible > *:nth-child(5)  { transition-delay: 240ms; }
+[data-reveal-stagger].is-visible > *:nth-child(6)  { transition-delay: 300ms; }
+[data-reveal-stagger].is-visible > *:nth-child(7)  { transition-delay: 360ms; }
+[data-reveal-stagger].is-visible > *:nth-child(8)  { transition-delay: 420ms; }
+[data-reveal-stagger].is-visible > *:nth-child(9)  { transition-delay: 480ms; }
+[data-reveal-stagger].is-visible > *:nth-child(10) { transition-delay: 540ms; }
+
+/* ═══ Transition utilities ═══ */
+.transition-all       { transition: all var(--motion-base) var(--ease-standard); }
+.transition-transform { transition: transform var(--motion-base) var(--ease-standard); }
+.transition-opacity   { transition: opacity var(--motion-base) var(--ease-standard); }
+.transition-shadow    { transition: box-shadow var(--motion-base) var(--ease-standard); }
+.transition-colors    { transition:
+                          color var(--motion-base) var(--ease-standard),
+                          background-color var(--motion-base) var(--ease-standard),
+                          border-color var(--motion-base) var(--ease-standard);
+}
+
+/* Spring press — for buttons / click feedback */
+.spring-press {
+    transition: transform 180ms var(--ease-spring);
+}
+.spring-press:active {
+    transform: scale(0.96);
+}
+
+/* ═══ Reduced motion: disable all of the above ═══ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    [data-reveal],
+    [data-reveal-stagger] > * {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}

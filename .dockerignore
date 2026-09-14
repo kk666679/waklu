@@ -1,0 +1,94 @@
+# Exclude files not required by the .NET / Python / Solidity builds.
+# Anything below is irrelevant to the production image, so it must not
+# end up in the build context (faster builds, smaller contexts, fewer
+# chances of accidentally baking secrets into an image).
+
+# Version control
+.git
+.gitignore
+.gitattributes
+.github
+
+# Editor / OS metadata
+.idea
+.vscode
+.vs
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# .NET
+**/bin
+**/obj
+**/[Dd]ebug
+**/[Rr]elease
+**/*.user
+**/*.suo
+**/*.DotSettings.user
+**/TestResult.xml
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/.aspnet
+
+# Node
+**/node_modules
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/.npm
+**/.next
+
+# Python caches and virtualenvs
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage*
+**/htmlcov
+**/coverage.xml
+**/.venv
+**/venv
+**/env
+**/.Python
+**/*.egg-info
+**/build
+**/dist
+**/.tox
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+**/secrets/
+**/*.pem
+**/*.key
+**/*.p12
+
+# Docker
+docker-compose.override.yml
+
+# Documentation / scratch / build artifacts
+**/docs/build
+**/tmp_*
+**/tmp
+**/*.log
+**/*.bak
+**/*.tmp
+**/*.temp
+**/.halalchain/halalchain.db
+**/.halalchain/halalchain.db-shm
+**/.halalchain/halalchain.db-wal
+**/.freebuff
+**/.autoclaw
+**/.microsoft-foundry
+
+# Foundry
+**/out
+**/cache
+**/broadcast

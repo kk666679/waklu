@@ -1,0 +1,81 @@
+@page "/vendor/products/{Id:guid}"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Edit product</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Edit product</h1>
+    @if (!string.IsNullOrEmpty(_error)) { <div class="alert alert-error">@_error</div> }
+    <div class="panel card-pad" style="max-width: 720px;">
+        <EditForm Model="@_model" OnValidSubmit="@Submit">
+            <DataAnnotationsValidator />
+            <div class="stack gap-3">
+                <div>
+                    <label class="small muted">Title</label>
+                    <RadzenTextBox Value="@_model.Title" Change="@(v => _model.Title = v?.ToString() ?? "")" Style="width:100%;" />
+                </div>
+                <div>
+                    <label class="small muted">Price</label>
+                    <RadzenNumeric TValue="decimal" Value="@_model.Price" Change="@(v => _model.Price = v)" Style="width:100%;" />
+                </div>
+                <div>
+                    <label class="small muted">Description</label>
+                    <RadzenTextArea Value="@_model.Description" Change="@(v => _model.Description = v?.ToString())" Style="width:100%;" Rows="4" />
+                </div>
+                <div>
+                    <label class="small muted">Inventory</label>
+                    <RadzenNumeric TValue="int" Value="@_model.Inventory" Change="@(v => _model.Inventory = v)" Style="width:100%;" />
+                </div>
+                <div class="row gap-2">
+                    <RadzenButton Text="Update" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" IsBusy="@_submitting" />
+                    <a class="btn btn-ghost" href="/vendor/products">Cancel</a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private EditProductModel _model = new();
+    private string? _error;
+    private bool _submitting;
+
+    public class EditProductModel
+    {
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public string? Description { get; set; }
+        public int Inventory { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var product = await Api.GetProductAsync(Id);
+        if (product.IsSuccess && product.Data != null)
+        {
+            _model.Title = product.Data.Title;
+            _model.Price = product.Data.Price;
+            _model.Description = product.Data.Description;
+            _model.Inventory = product.Data.Inventory;
+        }
+    }
+
+    private async Task Submit()
+    {
+        _submitting = true; _error = null;
+        var request = new UpdateProductRequest
+        {
+            Title = _model.Title,
+            Price = _model.Price,
+            Description = _model.Description,
+            Inventory = _model.Inventory
+        };
+        var result = await Api.UpdateProductAsync(Id, request);
+        _submitting = false;
+        if (result.IsSuccess) { Toast.Success("Product updated."); Nav.NavigateTo("/vendor/products"); }
+        else _error = result.Status == ApiStatus.Forbidden ? "Vendor authorization required to update this product." : (result.Error ?? "Could not update product.");
+    }
+}

@@ -1,0 +1,31 @@
+@inject IAdminService AdminSvc
+
+<nav class="anav" aria-label="Admin Navigation">
+    <ul class="anav__list">
+        @if (_menu is null)
+        {
+            <li><span>Loading...</span></li>
+        }
+        else
+        {
+            @foreach (var item in _menu)
+            {
+                <li>
+                    <a href="@item.Url" class="anav__link" Match="NavLinkMatch.Prefix">
+                        <i class="material-icons">@item.Icon</i>
+                        <span>@item.Title</span>
+                    </a>
+                </li>
+            }
+        }
+    </ul>
+</nav>
+
+@code {
+    private IReadOnlyList<HalalChain.Models.Admin.AdminMenuItem>? _menu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _menu = await AdminSvc.GetMenuAsync();
+    }
+}

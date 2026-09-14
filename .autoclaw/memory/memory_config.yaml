@@ -1,0 +1,293 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Memory Configuration
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+#
+# Consolidated memory configuration. Per the architectural principle
+# in AGENTS.md, AI agents (this memory layer) collect evidence; the
+# deterministic Policy Engine in `.halalchain/tawheed` owns verdicts.
+# This layer must never assign a halal verdict.
+#
+# v3.0.0 — Enhanced multi-tier memory (STM + LTM + episodic + semantic
+# + procedural) sharing the single canonical
+# `.autoclaw/memory/agent_memory.db` and the shared
+# `.autoclaw/vector/` index.
+
+version: 3.0.0
+description: Enhanced memory configuration with short-term and long-term memory
+
+# ============================================================
+# SHORT-TERM MEMORY (Working Memory)
+# ============================================================
+short_term:
+  enabled: true
+  description: "Working memory for current agent tasks"
+  memory_type: short_term
+
+  capacity:
+    max_entries: 1000
+    max_tokens_per_entry: 1000
+    max_total_tokens: 100000
+
+  retention:
+    ttl: 3600
+    max_ttl: 86400
+    min_ttl: 60
+    refresh_on_access: true
+
+  storage:
+    type: hybrid
+    in_memory: true
+    persistence: true
+    database: .autoclaw/memory/agent_memory.db
+    cache_size: 100
+    cache_ttl: 300
+
+  eviction:
+    policy: LRU
+    batch_size: 10
+    priority: [importance, recency]
+
+  compression:
+    enabled: true
+    strategy: summarization
+    threshold: 500
+    target_length: 200
+
+# ============================================================
+# LONG-TERM MEMORY (Persistent Knowledge)
+# ============================================================
+long_term:
+  enabled: true
+  description: "Persistent knowledge storage with semantic search"
+  memory_type: long_term
+
+  capacity:
+    max_entries: 1000000
+    max_tokens_per_entry: 5000
+    max_attachments: 10
+    max_total_size_gb: 10
+
+  retention:
+    ttl: 31536000
+    max_ttl: 315360000
+    permanent: true
+    decay:
+      enabled: true
+      half_life: 31536000
+      importance_factor: 0.5
+
+  storage:
+    type: persistent
+    database: .autoclaw/memory/agent_memory.db
+    vector_store: .autoclaw/vector/embeddings.db
+    archive_path: .autoclaw/memory/long_term/archives/
+    backup_interval: 86400
+
+  indexing:
+    enabled: true
+    embedding_model: sentence-transformers/all-MiniLM-L6-v2
+    embedding_dimensions: 384
+    batch_size: 32
+    index_type: hnsw
+    index_parameters:
+      m: 16
+      ef_construction: 200
+      ef_search: 100
+    reindex_interval: 604800
+
+  deduplication:
+    enabled: true
+    threshold: 0.95
+    strategy: merge
+    merge_rules:
+      - keep_highest_confidence
+      - merge_sources
+      - latest_timestamp
+
+  search:
+    default_limit: 10
+    max_limit: 100
+    min_similarity: 0.7
+    hybrid_search: true
+    re_rank: true
+
+# ============================================================
+# EPISODIC MEMORY (Event Storage)
+# ============================================================
+episodic:
+  enabled: true
+  description: "Event and experience storage"
+  memory_type: episodic
+
+  capacity:
+    max_episodes: 10000
+    max_episode_size_kb: 100
+    max_summaries: 1000
+
+  storage:
+    database: .autoclaw/memory/agent_memory.db
+    summary_path: .autoclaw/memory/episodic/summaries/
+    timeline_index: true
+
+  summarization:
+    enabled: true
+    interval: 100
+    max_summary_length: 500
+    model: local
+    preserve_events: true
+
+  timeline:
+    enabled: true
+    compress_interval: 3600
+    max_events_per_hour: 100
+
+  retrieval:
+    temporal_search: true
+    context_window: 5
+    relevance_weight: 0.5
+
+# ============================================================
+# SEMANTIC MEMORY (Knowledge Graph)
+# ============================================================
+semantic:
+  enabled: true
+  description: "Knowledge graph and concept storage"
+  memory_type: semantic
+
+  storage:
+    database: .autoclaw/memory/agent_memory.db
+    embeddings: .autoclaw/vector/embeddings.db
+    backup_interval: 86400
+
+  graph:
+    nodes: true
+    edges: true
+    relationships: true
+
+  inference:
+    enabled: true
+    max_depth: 3
+    caching: true
+    rules:
+      - transitive_closure
+      - inheritance
+      - equivalence
+
+  embedding:
+    model: sentence-transformers/all-MiniLM-L6-v2
+    dimensions: 384
+    batch_size: 32
+
+  retrieval:
+    semantic_search: true
+    graph_traversal: true
+    hybrid_search: true
+    default_limit: 20
+
+# ============================================================
+# PROCEDURAL MEMORY (Skills & Procedures)
+# ============================================================
+procedural:
+  enabled: true
+  description: "Skills and procedure storage"
+  memory_type: procedural
+
+  storage:
+    cache_path: .autoclaw/memory/procedural/skills_cache/
+    max_cached_skills: 100
+    skill_database: .autoclaw/memory/agent_memory.db
+
+  learning:
+    enabled: true
+    pattern_recognition: true
+    skill_optimization: true
+
+  retrieval:
+    skill_matching: true
+    parameter_inference: true
+    fallback_skills: true
+
+# ============================================================
+# CONSOLIDATION (STM -> LTM)
+# ============================================================
+consolidation:
+  enabled: true
+  scheduling:
+    mode: hybrid
+    schedule: "0 0 * * *"
+    min_entries: 10
+    max_batch_size: 100
+  importance_scoring:
+    enabled: true
+    factors:
+      recency: 0.3
+      frequency: 0.2
+      relevance: 0.3
+      confidence: 0.2
+    threshold: 0.6
+  summarization:
+    enabled: true
+    max_tokens: 500
+    preserve_key_facts: true
+
+# ============================================================
+# RETRIEVAL
+# ============================================================
+retrieval:
+  default_limit: 10
+  max_limit: 100
+  scoring:
+    recency_weight: 0.3
+    relevance_weight: 0.4
+    importance_weight: 0.3
+  fallback:
+    enable: true
+    strategy: broaden_search
+
+# ============================================================
+# SECURITY
+# ============================================================
+security:
+  encryption:
+    enabled: true
+    algorithm: AES-256-GCM
+    key_rotation: 90
+  access_control:
+    read_permissions: [agent:read_memory]
+    write_permissions: [agent:write_memory]
+    delete_permissions: [agent:delete_memory]
+  data_classification:
+    short_term: level_2
+    long_term: level_3
+    episodic: level_3
+    semantic: level_2
+    procedural: level_2
+
+# ============================================================
+# MONITORING
+# ============================================================
+monitoring:
+  enabled: true
+  metrics:
+    - memory_usage
+    - hit_rate
+    - miss_rate
+    - consolidation_rate
+    - retrieval_latency
+  alerts:
+    memory_full: 0.90
+    consolidation_failure: true
+    retrieval_timeout: 30
+
+# ============================================================
+# PERFORMANCE
+# ============================================================
+performance:
+  cache: true
+  cache_ttl: 300
+  parallel_retrieval: true
+  max_workers: 4
+  connection_pool_size: 10
+  batch_operations: true
+  prefetch: true

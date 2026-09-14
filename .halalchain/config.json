@@ -1,0 +1,5 @@
+{
+  "Jwt": {
+    "Key": "super-secret-key-that-is-long-enough-32chars"
+  }
+}

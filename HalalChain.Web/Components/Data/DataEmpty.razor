@@ -1,0 +1,23 @@
+@using Radzen.Blazor
+
+<div class="data-empty @AdditionalClass">
+    <div class="data-empty__icon">
+        <RadzenIcon Icon="@(string.IsNullOrEmpty(Icon) ? "search_off" : Icon)" Style="font-size:3rem;opacity:0.3" />
+    </div>
+    <h3 class="data-empty__title">@Title</h3>
+    <p class="data-empty__description">@Description</p>
+    @if (ActionTemplate != null)
+    {
+        <div class="data-empty__action">
+            @ActionTemplate
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "No data found";
+    [Parameter] public string Description { get; set; } = "Try adjusting your filters or search query";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? ActionTemplate { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+}

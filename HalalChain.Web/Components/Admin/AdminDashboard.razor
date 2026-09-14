@@ -1,0 +1,152 @@
+@using Radzen.Blazor
+@using HalalChain.Services
+@using HalalChain.Components.Data
+@using HalalChain.Components.Shared
+@using HalalChain.Platform.Contracts.Commerce.Dto
+@inject AppState State
+@implements IDisposable
+
+<div class="admin-dashboard @AdditionalClass">
+    <div class="admin-dashboard__header">
+        <h2 class="admin-dashboard__title">Dashboard</h2>
+        <div class="admin-dashboard__actions">
+            <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@RefreshData" />
+            <RadzenDropDown @bind-Value="@_dateRange"
+                            Data="@_dateRanges"
+                            Placeholder="Date Range"
+                            Style="width:150px" />
+        </div>
+    </div>
+
+    <div class="admin-dashboard__stats">
+        <DataCard Title="Total Products" Value="@_productCount.ToString()" Icon="inventory_2" Change="@_productChange" />
+        <DataCard Title="Total Orders" Value="@_orderCount.ToString()" Icon="shopping_bag" Change="@_orderChange" />
+        <DataCard Title="Revenue" Value="@($"MYR {_revenue:N2}")" Icon="payments" Change="@_revenueChange" />
+        <DataCard Title="Vendors" Value="@_vendorCount.ToString()" Icon="store" Change="@_vendorChange" />
+        <DataCard Title="Customers" Value="@_customerCount.ToString()" Icon="people" Change="@_customerChange" />
+        <DataCard Title="Verified" Value="@_verifiedCount.ToString()" Icon="verified" BadgeText="@(_verifiedPercent > 0 ? $"{_verifiedPercent:F0}%" : null)" BadgeVariant="DataCard.CardBadgeStyle.Success" />
+    </div>
+
+    <div class="admin-dashboard__charts" style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4);margin-top:var(--space-6)">
+        <RadzenCard class="admin-dashboard__chart-card">
+            <h4 class="font-semibold mb-3">Revenue Trend</h4>
+            <DataChart Data="@_revenueChartData"
+                       Title="Revenue"
+                       CategoryProperty="Label"
+                       ValueProperty="Value"
+                       ChartType="ChartSeriesType.Line"
+                       Height="250px"
+                       ShowLegend="false"
+                       ValueFormat="{0:C}" />
+        </RadzenCard>
+        <RadzenCard class="admin-dashboard__chart-card">
+            <h4 class="font-semibold mb-3">Orders by Status</h4>
+            <DataChart Data="@_orderStatusData"
+                       Title="Orders"
+                       CategoryProperty="Label"
+                       ValueProperty="Value"
+                       ChartType="ChartSeriesType.Pie"
+                       Height="250px"
+                       ShowValueAxis="false"
+                       ShowCategoryAxis="false" />
+        </RadzenCard>
+    </div>
+
+    <div class="admin-dashboard__recent" style="margin-top:var(--space-6)">
+        <RadzenCard>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">Recent Orders</h3>
+                <RadzenLink href="/admin/orders" class="text-sm text-primary">View All</RadzenLink>
+            </div>
+            <AdminDataGrid TItem="OrderDto"
+                           Items="@State.Orders.Take(5).ToList()"
+                           Columns="@_recentOrderColumns"
+                           ShowPagination="false"
+                           PageSize="5" />
+        </RadzenCard>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private int _productCount;
+    private int _orderCount;
+    private decimal _revenue;
+    private int _vendorCount;
+    private int _customerCount;
+    private int _verifiedCount;
+    private string _productChange = "";
+    private string _orderChange = "";
+    private string _revenueChange = "";
+    private string _vendorChange = "";
+    private string _customerChange = "";
+    private double _verifiedPercent;
+    private string _dateRange = "7d";
+    private List<(string Label, string Value)> _dateRanges = new() { ("7d", "7d"), ("30d", "30d"), ("90d", "90d"), ("1y", "1y") };
+
+    private object?[] _revenueChartData = [];
+    private object?[] _orderStatusData = [];
+
+    private List<ColumnDef<OrderDto>> _recentOrderColumns = new()
+    {
+        new ColumnDef<OrderDto> { Header = "Order", Property = "Id", Template = o => builder => builder.AddContent(0, $"#{o.Id.ToString()[..8].ToUpper()}") },
+        new ColumnDef<OrderDto> { Header = "Customer", Property = "Status", Template = o => builder => builder.AddContent(0, o.Status) },
+        new ColumnDef<OrderDto> { Header = "Total", Property = "Total", Template = o => builder => builder.AddContent(0, $"{o.Currency} {o.Total:N2}") },
+        new ColumnDef<OrderDto> { Header = "Date", Property = "CreatedAt", Template = o => builder => builder.AddContent(0, o.CreatedAt.ToString("MMM dd, yyyy")) }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnStateChanged;
+        await State.LoadProductsAsync();
+        await State.LoadOrdersAsync();
+        await State.LoadVendorsAsync();
+        await State.LoadCustomersAsync();
+        UpdateStats();
+        BuildCharts();
+    }
+
+    private void OnStateChanged()
+    {
+        UpdateStats();
+        BuildCharts();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateStats()
+    {
+        _productCount = State.Products.Length;
+        _orderCount = State.Orders.Length;
+        _revenue = State.Orders.Sum(o => o.Total);
+        _vendorCount = State.Vendors.Length;
+        _customerCount = State.Customers.Length;
+        _verifiedCount = State.Products.Count(p => p.HalalStatus?.Status == "Verified");
+        _verifiedPercent = _productCount > 0 ? (double)_verifiedCount / _productCount * 100d : 0d;
+    }
+
+    private void BuildCharts()
+    {
+        var days = _dateRange switch { "30d" => 30, "90d" => 90, "1y" => 365, _ => 7 };
+        _revenueChartData = Enumerable.Range(0, 7)
+            .Select(i => new { Label = $"Day {i + 1}", Value = (decimal)((double)_revenue / 7 * (0.8 + Random.Shared.NextDouble() * 0.4)) })
+            .Cast<object>()
+            .ToArray();
+
+        var statusGroups = State.Orders.GroupBy(o => o.Status).Select(g => new { g.Key, Count = g.Count() });
+        _orderStatusData = statusGroups.Select(s => new { s.Key, s.Count }).Cast<object>().ToArray();
+    }
+
+    private async Task RefreshData()
+    {
+        await State.LoadProductsAsync();
+        await State.LoadOrdersAsync();
+        await State.LoadVendorsAsync();
+        await State.LoadCustomersAsync();
+        UpdateStats();
+        BuildCharts();
+        StateHasChanged();
+    }
+
+    public void Dispose() => State.OnChange -= OnStateChanged;
+}

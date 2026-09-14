@@ -1,0 +1,61 @@
+@page "/admin"
+@layout AdminLayout
+@inject AppState State
+@inject PlatformApiClient Api
+@implements IDisposable
+
+<h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+
+<div class="admin-stats mb-6">
+    <StatCard Label="Products" Value="@(_productCount.ToString())" Icon="inventory_2" />
+    <StatCard Label="Vendors" Value="@(_vendorCount.ToString())" Icon="store" />
+    <StatCard Label="Categories" Value="@(_categoryCount.ToString())" Icon="category" />
+    <StatCard Label="Verified" Value="@(_verifiedCount.ToString())" Icon="verified" />
+</div>
+
+<h3 class="text-lg font-semibold mb-4">Recent Products</h3>
+<RadzenDataGrid TItem="ProductDto" Data="@State.Products.Take(10)" AllowSorting="true" AllowPaging="false" class="hc-datagrid">
+    <Columns>
+        <RadzenDataGridColumn TItem="ProductDto" Property="Title" Title="Name" Sortable="true">
+            <Template Context="p">
+                <span class="font-medium">@p.Title</span>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProductDto" Property="VendorName" Title="Vendor" Sortable="true" />
+        <RadzenDataGridColumn TItem="ProductDto" Title="Price" Sortable="true">
+            <Template Context="p">
+                <span class="font-semibold">@p.Currency @p.Price.ToString("N2")</span>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProductDto" Title="Stock" Sortable="false">
+            <Template Context="p">
+                <RadzenBadge Text="@(p.Inventory > 0 ? "In Stock" : "Out")"
+                             BadgeStyle="@(p.Inventory > 0 ? BadgeStyle.Success : BadgeStyle.Danger)" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProductDto" Title="Status" Sortable="false">
+            <Template Context="p">
+                <RadzenBadge Text="@(p.HalalStatus?.Status ?? "Unverified")"
+                             BadgeStyle="@(p.HalalStatus?.Status == "Verified" ? BadgeStyle.Success : BadgeStyle.Warning)" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private int _productCount => State.Products.Length;
+    private int _vendorCount => State.Vendors.Length;
+    private int _categoryCount => State.Categories.Length;
+    private int _verifiedCount => State.Products.Count(p => p.HalalStatus?.Status == "Verified");
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.LoadProductsAsync();
+        await State.LoadCategoriesAsync();
+        await State.LoadVendorsAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnChanged;
+}

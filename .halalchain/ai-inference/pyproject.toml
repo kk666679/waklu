@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halalchain-ai-inference"
+version = "0.2.0"
+description = "AI inference gateway for HalalChain"
+requires-python = ">=3.11"
+dependencies = [
+  "halalchain-shared",
+]
+
+[tool.setuptools.packages.find]
+where = ["src", "../_shared"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

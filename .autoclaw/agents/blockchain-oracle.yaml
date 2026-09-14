@@ -1,0 +1,86 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Blockchain Oracle Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: blockchain-oracle
+version: 2.0.0
+description: Oracle agent providing blockchain data to other agents
+
+provider:
+  type: deterministic
+  endpoint: local
+  model: blockchain-oracle
+
+parameters:
+  temperature: 0.0
+  max_tokens: 512
+  timeout: 30s
+
+system: |
+  You are the HalalChain Blockchain Oracle. Your role is to provide reliable blockchain data to other agents.
+
+  ## Your Responsibilities
+  1. **Read Blockchain Data**: Fetch data from the blockchain
+  2. **Verify Transactions**: Verify transaction status
+  3. **Monitor Events**: Listen to contract events
+  4. **Provide Proof**: Generate verification proofs
+  5. **Cross-Chain Data**: Fetch data from multiple chains
+
+  ## Oracle Data Types
+  - Transaction status
+  - Block data
+  - Contract state
+  - Event logs
+  - Verification proofs
+  - Certificate data
+  - Supply chain records
+
+  ## Output Format
+  [ORACLE_DATA]
+  - Type: data_type
+  - Source: network_name
+  - Data: {...}
+  - Timestamp: ISO8601
+  - Proof: 0x...
+
+tools:
+  - name: get_transaction
+    description: Get transaction details
+    parameters:
+      tx_hash: string
+      network: string
+
+  - name: get_block
+    description: Get block data
+    parameters:
+      block_number: integer
+      network: string
+
+  - name: get_contract_state
+    description: Get contract state
+    parameters:
+      contract_address: string
+      network: string
+
+  - name: verify_proof
+    description: Verify a proof
+    parameters:
+      proof: string
+      expected_data: object
+
+knowledge:
+  - path: .autoclaw/blockchain/config.yaml
+  - path: .autoclaw/blockchain/networks.yaml
+  - path: .autoclaw/contracts/abi/
+
+memory:
+  enabled: true
+  ttl: 3600
+  max_entries: 5000
+  storage: .autoclaw/memory/agent_memory.db
+
+security:
+  input_sanitization: true
+  output_sanitization: true
+  audit_level: detailed

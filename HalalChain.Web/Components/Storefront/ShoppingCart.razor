@@ -1,0 +1,35 @@
+@inject CartState Cart
+@inject NavigationManager Nav
+
+<RadzenCard class="rz-shadow-1">
+    <h3>Shopping Cart</h3>
+    @if (Cart.Items.Count == 0)
+    {
+        <div class="text-muted">Your cart is empty.</div>
+    }
+    else
+    {
+        @foreach (var item in Cart.Items)
+        {
+            <RadzenRow AlignItems="AlignItems.Center" Gap=".5rem" class="cart-row">
+                <RadzenColumn Size="6">@item.Title</RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenNumeric TValue="int" Value="@item.Quantity" Change="@(v => Cart.UpdateQuantity(item.ProductId, v))" />
+                </RadzenColumn>
+                <RadzenColumn Size="2">@((item.Price * item.Quantity).ToString("C"))</RadzenColumn>
+                <RadzenColumn Size="1">
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                  Click="@(() => Cart.RemoveItem(item.ProductId))" />
+                </RadzenColumn>
+            </RadzenRow>
+        }
+        <hr />
+        <div>Subtotal: <strong>@Cart.Subtotal.ToString("C")</strong></div>
+        <div>Total: <strong>@Cart.Total.ToString("C")</strong></div>
+        <RadzenButton Text="Checkout" Icon="credit_card" ButtonStyle="ButtonStyle.Primary" Click="@(() => Nav.NavigateTo("/checkout"))" />
+    }
+</RadzenCard>
+
+@code {
+    protected override void OnInitialized() => Cart.OnChange += StateHasChanged;
+}

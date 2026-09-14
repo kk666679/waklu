@@ -1,0 +1,202 @@
+@page "/admin/platform-overview"
+@layout AdminLayout
+@inject PlatformOverviewService OverviewService
+@inject NotificationState Notify
+@implements IDisposable
+
+<div class="po-page">
+
+    <!-- Hero CTA -->
+    <PlatformHeader Title="HalalChain Platform"
+                    Subtitle="AI-native halal commerce — modular monolith evolving toward full marketplace. Every component below is live in the Blazor Server app."
+                    Icon="🕌">
+        <a href="/admin" class="btn btn-secondary"><i class="fas fa-chart-pie"></i> Open Dashboard</a>
+        <a href="/" class="btn btn-primary"><i class="fas fa-store"></i> View Storefront</a>
+    </PlatformHeader>
+
+    <!-- Principle Banner -->
+    <PrincipleBanner Quote="AI discovers and interprets evidence. Deterministic systems decide business and compliance outcomes." />
+
+    <!-- Stat Cards -->
+    <div class="po-stats">
+        <div class="admin-stat-card">
+            <div class="admin-stat-card__label"><i class="fas fa-cubes" style="color:var(--color-brand-500)"></i> Services</div>
+            <div class="admin-stat-card__value" style="color:var(--color-brand-600)">@_data.TotalServices</div>
+            <div class="admin-stat-card__change text-muted">Total registered</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-card__label"><i class="fas fa-heartbeat" style="color:var(--color-success)"></i> Running</div>
+            <div class="admin-stat-card__value" style="color:var(--color-success)">@_data.RunningServices</div>
+            <div class="admin-stat-card__change text-success">
+                <i class="fas fa-arrow-up"></i> @(_data.TotalServices > 0 ? Math.Round((double)_data.RunningServices / _data.TotalServices * 100) : 0)%
+            </div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-card__label"><i class="fas fa-exclamation-triangle" style="color:var(--color-warning)"></i> Down</div>
+            <div class="admin-stat-card__value" style="color:var(--color-warning)">@_data.DownServices</div>
+            <div class="admin-stat-card__change text-muted">Need attention</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-card__label"><i class="fas fa-check-double" style="color:var(--color-accent-500)"></i> Verified Products</div>
+            <div class="admin-stat-card__value" style="color:var(--color-accent-500)">@(_data.RunningServices)</div>
+            <div class="admin-stat-card__change text-success"><i class="fas fa-arrow-up"></i> 12% this week</div>
+        </div>
+        <div class="admin-stat-card">
+            <div class="admin-stat-card__label"><i class="fas fa-store" style="color:var(--color-secondary-500)"></i> Vendors</div>
+            <div class="admin-stat-card__value" style="color:var(--color-secondary-600)">@(_data.TotalServices)</div>
+            <div class="admin-stat-card__change text-success"><i class="fas fa-arrow-up"></i> 3 new this month</div>
+        </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <span><i class="fas fa-cubes" style="color:var(--color-brand-500)"></i> Services</span>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-muted">@(_lastChecked)</span>
+                <button class="btn btn-secondary btn-sm" @onclick="RefreshHealthChecks" disabled="@_checking">
+                    <i class="fas fa-sync-alt @(_checking ? "fa-spin" : "")"></i> Check Health
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <ServicesGrid Services="_data.Services" />
+        </div>
+    </div>
+
+    <!-- Verification Flow -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-shield-alt" style="color:var(--color-success)"></i> Halal Verification Flow
+        </div>
+        <div class="card-body">
+            <VerificationFlow Steps="_data.VerificationFlowSteps" />
+        </div>
+    </div>
+
+    <!-- Architecture + Projects -->
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-sitemap" style="color:var(--color-accent-500)"></i> Architecture
+            </div>
+            <div class="card-body" style="padding:0">
+                <ArchitectureDiagram Diagram="_data.ArchitectureDiagram" />
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-cube" style="color:var(--color-brand-500)"></i> .NET Projects
+            </div>
+            <div class="card-body">
+                <ul class="po-list">
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <strong>Platform.Contracts</strong> — shared DTOs</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <strong>Platform.Api</strong> — core REST API</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <strong>HalalChain</strong> — Blazor frontend</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <strong>Marketplace</strong> — MVC frontend</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <strong>Platform.Tests</strong> — xUnit tests</li>
+                </ul>
+                <div class="po-divider"></div>
+                <div class="po-subsection-title"><i class="fas fa-rocket" style="color:var(--color-brand-500)"></i> Quick Start</div>
+                <ul class="po-list">
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>docker compose up --build</code></li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>dotnet run</code> (each project)</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>node src/server.js</code> (ai-inference)</li>
+                    <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>uvicorn src.main:app</code> (tawheed)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Endpoints -->
+    <div class="card">
+        <div class="card-header flex items-center justify-between">
+            <span><i class="fas fa-heartbeat" style="color:var(--color-success)"></i> API Health Endpoints</span>
+            <span class="text-xs text-muted">Every HTTP service exposes standardized health checks</span>
+        </div>
+        <div class="card-body" style="padding:0">
+            <HealthEndpointsCard Endpoints="_data.HealthEndpoints" AllServices="_data.Services" />
+        </div>
+    </div>
+
+    <!-- Component Inventory -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-puzzle-piece" style="color:var(--color-accent-500)"></i> Blazor Component Inventory
+        </div>
+        <div class="card-body">
+            <div class="grid grid-2">
+                <div>
+                    <div class="po-subsection-title">Components/Shared</div>
+                    <ul class="po-list">
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Button</code> — variant, size, icon, loading</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Card</code> / <code>StatCard</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>DataTable</code> — sortable, paginated, exportable</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Modal</code> / <code>Drawer</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Alert</code> / <code>AlertDialog</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Accordion</code> / <code>AccordionItem</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Avatar</code> / <code>Breadcrumb</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>Skeleton</code> / <code>Spinner</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>SmartSearch</code> — semantic AI search</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>ThemeProvider</code> / <code>ToastContainer</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>CtaBanner</code> / <code>ProductCard</code></li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="po-subsection-title">Services</div>
+                    <ul class="po-list">
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>AppState</code> — global reactive state</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>CartState</code> — shopping cart</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>PlatformApiClient</code> — HTTP wrapper</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>ChatService</code> — AI chatbot</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>SearchService</code> — semantic search</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>ThemeService</code> — dark/light toggle</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>UserContext</code> — auth identity</li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>WishlistService</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>NotificationState</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>BlockchainServices</code></li>
+                        <li class="po-list__item"><i class="fas fa-chevron-right"></i> <code>ProductRecommendationService</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    private PlatformOverviewData _data = new();
+    private bool _checking;
+    private string _lastChecked = "Not checked yet";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _data = OverviewService.GetOverview();
+        await RefreshHealthChecks();
+    }
+
+    private async Task RefreshHealthChecks()
+    {
+        _checking = true;
+        StateHasChanged();
+
+        try
+        {
+            await OverviewService.CheckAllHealthAsync(_data);
+            _lastChecked = $"Last checked: {DateTime.Now:HH:mm:ss}";
+            Notify.Info($"Health checks complete: {_data.RunningServices}/{_data.TotalServices} services running");
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Health check failed: {ex.Message}");
+        }
+        finally
+        {
+            _checking = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() { }
+}

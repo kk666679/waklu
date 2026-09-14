@@ -1,0 +1,41 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<RadzenCard class="@($"category-card {AdditionalClass}")" @onclick="NavigateToCategory" style="cursor:pointer">
+    <div class="category-card__icon" style="width:48px;height:48px;border-radius:12px;background:var(--color-neutral-100);display:flex;align-items:center;justify-content:center;margin-bottom:var(--space-3)">
+        @if (!string.IsNullOrEmpty(Category.IconClass))
+        {
+            <i class="fas @Category.IconClass" style="font-size:1.25rem;color:var(--color-primary)"></i>
+        }
+        else
+        {
+            <RadzenIcon Icon="category" Style="font-size:1.25rem;color:var(--color-primary)" />
+        }
+    </div>
+    <h3 class="category-card__name font-semibold text-sm">@Category.Name</h3>
+    <p class="category-card__count text-xs text-muted">@Category.ProductCount products</p>
+    <div class="category-card__subcategories" style="margin-top:var(--space-2)">
+        @if (Subcategories != null && Subcategories.Any())
+        {
+            @foreach (var sub in Subcategories.Take(3))
+            {
+                <span class="text-xs text-muted" style="margin-right:0.5rem">@sub.Name</span>
+            }
+            @if (Subcategories.Length > 3)
+            {
+                <span class="text-xs text-muted">+@(Subcategories.Length - 3) more</span>
+            }
+        }
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public TaxonomyCategoryDto Category { get; set; } = default!;
+    [Parameter] public SubcategoryDto[]? Subcategories { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private void NavigateToCategory()
+    {
+        Nav.NavigateTo($"/products?category={Category.Slug}");
+    }
+}

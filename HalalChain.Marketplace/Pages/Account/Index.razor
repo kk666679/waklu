@@ -1,0 +1,79 @@
+@page "/account"
+@inject AuthService Auth
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>My account</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <SignedOut Title="Sign in to your account" ActionUrl="/account/login?returnUrl=/account" />
+}
+else
+{
+    <section class="container section-sm">
+        <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Welcome, @Auth.UserName</h1>
+
+        <div class="grid grid-3">
+            <a class="card card-pad" href="/orders">
+                <h4 style="margin:0;">Orders</h4>
+                <p class="small muted" style="margin: var(--space-2) 0 0;">View your order history</p>
+            </a>
+            <a class="card card-pad" href="/account/wishlist">
+                <h4 style="margin:0;">Wishlist</h4>
+                <p class="small muted" style="margin: var(--space-2) 0 0;">Products you've saved</p>
+            </a>
+            <a class="card card-pad" href="/cart">
+                <h4 style="margin:0;">Cart</h4>
+                <p class="small muted" style="margin: var(--space-2) 0 0;">Continue shopping</p>
+            </a>
+        </div>
+
+        <div class="panel card-pad" style="margin-top: var(--space-5);">
+            <h3 style="margin:0 0 var(--space-3);">Recent orders</h3>
+            @if (_orders == null)
+            {
+                <p class="muted">Loading…</p>
+            }
+            else if (_orders.Length == 0)
+            {
+                <p class="muted">You haven't placed any orders yet.</p>
+            }
+            else
+            {
+                <ul class="list">
+                    @foreach (var o in _orders.Take(5))
+                    {
+                        <li class="list-item between">
+                            <span><strong>Order @o.Id.ToString()[..8]</strong> · <span class="muted small">@o.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd")</span></span>
+                            <a class="btn btn-ghost btn-sm" href="/orders/@o.Id">View →</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div style="margin-top: var(--space-5);">
+            <RadzenButton Text="Sign out" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined" Click="@SignOut" />
+        </div>
+    </section>
+}
+
+@code {
+    private OrderDto[]? _orders;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.IsAuthenticated)
+        {
+            var result = await Api.GetOrdersAsync();
+            _orders = result.IsSuccess ? result.Data ?? [] : Array.Empty<OrderDto>();
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await Auth.LogoutAsync();
+    }
+}

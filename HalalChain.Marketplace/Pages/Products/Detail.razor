@@ -1,0 +1,233 @@
+@page "/products/{Id:guid}"
+@inject IPlatformApiClient Api
+@inject CartState Cart
+@inject INotificationService Toast
+@inject NavigationManager Nav
+
+<PageTitle>@(_product?.Title ?? "Product")</PageTitle>
+
+@if (_product == null)
+{
+    <div class="container section-sm center">
+        <p class="muted">Loading product…</p>
+    </div>
+}
+else
+{
+    var p = _product;
+    var profile = p.Profile;
+    var initials = string.Join("", p.Title.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+
+    <section class="container section-sm">
+        @if (p.Path != null)
+        {
+            <nav class="small muted" style="margin-bottom: var(--space-3);">
+                <a href="/browse">Marketplace</a> <span aria-hidden="true">/</span>
+                @if (p.Path.Department != null) { <a href="/browse?department=@p.Path.Department.Slug">@p.Path.Department.Name</a> <span aria-hidden="true">/</span> }
+                @if (p.Path.Category != null) { <a href="/browse?category=@p.Path.Category.Slug">@p.Path.Category.Name</a> <span aria-hidden="true">/</span> }
+                @if (p.Path.Subcategory != null) { <a href="/browse?subcategory=@p.Path.Subcategory.Slug">@p.Path.Subcategory.Name</a> <span aria-hidden="true">/</span> }
+                @if (p.Path.ProductType != null) { <a href="/browse?type=@p.Path.ProductType.Slug">@p.Path.ProductType.Name</a> <span aria-hidden="true">/</span> }
+                <span>@p.Title</span>
+            </nav>
+        }
+
+        <div class="grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: var(--space-6); align-items:start;">
+            <div>
+                <div class="card" style="aspect-ratio:1/1; display:grid; place-items:center; background:linear-gradient(135deg,var(--color-surface-muted),var(--color-surface-subtle));">
+                    <span style="font-family:var(--font-serif); font-size:4rem; color:var(--color-text-tertiary);" aria-hidden="true">@initials</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="row gap-2" style="margin-bottom: var(--space-2); flex-wrap:wrap;">
+                    <HalalStatusBadge Profile="profile" />
+                    @if (profile?.CertificationBodyName != null)
+                    {
+                        <span class="badge badge-cert">@profile.CertificationBodyName</span>
+                    }
+                    @if (!string.IsNullOrEmpty(p.BrandName))
+                    {
+                        <span class="badge badge-neutral">@p.BrandName</span>
+                    }
+                </div>
+
+                <h1 style="font-size: var(--text-3xl); margin: 0 0 var(--space-2);">@p.Title</h1>
+
+                <p class="muted" style="margin:0 0 var(--space-3);">
+                    Sold by <a href="/vendors">@p.VendorName</a>
+                    @if (p.Path?.Category?.Name != null) { <span aria-hidden="true"> · </span> <a href="/browse?category=@p.Path.Category.Slug" class="muted">@p.Path.Category.Name</a> }
+                </p>
+
+                <div class="panel card-pad" style="margin: var(--space-4) 0;">
+                    <div class="row between" style="align-items:baseline;">
+                        <span class="price" style="font-size: var(--text-2xl);">@p.Currency @p.Price.ToString("N2")</span>
+                        @if (p.Inventory > 0 && p.Inventory <= 10) { <span class="badge badge-warning">Low stock</span> }
+                        @if (p.Inventory == 0) { <span class="badge badge-danger">Out of stock</span> }
+                    </div>
+                    @if (p.Inventory > 0 && p.Inventory <= 10) { <p class="small" style="color:var(--color-warning); margin:8px 0 0;">Only @p.Inventory left — order soon.</p> }
+                </div>
+
+                <div class="row gap-2" style="align-items:stretch; margin-bottom: var(--space-3);">
+                    <RadzenNumeric @bind-Value="_quantity" Min="1" Max="@p.Inventory" Disabled="@(p.Inventory == 0)" Style="width:90px;" />
+                    <RadzenButton Text="Add to cart" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" Click="@(() => AddToCart(false))" Disabled="@(p.Inventory == 0)" />
+                    <RadzenButton Text="Buy now" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Large" Click="@(() => AddToCart(true))" Disabled="@(p.Inventory == 0)" />
+                </div>
+
+                <div class="row gap-3 small muted" style="margin-top: var(--space-3);">
+                    <span>🔒 Secure checkout</span>
+                    <span>↩ Easy returns</span>
+                    @if (!string.IsNullOrEmpty(p.Origin)) { <span>🚚 Ships from @p.Origin</span> }
+                </div>
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: var(--space-6); align-items:start; margin-top: var(--space-6);">
+            <div>
+                <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-3);">Halal &amp; verification</h2>
+                <div class="panel card-pad stack gap-3">
+                    @if (profile != null && !IsNotApplicable(profile) && (IsVerified(profile) || IsPlatformVerified(profile) || IsMuslimFriendly(profile)))
+                    {
+                        <div class="row gap-2 center">
+                            <span class="badge badge-halal" style="font-size: var(--text-sm); padding:6px 12px;">✓ HALAL VERIFIED</span>
+                        </div>
+                        <dl class="stack gap-2" style="margin:0;">
+                            <div class="between"><dt class="muted small">Status</dt><dd class="small" style="margin:0; font-weight:600;">@StatusLabel(profile)</dd></div>
+                            @if (!string.IsNullOrEmpty(profile.CertificationBodyName)) { <div class="between"><dt class="muted small">Certification body</dt><dd class="small" style="margin:0; font-weight:600;">@profile.CertificationBodyName</dd></div> }
+                            @if (!string.IsNullOrEmpty(profile.CertificateNumber)) { <div class="between"><dt class="muted small">Certificate</dt><dd class="small" style="margin:0; font-weight:600;">@profile.CertificateNumber</dd></div> }
+                            @if (profile.CertificateExpires.HasValue) { <div class="between"><dt class="muted small">Valid until</dt><dd class="small" style="margin:0; font-weight:600;">@profile.CertificateExpires.Value.ToString("yyyy-MM-dd")</dd></div> }
+                            @if (!string.IsNullOrEmpty(profile.CertificationCountry)) { <div class="between"><dt class="muted small">Jurisdiction</dt><dd class="small" style="margin:0;">@profile.CertificationCountry</dd></div> }
+                        </dl>
+                    }
+                    else if (IsPending(profile))
+                    {
+                        <span class="badge badge-warning" style="font-size: var(--text-sm); padding:6px 12px;">⧖ Pending verification</span>
+                        <p class="small muted" style="margin:0;">This product's halal status is under review by the platform. Check back soon.</p>
+                    }
+                    else
+                    {
+                        <p class="small muted" style="margin:0;">This product has not yet been verified by a recognised certification body. Vendors can submit documentation for review.</p>
+                    }
+
+                    @if (_verification != null)
+                    {
+                        <hr class="divider" />
+                        <div class="small">
+                            <div class="muted">Platform compliance verdict</div>
+                            <strong>@_verification.Status</strong>
+                            @if (!string.IsNullOrEmpty(_verification.Jurisdiction)) { <span class="muted"> · @_verification.Jurisdiction</span> }
+                            @if (_verification.VerifiedAt != default) { <div class="muted">Verified @_verification.VerifiedAt.UtcDateTime.ToString("yyyy-MM-dd")</div> }
+                            @if (!string.IsNullOrEmpty(_verification.PolicyVersion)) { <div class="muted small">Policy: @_verification.PolicyVersion</div> }
+                        </div>
+                    }
+
+                    <a class="btn btn-outline btn-sm" href="/verify/@p.Id">View full verification details →</a>
+                </div>
+            </div>
+
+            <div>
+                <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-3);">About this product</h2>
+                <div class="panel card-pad">
+                    @if (!string.IsNullOrEmpty(p.Description))
+                    {
+                        <p class="small" style="margin:0 0 var(--space-2); white-space:pre-line;">@p.Description</p>
+                    }
+                    else
+                    {
+                        <p class="small muted" style="margin:0;">No description provided by the vendor yet.</p>
+                    }
+                    <hr class="divider" />
+                    <dl class="stack gap-2" style="margin:0;">
+                        <div class="between"><dt class="muted small">Category</dt><dd class="small" style="margin:0;">@(p.Path?.Category?.Name ?? "—")</dd></div>
+                        <div class="between"><dt class="muted small">Origin</dt><dd class="small" style="margin:0;">@p.Origin</dd></div>
+                        <div class="between"><dt class="muted small">Brand</dt><dd class="small" style="margin:0;">@(p.BrandName ?? "—")</dd></div>
+                        <div class="between"><dt class="muted small">Vendor</dt><dd class="small" style="margin:0;">@p.VendorName</dd></div>
+                        <div class="between"><dt class="muted small">SKU</dt><dd class="small" style="margin:0;">@p.Id.ToString()[..8].ToUpper()</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        @if (_recommendations.Any())
+        {
+            <div style="margin-top: var(--space-7);">
+                <div class="between" style="margin-bottom: var(--space-4);">
+                    <div>
+                        <p class="eyebrow">AI discovery</p>
+                        <h2 style="font-size: var(--text-xl); margin:0;">Recommended for you</h2>
+                    </div>
+                    <span class="small muted">Based on semantic similarity</span>
+                </div>
+                <div class="grid grid-products">
+                    @foreach (var r in _recommendations)
+                    {
+                        <ProductCardBasic Product="@(new ProductDto(r.ProductId, r.Title, "", "", "", r.VendorName, "", r.Price, r.Currency, 0, new HalalStatusDto("Unverified", null, null, null), default))" />
+                    }
+                </div>
+            </div>
+        }
+
+        @if (_related.Any())
+        {
+            <div style="margin-top: var(--space-7);">
+                <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-4);">You might also like</h2>
+                <div class="grid grid-products">
+                    @foreach (var r in _related) { <ProductCard Product="r" /> }
+                </div>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private EnrichedProductDto? _product;
+    private VerificationDto? _verification;
+    private SemanticSearchResult[] _recommendations = Array.Empty<SemanticSearchResult>();
+    private EnrichedProductDto[] _related = Array.Empty<EnrichedProductDto>();
+    private int _quantity = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var product = await Api.GetEnrichedProductAsync(Id);
+        if (!product.IsSuccess || product.Data is null) { _product = null; return; }
+        _product = product.Data;
+        var ver = await Api.GetVerificationAsync(Id);
+        _verification = ver.IsSuccess ? ver.Data : null;
+        var recs = await Api.GetRecommendationsAsync(_product.Title, 6);
+        _recommendations = recs.IsSuccess && recs.Data != null ? recs.Data.Where(r => r.ProductId != Id).ToArray() : [];
+        if (_product.Path?.Category?.Slug != null)
+        {
+            var rel = await Api.BrowseAsync(new ProductQuery(Category: _product.Path.Category.Slug, SortBy: "newest", PageSize: 5));
+            if (rel.IsSuccess && rel.Data != null) _related = rel.Data.Items.Where(x => x.Id != Id).Take(4).ToArray();
+        }
+    }
+
+    private async Task AddToCart(bool buyNow)
+    {
+        var ok = await Cart.AddAsync(Id, _quantity);
+        if (ok)
+        {
+            Toast.Success("Added to cart");
+            if (buyNow) Nav.NavigateTo("/checkout");
+        }
+        else Toast.Error("Could not add to cart");
+    }
+
+    private static bool IsVerified(HalalProfileDto? p) => p != null && (p.Status == 1 || p.Status == 2);
+    private static bool IsPlatformVerified(HalalProfileDto? p) => p != null && p.Status == 2;
+    private static bool IsMuslimFriendly(HalalProfileDto? p) => p != null && p.Status == 3;
+    private static bool IsPending(HalalProfileDto? p) => p != null && p.Status == 5;
+    private static bool IsNotApplicable(HalalProfileDto? p) => p != null && p.Status == 6;
+
+    private static string StatusLabel(HalalProfileDto? p)
+    {
+        if (p == null) return "Unverified";
+        if (p.Status == 1) return "Certified";
+        if (p.Status == 2) return "Platform Verified";
+        if (p.Status == 3) return "Muslim-Friendly";
+        if (p.Status == 5) return "Pending Review";
+        if (p.Status == 6) return "Not Applicable";
+        return p.StatusName ?? "Unknown";
+    }
+}

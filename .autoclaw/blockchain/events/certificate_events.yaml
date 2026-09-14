@@ -1,0 +1,77 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Certificate Events
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Certificate event definitions
+
+events:
+  CertificateIssued:
+    description: Emitted when a certificate is issued
+    contract: CertificateRegistry
+    parameters:
+      - name: certificateId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: issuingBody
+        type: string
+        indexed: false
+      - name: expiryDate
+        type: uint256
+        indexed: false
+    handlers:
+      - certificate-validator
+      - alert-monitor
+      - smart-contract-agent
+
+  CertificateVerified:
+    description: Emitted when a certificate is verified
+    contract: CertificateRegistry
+    parameters:
+      - name: certificateId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: isValid
+        type: bool
+        indexed: false
+    handlers:
+      - verification-verifier
+      - compliance-reporter
+
+  CertificateRevoked:
+    description: Emitted when a certificate is revoked
+    contract: CertificateRegistry
+    parameters:
+      - name: certificateId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+      - name: revokedBy
+        type: address
+        indexed: false
+    handlers:
+      - alert-monitor
+      - compliance-auditor
+
+  CertificateExpired:
+    description: Emitted when a certificate expires
+    contract: CertificateRegistry
+    parameters:
+      - name: certificateId
+        type: bytes32
+        indexed: true
+      - name: productId
+        type: bytes32
+        indexed: true
+    handlers:
+      - alert-monitor
+      - compliance-reporter

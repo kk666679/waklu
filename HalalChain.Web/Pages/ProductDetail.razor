@@ -1,0 +1,363 @@
+﻿@page "/products/{Slug}"
+@layout StorefrontLayout
+@inject NavigationManager Nav
+@inject AppState State
+@inject CartState CartState
+@inject NotificationState Notify
+@inject IJSRuntime JsRuntime
+@inject IProductRecommendationService RecommendationService
+@inject IWishlistService WishlistService
+@inject IBadgeService BadgeService
+@implements IDisposable
+
+<section class="product-detail container mt-8 mb-8">
+    @if (_loading)
+    {
+        <div class="product-detail__grid">
+            <div class="product-gallery">
+                <div class="skeleton" style="aspect-ratio:1;border-radius:var(--radius-lg)"></div>
+                <div style="display:flex;gap:var(--space-2)">
+                    @for (var i = 0; i < 4; i++)
+                    {<div class="skeleton" style="width:80px;height:80px;border-radius:var(--radius-md)"></div>}
+                </div>
+            </div>
+            <div class="product-info">
+                <div class="skeleton" style="height:2rem;width:60%"></div>
+                <div class="skeleton" style="height:1rem;width:40%"></div>
+                <div class="skeleton" style="height:2.5rem;width:30%"></div>
+                <div class="skeleton" style="height:4rem"></div>
+            </div>
+        </div>
+    }
+    else if (_product is null)
+    {
+        <div class="product-not-found card" style="text-align:center;padding:var(--space-12)">
+            <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+            <h2 class="text-2xl font-bold mb-4">Product Not Found</h2>
+            <p class="text-muted mb-6">The product you are looking for does not exist or has been removed.</p>
+            <Button Href="/products" Text="Browse Products" Icon="shopping-bag" />
+        </div>
+    }
+    else
+    {
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="/">Home</a></li>
+                <li><a href="/products">Products</a></li>
+                <li><a href="/products?category=@_product.CategorySlug">@_product.CategoryName</a></li>
+                <li aria-current="page">@_product.Title</li>
+            </ol>
+        </nav>
+
+        <div class="product-detail__grid">
+            <div class="product-gallery">
+                <div class="product-gallery__main">
+                    <div class="product-gallery__placeholder">
+                        <i class="fas fa-shopping-bag" style="font-size:4rem;color:var(--color-neutral-300)"></i>
+                        <span style="font-size:1.5rem;font-weight:600;color:var(--color-neutral-400);margin-top:var(--space-4)">@_product.Title</span>
+                    </div>
+                    <button class="product-gallery__zoom-btn" @onclick="OpenZoom" aria-label="Zoom image">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    @if (_product.IsNew)
+                    {<span class="product-gallery__badge badge badge-info">New</span>}
+                    @if (_product.HalalStatus?.Status == "Verified")
+                    {<span class="product-gallery__badge badge badge-success" style="top:var(--space-3)">Halal Verified</span>}
+                </div>
+            </div>
+            <div class="product-info">
+                <div class="product-info__header">
+                    <h1 class="product-info__title">@_product.Title</h1>
+                    <div class="product-info__meta">
+                        <span>by <a href="/vendors/@_product.VendorSlug">@_product.VendorName</a></span>
+                        <span>in <a href="/products?category=@_product.CategorySlug">@_product.CategoryName</a></span>
+                        <span>@_product.Origin</span>
+                    </div>
+                </div>
+
+                @if (_badgeInfo != null && _badgeInfo.IsValid)
+                {
+                    <div class="product-info__blockchain-badge">
+                        <div class="badge-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div class="badge-info">
+                            <span class="badge-label">Blockchain Verified</span>
+                            <span class="badge-detail">Token #@_badgeInfo.TokenId on Polygon</span>
+                            <a href="@_badgeInfo.EtherscanLink" target="_blank" rel="noopener" class="badge-link">
+                                <i class="fas fa-external-link-alt"></i> Verify on-chain
+                            </a>
+                        </div>
+                    </div>
+                }
+
+                <div class="product-info__rating">
+                    <span class="stars">@RenderStars(_rating)</span>
+                    <span class="rating-value">@_rating.ToString("0.0")</span>
+                    <span class="rating-count">(@_reviews.Count reviews)</span>
+                </div>
+
+                <div class="product-info__pricing">
+                    @if (_product.CompareAtPrice.HasValue && _product.CompareAtPrice > _product.Price)
+                    {<span class="product-info__compare-price">@_product.Currency @_product.CompareAtPrice.Value.ToString("N2")</span>}
+                    <span class="product-info__price">@_product.Currency @_product.Price.ToString("N2")</span>
+                    @if (_product.DiscountPercentage.HasValue && _product.DiscountPercentage > 0)
+                    {<span class="product-info__discount">Save @_product.DiscountPercentage%</span>}
+                </div>
+
+                <div class="product-info__stock">
+                    @if (_product.Inventory > 0)
+                    {
+                        <span class="stock-badge stock-badge--in">In Stock (@_product.Inventory available)</span>
+                        if (_product.Inventory <= 10)
+                        {<span class="stock-warning">Only @_product.Inventory left - order soon!</span>}
+                    }
+                    else
+                    {
+                        <span class="stock-badge stock-badge--out">Out of Stock</span>
+                        <Button Text="Notify me when available" Icon="bell" Variant="Button.ButtonVariant.Secondary" Size="Button.ButtonSize.Small" OnClick="NotifyMeWhenInStock" />
+                    }
+                </div>
+
+                <div class="product-info__actions">
+                    <div class="quantity-selector">
+                        <button class="quantity-btn" @onclick="DecrementQuantity" disabled="@(_quantity <= 1)">-</button>
+                        <span class="quantity-value">@_quantity</span>
+                        <button class="quantity-btn" @onclick="IncrementQuantity" disabled="@(_quantity >= _product.Inventory)">+</button>
+                    </div>
+                    <Button Text="Add to Cart" Icon="shopping-bag" Variant="Button.ButtonVariant.Primary" Size="Button.ButtonSize.Large" Disabled="@(_product.Inventory <= 0)" OnClick="AddToCart" AdditionalClass="add-to-cart" />
+                    <button class="btn wishlist-btn @(_isInWishlist ? "active" : "")" @onclick="ToggleWishlist">
+                        <i class="fas @(_isInWishlist ? "fa-heart" : "fa-heart-broken")"></i>
+                    </button>
+                </div>
+
+                <div class="product-info__share">
+                    <span>Share:</span>
+                    <a href="#" @onclick:preventDefault @onclick="ShareFacebook" class="share-link"><i class="fab fa-facebook"></i></a>
+                    <a href="#" @onclick:preventDefault @onclick="ShareTwitter" class="share-link"><i class="fab fa-twitter"></i></a>
+                    <a href="#" @onclick:preventDefault @onclick="ShareWhatsApp" class="share-link"><i class="fab fa-whatsapp"></i></a>
+                    <button class="share-link" @onclick="CopyLink"><i class="fas fa-link"></i></button>
+                </div>
+
+                @if (_product.Tags.Any())
+                {
+                    <div class="product-info__tags">
+                        @foreach (var tag in _product.Tags)
+                        {<span class="tag">#@tag</span>}
+                    </div>
+                }
+
+                <div class="product-info__description">
+                    <h3>Description</h3>
+                    <p>@(_product.Description ?? "No description available.")</p>
+                </div>
+
+                @if (_product.Metadata != null)
+                {
+                    <div class="product-info__metadata">
+                        <h3>Product Details</h3>
+                        <dl>
+                            @foreach (var item in _product.Metadata)
+                            {
+                                <dt>@item.Key</dt>
+                                <dd>@item.Value</dd>
+                            }
+                        </dl>
+                    </div>
+                }
+                <div class="product-info__recommendations">
+                    <h3>You May Also Like</h3>
+                    <div class="recommendation-grid">
+                        @foreach (var rec in _recommendations)
+                        {
+                            <div class="rec-card" @onclick="() => GoToProduct(rec.Slug)">
+                                <div class="rec-card__image"><i class="fas fa-shopping-bag"></i></div>
+                                <div class="rec-card__info">
+                                    <span class="rec-card__vendor">@rec.VendorName</span>
+                                    <span class="rec-card__title">@rec.Title</span>
+                                    <span class="rec-card__price">@rec.Currency @rec.Price.ToString("N2")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div id="reviews" class="product-info__reviews">
+                    <h3>Customer Reviews (@_reviews.Count)</h3>
+                    @if (_reviews.Any())
+                    {
+                        @foreach (var review in _reviews)
+                        {
+                            <div class="review-item">
+                                <div class="review-header">
+                                    <strong>@review.CustomerName</strong>
+                                    <span class="review-stars">@RenderStars(review.Rating)</span>
+                                    <span class="review-date">@review.Date.ToShortDateString()</span>
+                                </div>
+                                <p class="review-text">@review.Comment</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+                    }
+                    <Button Text="Write a Review" Icon="pen" Variant="Button.ButtonVariant.Secondary" Size="Button.ButtonSize.Small" OnClick="OpenReviewModal" />
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@if (_zoomOpen)
+{
+    <div class="zoom-modal" @onclick="CloseZoom">
+        <div class="zoom-modal__content" @onclick:stopPropagation>
+            <button class="zoom-modal__close" @onclick="CloseZoom">&times;</button>
+            <div class="zoom-modal__placeholder">
+                <i class="fas fa-shopping-bag" style="font-size:6rem;color:var(--color-neutral-300)"></i>
+                <span style="font-size:2rem;color:var(--color-neutral-400);margin-top:var(--space-4)">@_product?.Title</span>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_reviewModalOpen)
+{
+    <div class="review-modal modal-backdrop" @onclick="CloseReviewModal">
+        <div class="modal" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3>Write a Review</h3>
+                <button class="modal-close" @onclick="CloseReviewModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input class="form-input" @bind="_reviewName" placeholder="Enter your name" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rating</label>
+                    <div class="star-rating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var rating = i;
+                            <span class="star @(rating <= _reviewRating ? "selected" : "")" @onclick="() => SetReviewRating(rating)">&#9733;</span>
+                        }
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comment</label>
+                    <textarea class="form-input" @bind="_reviewComment" rows="4" placeholder="Share your experience..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <Button Text="Cancel" Variant="Button.ButtonVariant.Secondary" OnClick="CloseReviewModal" />
+                <Button Text="Submit Review" Icon="check" OnClick="SubmitReview" Disabled="@(_reviewRating == 0 || string.IsNullOrWhiteSpace(_reviewComment))" />
+            </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    private ExtendedProductDto? _product;
+    private BadgeInfo? _badgeInfo;
+    private int _quantity = 1;
+    private bool _isInWishlist;
+    private List<ProductDto> _recommendations = [];
+    private List<ReviewDto> _reviews = [];
+    private double _rating = 4.5;
+    private bool _zoomOpen;
+    private bool _reviewModalOpen;
+    private int _reviewRating;
+    private string _reviewComment = "";
+    private string _reviewName = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnStateChanged;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        if (!State.Products.Any())
+            await State.LoadProductsAsync();
+
+        var p = State.Products.FirstOrDefault(p => p.Slug == Slug);
+        if (p != null)
+        {
+            _product = ExtendedProductDto.FromProductDto(p);
+            _isInWishlist = WishlistService.IsInWishlist(p.Id);
+            _recommendations = await RecommendationService.GetRelatedProducts(p.Id, 4);
+            _reviews = await State.GetReviewsAsync(p.Id) ?? [];
+            _rating = _reviews.Any() ? _reviews.Average(r => r.Rating) : 4.5;
+
+            try { _badgeInfo = await BadgeService.GetBadgeInfoAsync(p.Id); } catch { }
+        }
+        _loading = false;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void IncrementQuantity() { if (_product != null && _quantity < _product.Inventory) _quantity++; }
+    private void DecrementQuantity() { if (_quantity > 1) _quantity--; }
+
+    private async Task AddToCart()
+    {
+        if (_product == null) return;
+        CartState.AddItem(_product.Id.ToString(), _product.Title, _product.Price, _product.Currency);
+        Notify.Success($"{_quantity} x {_product.Title} added to cart");
+    }
+
+    private void ToggleWishlist()
+    {
+        if (_product == null) return;
+        if (_isInWishlist) WishlistService.RemoveFromWishlist(_product.Id);
+        else WishlistService.AddToWishlist(_product.Id, _product.Title, _product.Price, _product.Currency);
+        _isInWishlist = !_isInWishlist;
+        Notify.Success(_isInWishlist ? "Added to wishlist" : "Removed from wishlist");
+    }
+
+    private async Task NotifyMeWhenInStock()
+    {
+        await Task.CompletedTask;
+        Notify.Success("You will be notified when this product is back in stock.");
+    }
+
+    private void OpenZoom() => _zoomOpen = true;
+    private void CloseZoom() => _zoomOpen = false;
+
+    private void ShareFacebook() => JsRuntime.InvokeVoidAsync("window.open", $"https://www.facebook.com/sharer/sharer.php?u={Uri.EscapeDataString(Nav.Uri)}");
+    private void ShareTwitter() => JsRuntime.InvokeVoidAsync("window.open", $"https://twitter.com/intent/tweet?text=Check out {_product?.Title}&url={Uri.EscapeDataString(Nav.Uri)}");
+    private void ShareWhatsApp() => JsRuntime.InvokeVoidAsync("window.open", $"https://api.whatsapp.com/send?text={Uri.EscapeDataString(_product?.Title + " - " + Nav.Uri)}");
+    private async Task CopyLink() { await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Nav.Uri); Notify.Success("Link copied!"); }
+
+    private RenderFragment RenderStars(double rating) => builder =>
+    {
+        var full = (int)Math.Floor(rating);
+        for (int i = 0; i < 5; i++)
+            builder.AddContent(0, i < full ? "\u2605" : "\u2606");
+    };
+
+    private void OpenReviewModal() => _reviewModalOpen = true;
+    private void CloseReviewModal() => _reviewModalOpen = false;
+    private void SetReviewRating(int rating) => _reviewRating = rating;
+
+    private async Task SubmitReview()
+    {
+        if (_product == null || _reviewRating == 0) return;
+        var review = new ReviewDto { ProductId = _product.Id, CustomerName = string.IsNullOrWhiteSpace(_reviewName) ? "Anonymous" : _reviewName, Rating = _reviewRating, Comment = _reviewComment };
+        await State.SubmitReviewAsync(review);
+        Notify.Success("Review submitted! Thank you.");
+        _reviewModalOpen = false; _reviewRating = 0; _reviewComment = ""; _reviewName = "";
+        _reviews = await State.GetReviewsAsync(_product.Id) ?? [];
+        _rating = _reviews.Any() ? _reviews.Average(r => r.Rating) : 4.5;
+        StateHasChanged();
+    }
+
+    private void GoToProduct(string slug) => Nav.NavigateTo("/products/" + slug);
+
+    public void Dispose() => State.OnChange -= OnStateChanged;
+}
+
+

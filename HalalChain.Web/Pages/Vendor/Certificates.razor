@@ -1,0 +1,229 @@
+@page "/vendor/certificates"
+@layout VendorLayout
+@inject PlatformApiClient Api
+@inject NavigationManager Nav
+@inject NotificationState Notify
+@implements IDisposable
+
+<div class="vendor-certificates">
+    <div class="page-header">
+        <div>
+            <h1>Halal Certificates</h1>
+            <p>Manage your product certifications</p>
+        </div>
+        <NavLink href="/vendor/certificates/submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Submit Certificate
+        </NavLink>
+    </div>
+
+    <div class="cert-stats">
+        <div class="cert-stat @( _activeFilter == "all" ? "active" : "")" @onclick="FilterAll">
+            <div class="cert-stat-value">@(_allCertificates?.Count ?? 0)</div>
+            <div class="cert-stat-label">Total</div>
+        </div>
+        <div class="cert-stat @( _activeFilter == "Verified" ? "active" : "")" @onclick="FilterVerified">
+            <div class="cert-stat-value text-success">@(_verifiedCount)</div>
+            <div class="cert-stat-label">Verified</div>
+        </div>
+        <div class="cert-stat @( _activeFilter == "Pending" ? "active" : "")" @onclick="FilterPending">
+            <div class="cert-stat-value text-warning">@(_pendingCount)</div>
+            <div class="cert-stat-label">Pending</div>
+        </div>
+        <div class="cert-stat @( _activeFilter == "Expiring" ? "active" : "")" @onclick="FilterExpiring">
+            <div class="cert-stat-value text-danger">@(_expiringCount)</div>
+            <div class="cert-stat-label">Expiring Soon</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body" style="padding:0">
+            @if (_loading)
+            {
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading certificates...</p>
+                </div>
+            }
+            else if (_filteredCertificates == null || !_filteredCertificates.Any())
+            {
+                <div class="empty-state">
+                    <i class="fas fa-certificate" style="font-size:3rem;opacity:0.3"></i>
+                    <h3>No certificates found</h3>
+                    <p>Submit your first halal certificate to get started</p>
+                    <NavLink href="/vendor/certificates/submit" class="btn btn-primary mt-4">
+                        <i class="fas fa-plus"></i> Submit Certificate
+                    </NavLink>
+                </div>
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Certificate</th>
+                            <th>Product</th>
+                            <th>Certification Body</th>
+                            <th>Status</th>
+                            <th>Expiry</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cert in _filteredCertificates)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="cert-id">
+                                        <i class="fas fa-certificate text-primary"></i>
+                                        <span>@cert.CertificateNumber</span>
+                                    </div>
+                                </td>
+                                <td>@cert.ProductTitle</td>
+                                <td>@cert.CertificationBody</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(cert.Status)">@cert.Status</span>
+                                </td>
+                                <td>
+                                    @if (cert.ExpiresAt.HasValue)
+                                    {
+                                        <span class="@(IsExpiringSoon(cert.ExpiresAt.Value) ? "text-danger" : "")">
+                                            @cert.ExpiresAt.Value.ToString("MMM dd, yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="flex gap-2">
+                                        <button class="btn btn-ghost btn-sm" @onclick="() => ViewCertificate(cert)" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" @onclick="() => DownloadCertificate(cert)" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .vendor-certificates { padding: var(--space-6); max-width: 1200px; margin: 0 auto; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-6); }
+    .page-header h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-1); }
+    .page-header p { color: var(--color-text-secondary); }
+    .cert-stats { display: flex; gap: var(--space-4); margin-bottom: var(--space-6); }
+    .cert-stat {
+      flex: 1; background: var(--hc-black-soft); border-radius: var(--radius-lg);
+      padding: var(--space-4); text-align: center; cursor: pointer;
+      border: 2px solid var(--hc-border); transition: all var(--transition-fast);
+    }
+    .cert-stat:hover { border-color: var(--hc-border-strong); }
+    .cert-stat.active { border-color: var(--color-action-primary); background: rgba(94, 122, 72, 0.08); }
+    .cert-stat-value { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--hc-text); }
+    .cert-stat-label { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .cert-id { display: flex; align-items: center; gap: var(--space-2); }
+    .loading-state { padding: var(--space-12); text-align: center; color: var(--color-text-muted); }
+</style>
+
+@code {
+    private List<CertificateDisplay> _allCertificates = new();
+    private List<CertificateDisplay> _filteredCertificates = new();
+    private bool _loading = true;
+    private string _activeFilter = "all";
+    private int _verifiedCount;
+    private int _pendingCount;
+    private int _expiringCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCertificatesAsync();
+    }
+
+    private async Task LoadCertificatesAsync()
+    {
+        _loading = true;
+        try
+        {
+            _allCertificates = new List<CertificateDisplay>
+            {
+                new() { Id = Guid.NewGuid(), CertificateNumber = "HC-2024-001", ProductTitle = "Organic Coconut Water", CertificationBody = "JAKIM", Status = "Verified", ExpiresAt = DateTimeOffset.UtcNow.AddMonths(6) },
+                new() { Id = Guid.NewGuid(), CertificateNumber = "HC-2024-002", ProductTitle = "Premium Chicken Nuggets", CertificationBody = "JAKIM", Status = "Verified", ExpiresAt = DateTimeOffset.UtcNow.AddMonths(8) },
+                new() { Id = Guid.NewGuid(), CertificateNumber = "HC-2024-003", ProductTitle = "Lamb Rendang Paste", CertificationBody = "JAKIM", Status = "Pending", ExpiresAt = DateTimeOffset.UtcNow.AddMonths(3) },
+                new() { Id = Guid.NewGuid(), CertificateNumber = "HC-2024-004", ProductTitle = "Matcha Green Tea", CertificationBody = "MUI", Status = "Submitted", ExpiresAt = null },
+            };
+
+            _verifiedCount = _allCertificates.Count(c => c.Status == "Verified");
+            _pendingCount = _allCertificates.Count(c => c.Status == "Pending" || c.Status == "Submitted");
+            _expiringCount = _allCertificates.Count(c => c.ExpiresAt.HasValue && IsExpiringSoon(c.ExpiresAt.Value));
+
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Failed to load certificates: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void FilterAll() { _activeFilter = "all"; ApplyFilter(); }
+    private void FilterVerified() { _activeFilter = "Verified"; ApplyFilter(); }
+    private void FilterPending() { _activeFilter = "Pending"; ApplyFilter(); }
+    private void FilterExpiring() { _activeFilter = "Expiring"; ApplyFilter(); }
+
+    private void ApplyFilter()
+    {
+        _filteredCertificates = _activeFilter switch
+        {
+            "all" => _allCertificates,
+            "Verified" => _allCertificates.Where(c => c.Status == "Verified").ToList(),
+            "Pending" => _allCertificates.Where(c => c.Status == "Pending" || c.Status == "Submitted").ToList(),
+            "Expiring" => _allCertificates.Where(c => c.ExpiresAt.HasValue && IsExpiringSoon(c.ExpiresAt.Value)).ToList(),
+            _ => _allCertificates
+        };
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Verified" => "badge-success",
+        "Submitted" => "badge-warning",
+        "Pending" => "badge-warning",
+        "Expired" => "badge-danger",
+        "Rejected" => "badge-danger",
+        _ => "badge-secondary"
+    };
+
+    private bool IsExpiringSoon(DateTimeOffset expiry) => expiry <= DateTimeOffset.UtcNow.AddDays(30);
+
+    private void ViewCertificate(CertificateDisplay cert)
+    {
+        Notify.Info($"Viewing certificate {cert.CertificateNumber}");
+    }
+
+    private void DownloadCertificate(CertificateDisplay cert)
+    {
+        Notify.Success($"Downloading certificate {cert.CertificateNumber}");
+    }
+
+    public void Dispose() { }
+
+    private class CertificateDisplay
+    {
+        public Guid Id { get; set; }
+        public string CertificateNumber { get; set; } = "";
+        public string ProductTitle { get; set; } = "";
+        public string CertificationBody { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTimeOffset? ExpiresAt { get; set; }
+    }
+}

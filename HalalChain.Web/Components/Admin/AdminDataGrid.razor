@@ -1,0 +1,117 @@
+@typeparam TItem where TItem : notnull
+@using Radzen.Blazor
+@inject NotificationService NotificationService
+
+<div class="admin-datagrid @AdditionalClass">
+    <div class="admin-datagrid__toolbar">
+        <div class="admin-datagrid__search">
+            <RadzenTextBox Placeholder="Search..." @bind-Value="@SearchTerm" Change="@OnSearchChanged" Style="max-width:300px" />
+        </div>
+        <div class="admin-datagrid__actions">
+            @if (ShowAddButton)
+            {
+                <RadzenButton Icon="add" Text="@AddButtonText" ButtonStyle="ButtonStyle.Primary" Click="@OnAddClick" />
+            }
+            @if (ShowRefresh)
+            {
+                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@OnRefreshClick" />
+            }
+            @if (Exportable)
+            {
+                <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Light" Text="Export" Click="@OnExportClick" />
+            }
+        </div>
+    </div>
+
+    <RadzenDataGrid TItem="TItem"
+                    Data="@FilteredItems"
+                    AllowSorting="@AllowSorting"
+                    AllowPaging="@ShowPagination"
+                    PageSize="@PageSize"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid"
+                    Loading="@Loading"
+                    EmptyText="@EmptyText">
+        <Columns>
+            @foreach (var col in Columns)
+            {
+                <RadzenDataGridColumn TItem="TItem" Property="@col.Property" Title="@col.Header" Sortable="@(col.Sortable && AllowSorting)" Filterable="false" Visible="@col.Visible">
+                    <Template Context="item">
+                        @if (col.Template != null)
+                        {
+                            @col.Template(item)
+                        }
+                        else
+                        {
+                            var value = GetPropertyValue(item, col.Property);
+                            @value
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+            }
+            @if (ActionsTemplate != null)
+            {
+                <RadzenDataGridColumn TItem="TItem" Title="Actions" Sortable="false" Filterable="false" Width="180px">
+                    <Template Context="item">
+                        <div style="display:flex;gap:0.25rem">
+                            @ActionsTemplate(item)
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+            }
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    [Parameter] public List<TItem> Items { get; set; } = [];
+    [Parameter] public List<ColumnDef<TItem>> Columns { get; set; } = [];
+    [Parameter] public RenderFragment<TItem>? ActionsTemplate { get; set; }
+    [Parameter] public string? EmptyText { get; set; } = "No data found";
+    [Parameter] public bool ShowPagination { get; set; } = true;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public bool AllowSorting { get; set; } = true;
+    [Parameter] public bool ShowAddButton { get; set; } = false;
+    [Parameter] public string AddButtonText { get; set; } = "Add";
+    [Parameter] public bool ShowRefresh { get; set; } = false;
+    [Parameter] public bool Exportable { get; set; } = true;
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback OnAddClick { get; set; }
+    [Parameter] public EventCallback OnRefreshClick { get; set; }
+    [Parameter] public EventCallback OnExportClick { get; set; }
+
+    private string SearchTerm { get; set; } = "";
+
+    private TItem[] FilteredItems
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(SearchTerm)) return [.. Items];
+            var searchLower = SearchTerm.ToLowerInvariant();
+            return [.. Items.Where(item =>
+            {
+                foreach (var col in Columns)
+                {
+                    var value = col.SearchValue?.Invoke(item) ?? GetPropertyValue(item, col.Property)?.ToString();
+                    if (!string.IsNullOrEmpty(value) && value.ToLowerInvariant().Contains(searchLower))
+                        return true;
+                }
+                return false;
+            })];
+        }
+    }
+
+    private async Task OnSearchChanged()
+    {
+        StateHasChanged();
+    }
+
+    private static string? GetPropertyValue(TItem item, string? propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName)) return null;
+        var prop = typeof(TItem).GetProperty(propertyName);
+        return prop?.GetValue(item)?.ToString();
+    }
+}

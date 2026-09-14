@@ -1,0 +1,30 @@
+@inject AppNotificationService Notifier
+@implements IDisposable
+
+@if (_current is not null)
+{
+    <div class="toast toast--@_current.Severity.ToString().ToLower() rz-shadow-3">
+        <strong>@_current.Title</strong>
+        <div>@_current.Message</div>
+    </div>
+}
+
+@code {
+    private AppNotification? _current;
+    private CancellationTokenSource _cts = new();
+
+    protected override void OnInitialized() => Notifier.OnNotify += Show;
+
+    private async void Show(AppNotification n)
+    {
+        _current = n;
+        await InvokeAsync(StateHasChanged);
+        _cts.Cancel();
+        _cts = new CancellationTokenSource();
+        try { await Task.Delay(3500, _cts.Token); } catch { return; }
+        _current = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Notifier.OnNotify -= Show;
+}

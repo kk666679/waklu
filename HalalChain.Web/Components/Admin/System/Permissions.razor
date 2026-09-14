@@ -1,0 +1,19 @@
+@inject IAdminService AdminSvc
+
+<RadzenDataGrid TItem="AdminRole" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Id" Title="ID" Width="60px" />
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="Description" Title="Description" />
+        <RadzenDataGridColumn Property="IsSystem" Title="System" Width="100px">
+            <Template Context="r">
+                <RadzenBadge BadgeStyle="@(r.IsSystem ? BadgeStyle.Info : BadgeStyle.Secondary)" Text="@(r.IsSystem ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<AdminRole> _items = Array.Empty<AdminRole>();
+    protected override async Task OnInitializedAsync() => _items = await AdminSvc.GetRolesAsync();
+}

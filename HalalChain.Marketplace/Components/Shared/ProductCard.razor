@@ -1,0 +1,68 @@
+@inject IWishlistService Wishlist
+
+<article class="product-card">
+    <a class="product-media" href="/products/@Product.Id" aria-label="@Product.Title">
+        <span class="ph" aria-hidden="true">@Initials</span>
+        <div class="product-tags">
+            @if (IsVerified)
+            {
+                <span class="tag-float badge-halal" style="background:var(--color-halal-soft);color:var(--color-halal-ink)">✓ Halal</span>
+            }
+            else if (IsPending)
+            {
+                <span class="tag-float" style="background:var(--color-warning-soft);color:var(--color-warning)">Pending</span>
+            }
+        </div>
+    </a>
+    <button class="wishlist-btn @(Wishlist.Contains(Product.Id) ? "is-active" : "")" @onclick="() => Wishlist.Toggle(Product.Id)" aria-label="Save to wishlist" aria-pressed="@Wishlist.Contains(Product.Id)">
+        <svg viewBox="0 0 24 24" fill="@(Wishlist.Contains(Product.Id) ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+    </button>
+    <div class="product-body">
+        <div class="product-vendor">
+            @if (IsVerified)
+            {
+                <span class="halal-verified"><svg class="seal" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2l2.2 4.6 5 .7-3.6 3.5.9 5L12 17.8 7.5 20.3l.9-5L4.8 12.3l5-.7z"/></svg>Verified</span>
+            }
+            else
+            {
+                <span class="muted">@(IsPending ? "In review" : "Unverified")</span>
+            }
+            <span aria-hidden="true">·</span> <span>@Product.VendorName</span>
+        </div>
+        <a class="product-title" href="/products/@Product.Id">@Product.Title</a>
+        @if (!string.IsNullOrEmpty(Product.BrandName))
+        {
+            <div class="product-meta"><span class="badge badge-neutral">@Product.BrandName</span></div>
+        }
+        @if (CertNo != null)
+        {
+            <div class="small muted">Cert. @CertNo</div>
+        }
+        <div class="product-price-row">
+            <span class="price">@Product.Currency @Product.Price.ToString("N2")</span>
+            @if (Product.Profile?.Channel == 1 || Product.Profile?.Channel == 2)
+            {
+                <span class="badge badge-info">Wholesale</span>
+            }
+        </div>
+        <button class="btn btn-primary btn-block btn-sm mt-2" @onclick="AddToCart" disabled="@(Product.Inventory == 0)">Add to cart</button>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public EnrichedProductDto Product { get; set; } = default!;
+    [Inject] private CartState Cart { get; set; } = default!;
+    [Inject] private INotificationService Toast { get; set; } = default!;
+
+    private string Initials => string.Join("", Product.Title.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+    private bool IsVerified => Product.Profile != null && (Product.Profile.Status == 1 || Product.Profile.Status == 2);
+    private bool IsPending => Product.Profile != null && Product.Profile.Status == 5;
+    private string? CertNo => Product.Profile?.CertificateNumber;
+
+    private async Task AddToCart()
+    {
+        var ok = await Cart.AddAsync(Product.Id);
+        if (ok) Toast.Success($"{Product.Title} added to cart");
+        else Toast.Error("Could not add to cart");
+    }
+}

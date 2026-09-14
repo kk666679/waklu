@@ -1,0 +1,82 @@
+@page "/vendor/products/new"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>New product</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">New product</h1>
+    @if (!string.IsNullOrEmpty(_error)) { <div class="alert alert-error">@_error</div> }
+    <div class="panel card-pad" style="max-width: 720px;">
+        <EditForm Model="@_model" OnValidSubmit="@Submit">
+            <DataAnnotationsValidator />
+            <div class="stack gap-3">
+                <div>
+                    <label class="small muted">Title</label>
+                    <RadzenTextBox Value="@_model.Title" Change="@(v => _model.Title = v?.ToString() ?? "")" Style="width:100%;" />
+                </div>
+                <div class="grid grid-2 gap-3">
+                    <div>
+                        <label class="small muted">Price</label>
+                        <RadzenNumeric TValue="decimal" Value="@_model.Price" Change="@(v => _model.Price = v)" Style="width:100%;" />
+                    </div>
+                    <div>
+                        <label class="small muted">Currency</label>
+                        <RadzenTextBox Value="@_model.Currency" Change="@(v => _model.Currency = v?.ToString() ?? "MYR")" Style="width:100%;" />
+                    </div>
+                </div>
+                <div>
+                    <label class="small muted">Description</label>
+                    <RadzenTextArea Value="@_model.Description" Change="@(v => _model.Description = v?.ToString())" Style="width:100%;" Rows="4" />
+                </div>
+                <div>
+                    <label class="small muted">Inventory</label>
+                    <RadzenNumeric TValue="int" Value="@_model.Inventory" Change="@(v => _model.Inventory = v)" Style="width:100%;" />
+                </div>
+                <div>
+                    <label class="small muted">Origin</label>
+                    <RadzenTextBox Value="@_model.Origin" Change="@(v => _model.Origin = v?.ToString() ?? "")" Style="width:100%;" />
+                </div>
+                <div class="row gap-2">
+                    <RadzenButton Text="Create" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" IsBusy="@_submitting" />
+                    <a class="btn btn-ghost" href="/vendor/products">Cancel</a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</section>
+
+@code {
+    private NewProductModel _model = new();
+    private string? _error;
+    private bool _submitting;
+
+    public class NewProductModel
+    {
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "MYR";
+        public string? Description { get; set; }
+        public int Inventory { get; set; }
+        public string Origin { get; set; } = "";
+    }
+
+    private async Task Submit()
+    {
+        _submitting = true; _error = null;
+        var request = new CreateProductRequest
+        {
+            Title = _model.Title,
+            Price = _model.Price,
+            Currency = _model.Currency,
+            Description = _model.Description,
+            Inventory = _model.Inventory,
+            Origin = _model.Origin
+        };
+        var result = await Api.CreateProductAsync(request);
+        _submitting = false;
+        if (result.IsSuccess) { Toast.Success("Product created."); Nav.NavigateTo("/vendor/products"); }
+        else _error = result.Status == ApiStatus.Forbidden ? "Vendor authorization required. Product creation needs a vendor-scoped Platform API token." : (result.Error ?? "Could not create product.");
+    }
+}

@@ -1,0 +1,49 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Compliance Auditor Orchestrator
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: compliance-auditor
+version: 2.0.0
+description: Orchestrator for compliance audit workflows
+
+agents:
+  - halal-assistant
+  - certificate-validator
+  - policy-engine
+
+workflows:
+  - name: audit_product
+    description: Audit a product's compliance
+    steps:
+      - id: fetch_product
+        description: Fetch product details
+        action: fetch_from_blockchain
+        input: product_id
+        
+      - id: verify_compliance
+        description: Verify compliance
+        agent: halal-assistant
+        input: product
+        
+      - id: validate_certificates
+        description: Validate all certificates
+        agent: certificate-validator
+        
+      - id: render_audit
+        description: Render audit verdict
+        agent: policy-engine
+        
+      - id: generate_report
+        description: Generate audit report
+        action: generate_report
+        output: audit_report
+
+audit:
+  enabled: true
+  log_level: detailed
+  report_format: pdf
+
+output:
+  format: report
+  path: audit_reports/

@@ -1,0 +1,46 @@
+@using Radzen.Blazor
+
+<RadzenCard class="@($"admin-form {AdditionalClass}")">
+    <div class="admin-form__header">
+        <h3 class="admin-form__title">@Title</h3>
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <p class="admin-form__description text-sm text-muted">@Description</p>
+        }
+    </div>
+    <div class="admin-form__body">
+        <EditForm Model="@Model" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@OnInvalidSubmit">
+            <DataAnnotationsValidator />
+            @ChildContent
+            <div class="admin-form__actions" style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-4)">
+                @if (ShowCancel)
+                {
+                    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="@OnCancel" />
+                }
+                @if (ShowSubmit)
+                {
+                    <RadzenButton Text="@SubmitText" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" Disabled="@IsLoading" />
+                }
+            </div>
+        </EditForm>
+    </div>
+    @if (IsLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+</RadzenCard>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public object? Model { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool ShowSubmit { get; set; } = true;
+    [Parameter] public bool ShowCancel { get; set; } = true;
+    [Parameter] public string SubmitText { get; set; } = "Save";
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+    [Parameter] public EventCallback OnInvalidSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

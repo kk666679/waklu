@@ -1,0 +1,13 @@
+<div class="v-stat rz-shadow-1">
+    <i class="material-icons">@Icon</i>
+    <div>
+        <div class="v-stat__value">@Value</div>
+        <div class="v-stat__label">@Label</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = "insights";
+}

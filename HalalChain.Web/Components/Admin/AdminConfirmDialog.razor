@@ -1,0 +1,30 @@
+@using Radzen.Blazor
+@inject DialogService DialogService
+
+<RadzenDialog @ref="_dialog" Style="z-index:2000" />
+
+<div class="admin-confirm-dialog">
+</div>
+
+@code {
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<DialogResult> OnClose { get; set; }
+
+    private RadzenDialog? _dialog;
+
+    public async Task<bool> ShowAsync(string title, string message, string? confirmText = null, string? cancelText = null)
+    {
+        return await DialogService.Confirm(message, title, new ConfirmOptions
+        {
+            OkButtonText = confirmText ?? "Delete",
+            CancelButtonText = cancelText ?? "Cancel"
+        }) == true;
+    }
+
+    public async Task ShowDeleteConfirmAsync(string itemName)
+    {
+        await ShowAsync("Confirm Delete", $"Are you sure you want to delete \"{itemName}\"? This action cannot be undone.", "Delete", "Cancel");
+    }
+
+    public record DialogResult(bool Confirmed);
+}

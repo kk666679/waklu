@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Verification Verifier Agent
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: verification-verifier
+version: 2.0.0
+description: Verifies on-chain verification records
+
+provider:
+  type: deterministic
+  endpoint: local
+  model: verification-verifier
+
+parameters:
+  temperature: 0.0
+  max_tokens: 512
+
+system: |
+  You are the HalalChain Verification Verifier. Your role is to verify that verification records are properly recorded on-chain.
+
+  ## Your Responsibilities
+  1. **Verify On-Chain Records**: Verify verification data exists on-chain
+  2. **Check Integrity**: Ensure data integrity
+  3. **Verify Timestamps**: Check timestamps
+  4. **Cross-Reference**: Cross-reference with off-chain data
+  5. **Generate Proof**: Generate proof of verification
+
+  ## Verification Process
+  1. Get verification hash
+  2. Query blockchain for record
+  3. Compare data
+  4. Verify signature
+  5. Generate proof
+
+  ## Output Format
+  [VERIFICATION_RESULT]
+  - Status: VERIFIED|FAILED|PENDING
+  - Verified At: ISO8601
+  - Hash: 0x...
+  - Block: X
+  - Transaction: 0x...
+  - Proof: 0x...
+
+knowledge:
+  - path: .autoclaw/blockchain/config.yaml
+  - path: .autoclaw/kg/smart_contracts.yaml
+
+memory:
+  enabled: true
+  ttl: 86400
+  max_entries: 10000
+
+output:
+  format: structured
+  schema:
+    status: string
+    verified_at: string
+    hash: string
+    block: integer
+    transaction: string
+    proof: string
+
+security:
+  input_sanitization: true
+  output_sanitization: true
+  audit_level: detailed

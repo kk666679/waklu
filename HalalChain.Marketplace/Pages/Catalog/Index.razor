@@ -1,0 +1,183 @@
+@page "/browse"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Browse the marketplace</PageTitle>
+
+<section class="container section-sm">
+    <div class="between wrap" style="margin-bottom: var(--space-4); gap: var(--space-3);">
+        <div>
+            <p class="eyebrow">Marketplace</p>
+            <h1 style="font-size: var(--text-2xl);">@PageTitle</h1>
+        </div>
+        <div class="row gap-2 center">
+            <span class="small muted">@Model.TotalCount product@(Model.TotalCount == 1 ? "" : "s")</span>
+            <RadzenDropDown TValue="string" Value="@SortBy" Change="@OnSortChanged" Data="@_sortOptions" TextProperty="Text" ValueProperty="Value" Style="width:auto;" />
+        </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 260px 1fr; gap: var(--space-5); align-items:start;">
+        <aside class="panel card-pad" style="position:sticky; top: calc(var(--nav-height) + 12px);">
+            <div class="between" style="margin-bottom: var(--space-2);">
+                <strong class="small">Filters</strong>
+                <a class="small" href="/browse" style="color:var(--color-text-tertiary);">Reset</a>
+            </div>
+
+            <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                <legend class="small" style="font-weight:600; margin-bottom:8px;">Halal status</legend>
+                <div class="stack gap-1">
+                    <label class="row gap-2 center" style="font-size:var(--text-sm); cursor:pointer;">
+                        <RadzenRadioButtonList TValue="int?" Value="@Status" Change="@(v => OnStatusChanged(v))">
+                            <Items>
+                                <RadzenRadioButtonListItem Text="Certified" Value="1" />
+                                <RadzenRadioButtonListItem Text="Platform verified" Value="2" />
+                                <RadzenRadioButtonListItem Text="Muslim-friendly" Value="3" />
+                                <RadzenRadioButtonListItem Text="Pending review" Value="5" />
+                            </Items>
+                        </RadzenRadioButtonList>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                <legend class="small" style="font-weight:600; margin-bottom:8px;">Dietary</legend>
+                <RadzenRadioButtonList TValue="int?" Value="@Dietary" Change="@(v => OnDietaryChanged(v))">
+                    <Items>
+                        <RadzenRadioButtonListItem Text="Halal" Value="1" />
+                        <RadzenRadioButtonListItem Text="Vegetarian" Value="2" />
+                        <RadzenRadioButtonListItem Text="Vegan" Value="4" />
+                        <RadzenRadioButtonListItem Text="Gluten-free" Value="8" />
+                        <RadzenRadioButtonListItem Text="Dairy-free" Value="16" />
+                        <RadzenRadioButtonListItem Text="Organic" Value="256" />
+                        <RadzenRadioButtonListItem Text="Non-GMO" Value="512" />
+                    </Items>
+                </RadzenRadioButtonList>
+            </fieldset>
+
+            <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                <legend class="small" style="font-weight:600; margin-bottom:8px;">Price range</legend>
+                <div class="row gap-2">
+                    <RadzenNumeric TValue="decimal?" Placeholder="Min" Value="@MinPrice" Change="@(v => MinPrice = v)" />
+                    <RadzenNumeric TValue="decimal?" Placeholder="Max" Value="@MaxPrice" Change="@(v => MaxPrice = v)" />
+                </div>
+            </fieldset>
+
+            @if (Model.Filters?.Countries?.Any() == true)
+            {
+                <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                    <legend class="small" style="font-weight:600; margin-bottom:8px;">Origin</legend>
+                    <RadzenDropDown TValue="string" Value="@Country" Change="@(v => OnCountryChanged(v?.ToString()))" Data="@Model.Filters.Countries.Take(30).ToList()" TextProperty="Name" ValueProperty="Iso2" Placeholder="Any origin" />
+                </fieldset>
+            }
+
+            <RadzenButton Text="Apply filters" ButtonStyle="ButtonStyle.Primary" Click="@ApplyFilters" Style="width:100%;" />
+        </aside>
+
+        <div>
+            @if (_loading)
+            {
+                <p class="muted">Loading products…</p>
+            }
+            else if (Model.Products.Length == 0)
+            {
+                <EmptyState Icon="🔍" Title="No products match your filters" Message="Try removing a filter or broadening your search." ActionText="Clear filters" ActionUrl="/browse" />
+            }
+            else
+            {
+                <div class="grid grid-products">
+                    @foreach (var p in Model.Products) { <ProductCard Product="p" /> }
+                </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="row center gap-2" style="margin-top: var(--space-5);" aria-label="Pagination">
+                        <RadzenButton Text="← Prev" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Disabled="@(Model.Query.Page <= 1)" Click="@(() => GoToPage(Model.Query.Page - 1))" />
+                        <span class="small muted">Page @Model.Query.Page of @Model.TotalPages</span>
+                        <RadzenButton Text="Next →" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Disabled="@(Model.Query.Page >= Model.TotalPages)" Click="@(() => GoToPage(Model.Query.Page + 1))" />
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public string? Department { get; set; }
+    [Parameter, SupplyParameterFromQuery] public string? Category { get; set; }
+    [Parameter, SupplyParameterFromQuery] public string? Subcategory { get; set; }
+    [Parameter, SupplyParameterFromQuery] public string? Type { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "status")] public int? Status { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "dietary")] public int? Dietary { get; set; }
+    [Parameter, SupplyParameterFromQuery] public string? Country { get; set; }
+    [Parameter, SupplyParameterFromQuery] public int? Channel { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "minPrice")] public decimal? MinPrice { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "maxPrice")] public decimal? MaxPrice { get; set; }
+    [Parameter, SupplyParameterFromQuery] public string? Search { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "sortBy")] public string SortBy { get; set; } = "newest";
+    [Parameter, SupplyParameterFromQuery] public int Page { get; set; } = 1;
+
+    private BrowseViewModel Model { get; set; } = new(Array.Empty<EnrichedProductDto>(), null, Array.Empty<DepartmentDto>(), new ProductQuery(SortBy: "newest", PageSize: 24), 0, 0);
+    private bool _loading = true;
+    private List<SortOption> _sortOptions = new()
+    {
+        new SortOption("Newest", "newest"),
+        new SortOption("Price ↑", "price-asc"),
+        new SortOption("Price ↓", "price-desc"),
+        new SortOption("Name", "name")
+    };
+
+    private string PageTitle => Search != null ? $"Results for \"{Search}\"" : Department != null ? Model.Departments.FirstOrDefault(d => d.Slug == Department)?.Name ?? "Browse" : "All products";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        var query = new ProductQuery(Department: Department, Category: Category, Subcategory: Subcategory, Type: Type, Status: Status, Dietary: Dietary, Country: Country, Channel: Channel, MinPrice: MinPrice, MaxPrice: MaxPrice, Search: Search, SortBy: SortBy, Page: Math.Max(1, Page), PageSize: 24);
+        var results = await Api.BrowseAsync(query);
+        var filters = await Api.GetFiltersAsync();
+        var departments = await Api.GetDepartmentsAsync();
+        _loading = false;
+        if (!results.IsSuccess)
+        {
+            Model = new BrowseViewModel(Array.Empty<EnrichedProductDto>(), null, departments.IsSuccess ? departments.Data ?? [] : [], query, 0, 0);
+            return;
+        }
+        var pageResult = results.Data!;
+        Model = new BrowseViewModel(pageResult.Items, filters.IsSuccess ? filters.Data : null, departments.IsSuccess ? departments.Data ?? [] : [], query, pageResult.TotalCount, pageResult.TotalPages);
+    }
+
+    private void OnSortChanged(object? value) { SortBy = value?.ToString() ?? "newest"; ApplyFilters(); }
+    private void OnStatusChanged(int? v) { Status = v; ApplyFilters(); }
+    private void OnDietaryChanged(int? v) { Dietary = v; ApplyFilters(); }
+    private void OnCountryChanged(string? v) { Country = v; ApplyFilters(); }
+
+    private void ApplyFilters()
+    {
+        var qs = new List<string>();
+        if (!string.IsNullOrEmpty(Department)) qs.Add($"department={Department}");
+        if (!string.IsNullOrEmpty(Category)) qs.Add($"category={Category}");
+        if (!string.IsNullOrEmpty(Subcategory)) qs.Add($"subcategory={Subcategory}");
+        if (!string.IsNullOrEmpty(Type)) qs.Add($"type={Type}");
+        if (Status.HasValue) qs.Add($"status={Status}");
+        if (Dietary.HasValue) qs.Add($"dietary={Dietary}");
+        if (!string.IsNullOrEmpty(Country)) qs.Add($"country={Country}");
+        if (Channel.HasValue) qs.Add($"channel={Channel}");
+        if (MinPrice.HasValue) qs.Add($"minPrice={MinPrice}");
+        if (MaxPrice.HasValue) qs.Add($"maxPrice={MaxPrice}");
+        if (!string.IsNullOrEmpty(Search)) qs.Add($"search={Uri.EscapeDataString(Search)}");
+        if (SortBy != "newest") qs.Add($"sortBy={SortBy}");
+        Nav.NavigateTo("/browse" + (qs.Count > 0 ? "?" + string.Join("&", qs) : ""));
+    }
+
+    private void GoToPage(int p)
+    {
+        Page = p;
+        var qs = new List<string> { $"page={p}" };
+        if (!string.IsNullOrEmpty(Search)) qs.Add($"search={Uri.EscapeDataString(Search)}");
+        if (!string.IsNullOrEmpty(Department)) qs.Add($"department={Department}");
+        if (!string.IsNullOrEmpty(Category)) qs.Add($"category={Category}");
+        if (SortBy != "newest") qs.Add($"sortBy={SortBy}");
+        Nav.NavigateTo("/browse?" + string.Join("&", qs));
+    }
+
+    private record SortOption(string Text, string Value);
+}

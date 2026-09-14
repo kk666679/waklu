@@ -1,0 +1,29 @@
+@using Radzen.Blazor
+
+<div class="data-view-toggle @AdditionalClass">
+    <button class="data-view-toggle__btn @(ViewMode == "grid" ? "data-view-toggle__btn--active" : "")"
+            @onclick='() => SetViewMode("grid")'
+            aria-label="Grid view">
+        <RadzenIcon Icon="grid_view" />
+    </button>
+    <button class="data-view-toggle__btn @(ViewMode == "list" ? "data-view-toggle__btn--active" : "")"
+            @onclick='() => SetViewMode("list")'
+            aria-label="List view">
+        <RadzenIcon Icon="view_list" />
+    </button>
+    <span class="data-view-toggle__info text-sm text-muted">
+        @Info
+    </span>
+</div>
+
+@code {
+    [Parameter] public string ViewMode { get; set; } = "grid";
+    [Parameter] public string? Info { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string> OnViewModeChanged { get; set; }
+
+    private async Task SetViewMode(string mode)
+    {
+        await OnViewModeChanged.InvokeAsync(mode);
+    }
+}

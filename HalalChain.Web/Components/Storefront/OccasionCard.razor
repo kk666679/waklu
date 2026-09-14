@@ -1,0 +1,39 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<RadzenCard class="@($"occasion-card {AdditionalClass}")" @onclick="NavigateToOccasion" style="cursor:pointer;overflow:hidden">
+    <div class="occasion-card__image" style="height:180px;background:linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));display:flex;align-items:center;justify-content:center">
+        <RadzenIcon Icon="@Icon" Style="font-size:3rem;color:white;opacity:0.9" />
+    </div>
+    <div class="occasion-card__body" style="padding:var(--space-4)">
+        <h3 class="occasion-card__title font-semibold">@Title</h3>
+        <p class="occasion-card__description text-sm text-muted">@Description</p>
+        <div class="occasion-card__meta" style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-3)">
+            <span class="text-sm text-muted">@ProductCount products</span>
+            <RadzenBadge Text="@(IsActive ? "Active" : "Coming Soon")" BadgeStyle="@(IsActive ? BadgeStyle.Success : BadgeStyle.Warning)" />
+        </div>
+        @if (!string.IsNullOrEmpty(Discount))
+        {
+            <div class="occasion-card__discount" style="margin-top:var(--space-2)">
+                <RadzenBadge Text="@Discount" BadgeStyle="BadgeStyle.Danger" />
+            </div>
+        }
+    </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "card_giftcard";
+    [Parameter] public int ProductCount { get; set; }
+    [Parameter] public bool IsActive { get; set; } = true;
+    [Parameter] public string? Discount { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public string? Slug { get; set; }
+
+    private void NavigateToOccasion()
+    {
+        var slug = Slug ?? Title.ToLower().Replace(" ", "-");
+        Nav.NavigateTo($"/products?occasion={slug}");
+    }
+}

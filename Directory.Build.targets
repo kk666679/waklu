@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Recompile wwwroot/scss/ → wwwroot/css/ using ./scripts/build-scss.sh
+    on every .NET build. Only projects that actually own an SCSS source
+    tree trigger the target — the SassEnabled condition requires both the
+    build script and a top-level scss/app.scss to exist.
+  -->
+  <PropertyGroup>
+    <SassBuildScript>$(MSBuildThisFileDirectory)scripts/build-scss.sh</SassBuildScript>
+    <SassEnabled Condition=" '$(SassEnabled)' == '' AND Exists('$(SassBuildScript)') AND (Exists('$(MSBuildProjectDirectory)/wwwroot/scss/app.scss') OR Exists('$(MSBuildProjectDirectory)/wwwroot/scss/site.scss')) ">true</SassEnabled>
+  </PropertyGroup>
+
+  <Target Name="BuildScss" BeforeTargets="BeforeBuild" Condition="'$(SassEnabled)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="bash $(SassBuildScript)" ContinueOnError="false" />
+  </Target>
+</Project>

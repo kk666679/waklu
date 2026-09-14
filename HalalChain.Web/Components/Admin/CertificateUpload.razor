@@ -1,0 +1,120 @@
+@using Radzen.Blazor
+@using HalalChain.Platform.Contracts.Halal.Requests
+
+<div class="certificate-upload @AdditionalClass">
+    <RadzenCard>
+        <div class="certificate-upload__dropzone"
+             style="border:2px dashed var(--color-neutral-300);border-radius:var(--radius-lg);padding:var(--space-8);text-align:center;transition:all 0.2s">
+            <RadzenIcon Icon="cloud_upload" Style="font-size:3rem;color:var(--color-neutral-400);margin-bottom:var(--space-2)" />
+            <h4 class="font-semibold mb-2">Upload Certificate</h4>
+            <p class="text-muted mb-4">Drag and drop your certificate here, or click to browse</p>
+            <RadzenUpload Accept=".pdf,.jpg,.jpeg,.png"
+                          Multiple="false"
+                          class="w-100"
+                          Style="max-width:300px"
+                          ChooseText="Choose File" />
+            <p class="text-xs text-muted mt-2">Supported formats: PDF, JPG, PNG (max 10MB)</p>
+        </div>
+        <div class="certificate-upload__form" style="margin-top:var(--space-4)">
+            <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+                <div class="form-group">
+                    <RadzenLabel Text="Certificate Number *" />
+                    <RadzenTextBox @bind-Value="@CertificateNumber" Placeholder="e.g., HC-2024-001" class="w-100" />
+                </div>
+                <div class="form-group">
+                    <RadzenLabel Text="Certification Body *" />
+                    <RadzenDropDown @bind-Value="@CertificationBody"
+                                    Data="@CertificationBodies"
+                                    TextProperty="Name"
+                                    ValueProperty="Id"
+                                    Placeholder="Select Body"
+                                    class="w-100" />
+                </div>
+            </div>
+            <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+                <div class="form-group">
+                    <RadzenLabel Text="Issue Date" />
+                    <RadzenDatePicker @bind-Value="@IssueDate" DateFormat="MM/dd/yyyy" class="w-100" />
+                </div>
+                <div class="form-group">
+                    <RadzenLabel Text="Expiry Date *" />
+                    <RadzenDatePicker @bind-Value="@ExpiryDate" DateFormat="MM/dd/yyyy" class="w-100" />
+                </div>
+            </div>
+            <div class="form-group">
+                <RadzenLabel Text="Scope" />
+                <RadzenDropDown @bind-Value="@Scope"
+                                Data="@ScopeOptions"
+                                Placeholder="Select Scope"
+                                class="w-100" />
+            </div>
+            <div class="certificate-upload__actions" style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-4)">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+                <RadzenButton Text="Upload Certificate" ButtonStyle="ButtonStyle.Primary" Click="@Upload" Disabled="@IsUploading" />
+            </div>
+        </div>
+        @if (IsUploading)
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="margin-top:var(--space-4)" />
+        }
+    </RadzenCard>
+</div>
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<SubmitCertificateRequest> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string CertificateNumber { get; set; } = "";
+    private string CertificationBody { get; set; } = "";
+    private DateTime? IssueDate { get; set; } = DateTime.UtcNow;
+    private DateTime? ExpiryDate { get; set; } = DateTime.UtcNow.AddYears(1);
+    private string Scope { get; set; } = "";
+    private bool IsUploading { get; set; }
+
+    private List<object> CertificationBodies = new()
+    {
+        new { Id = "jakim", Name = "JAKIM (Malaysia)" },
+        new { Id = "mui", Name = "MUI (Indonesia)" },
+        new { Id = "esma", Name = "ESMA (UAE)" },
+        new { Id = "sfda", Name = "SFDA (Saudi)" },
+        new { Id = "gac", Name = "GAC (Global)" },
+        new { Id = "mcu", Name = "MCU (UK)" }
+    };
+
+    private List<string> ScopeOptions = ["Product", "ProductLine", "Facility", "WholeSupplyChain", "SlaughterOnly", "ProcessingOnly"];
+
+    private bool CanSubmit => !string.IsNullOrEmpty(CertificateNumber)
+        && !string.IsNullOrEmpty(CertificationBody)
+        && ExpiryDate.HasValue;
+
+    private async Task Upload()
+    {
+        if (!CanSubmit) return;
+
+        IsUploading = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new SubmitCertificateRequest
+            {
+                CertificateNumber = CertificateNumber,
+                CertificationBody = CertificationBody,
+                IssueDate = DateTime.SpecifyKind(IssueDate ?? DateTime.UtcNow, DateTimeKind.Utc),
+                ExpiryDate = DateTime.SpecifyKind(ExpiryDate ?? DateTime.UtcNow.AddYears(1), DateTimeKind.Utc),
+                Scope = Scope
+            };
+
+            await OnSubmit.InvokeAsync(request);
+        }
+        finally
+        {
+            IsUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Cancel() => await OnCancel.InvokeAsync();
+}

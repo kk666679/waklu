@@ -1,0 +1,47 @@
+// =============================================================================
+// HalalChain Web — single entry point for the global stylesheet bundle.
+// =============================================================================
+// The pre-migration _Layout.cshtml declared this exact cascade order; it
+// MUST be preserved so the generated CSS still loads in the same order the
+// theme system was tuned against:
+//
+//   reset → tokens → base → typography → layout → utilities → site
+//   → components → cards → tables → forms → navigation → dashboard
+//   → responsive → motion → loading-empty → admin → culture-switcher
+//   → marketplace → storefront → glass → glass-components → radzen
+//
+// Theme variants (fluent / material3 / material3expressive × base/dark ×
+// base/wcag) are emitted by separate files under themes/<framework>/ and
+// are loaded by the runtime <link id="radzen-theme-link"> /
+// <link id="radzen-theme-wcag"> tags in _Layout.cshtml, NOT by this
+// entry point, so that runtime theme switching continues to work.
+// =============================================================================
+
+@use "abstracts/tokens";
+@use "abstracts/variables";
+@use "abstracts/mixins";
+@use "abstracts/functions";
+
+@use "reset";
+@use "base/tokens-layer";
+@use "base";
+@use "typography";
+@use "layout";
+@use "utilities";
+@use "site";
+@use "components";
+@use "cards";
+@use "tables";
+@use "forms";
+@use "navigation";
+@use "dashboard";
+@use "responsive";
+@use "motion";
+@use "loading-empty";
+@use "admin";
+@use "culture-switcher";
+@use "marketplace";
+@use "storefront";
+@use "glass";
+@use "glass-components";
+@use "radzen";

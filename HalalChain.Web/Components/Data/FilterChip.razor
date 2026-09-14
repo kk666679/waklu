@@ -1,0 +1,36 @@
+@using Radzen.Blazor
+
+<button class="filter-chip @(IsActive ? "filter-chip--active" : "") @AdditionalClass"
+        @onclick="Toggle"
+        disabled="@Disabled">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <RadzenIcon Icon="@Icon" Class="filter-chip__icon" />
+    }
+    <span class="filter-chip__label">@Label</span>
+    @if (Count.HasValue)
+    {
+        <RadzenBadge Text="@Count.Value.ToString()" BadgeStyle="@(IsActive ? BadgeStyle.Light : BadgeStyle.Secondary)" Class="filter-chip__count" />
+    }
+    @if (IsActive && !string.IsNullOrEmpty(RemoveIcon))
+    {
+        <button class="filter-chip__remove" @onclick:stopPropagation="true" @onclick="Remove" aria-label="Remove filter">
+            <RadzenIcon Icon="@RemoveIcon" />
+        </button>
+    }
+</button>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? RemoveIcon { get; set; } = "close";
+    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public int? Count { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<bool> OnToggle { get; set; }
+    [Parameter] public EventCallback OnRemove { get; set; }
+
+    private async Task Toggle() => await OnToggle.InvokeAsync(!IsActive);
+    private async Task Remove() => await OnRemove.InvokeAsync();
+}

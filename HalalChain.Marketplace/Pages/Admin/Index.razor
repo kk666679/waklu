@@ -1,0 +1,76 @@
+@page "/admin"
+@inject IPlatformApiClient Api
+
+<PageTitle>Marketplace admin</PageTitle>
+
+@if (_model == null)
+{
+    <section class="container section-sm"><p class="muted">Loading admin dashboard…</p></section>
+}
+else
+{
+    <section class="container section-sm">
+        <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Admin dashboard</h1>
+
+        <div class="grid grid-4">
+            <div class="card card-pad">
+                <p class="small muted">Vendors</p>
+                <h3 style="margin:0;">@_model.Vendors.Length</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Products</p>
+                <h3 style="margin:0;">@_model.TotalProducts</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Verified</p>
+                <h3 style="margin:0; color:var(--color-success);">@_model.VerifiedProducts</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Categories</p>
+                <h3 style="margin:0;">@_model.TotalCategories</h3>
+            </div>
+        </div>
+
+        <div class="panel card-pad" style="margin-top: var(--space-5);">
+            <h3 style="margin:0 0 var(--space-3);">Vendors</h3>
+            <RadzenDataGrid Data="@_model.Vendors" TItem="VendorDto" AllowSorting="true" AllowPaging="true" PageSize="20">
+                <Columns>
+                    <RadzenDataGridColumn TItem="VendorDto" Property="Name" Title="Name" />
+                    <RadzenDataGridColumn TItem="VendorDto" Property="Country" Title="Country" />
+                    <RadzenDataGridColumn TItem="VendorDto" Property="IsVerified" Title="Verified" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+
+        <div class="panel card-pad" style="margin-top: var(--space-5);">
+            <h3 style="margin:0 0 var(--space-3);">Products</h3>
+            <RadzenDataGrid Data="@_model.Products" TItem="EnrichedProductDto" AllowSorting="true" AllowPaging="true" PageSize="20">
+                <Columns>
+                    <RadzenDataGridColumn TItem="EnrichedProductDto" Property="Title" Title="Title" />
+                    <RadzenDataGridColumn TItem="EnrichedProductDto" Property="VendorName" Title="Vendor" />
+                    <RadzenDataGridColumn TItem="EnrichedProductDto" Property="Price" Title="Price" FormatString="{0:N2}" />
+                    <RadzenDataGridColumn TItem="EnrichedProductDto" Property="Profile.StatusName" Title="Status" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </section>
+}
+
+@code {
+    private AdminViewModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vendorsTask = Api.GetVendorsAsync();
+        var productsTask = Api.BrowseAsync(new ProductQuery(PageSize: 200));
+        var categoriesTask = Api.GetCategoriesAsync();
+        await Task.WhenAll(vendorsTask, productsTask, categoriesTask);
+
+        var vendors = vendorsTask.Result.IsSuccess ? vendorsTask.Result.Data ?? [] : Array.Empty<VendorDto>();
+        var products = productsTask.Result.IsSuccess ? productsTask.Result.Data?.Items ?? [] : Array.Empty<EnrichedProductDto>();
+        var categories = categoriesTask.Result.IsSuccess ? categoriesTask.Result.Data ?? [] : Array.Empty<CategoryDto>();
+        var verified = products.Count(p => p.Profile?.Status == 1 || p.Profile?.Status == 2);
+
+        _model = new AdminViewModel(vendors, products, products.Length, verified, categories.Length);
+    }
+}

@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+@inject IThemeService Theme
+@implements IDisposable
+
+<div class="auth-shell">
+    <header class="auth-header">
+        <a href="/" class="auth-brand">
+            <span class="auth-brand-mark">◈</span>
+            <span class="auth-brand-name">HalalChain</span>
+        </a>
+        <button class="theme-toggle" @onclick="Theme.ToggleAsync" aria-label="Toggle theme">
+            @if (Theme.CurrentTheme == "dark") { <span>☀</span> } else { <span>☾</span> }
+        </button>
+    </header>
+    <main class="auth-main">
+        <div class="auth-card">
+            @Body
+        </div>
+    </main>
+    <footer class="auth-footer">
+        <span>© @DateTime.UtcNow.Year HalalChain — Premium Halal Marketplace</span>
+    </footer>
+</div>
+
+@code {
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+    protected override void OnInitialized() => Theme.OnThemeChanged += OnThemeChanged;
+    public void Dispose() => Theme.OnThemeChanged -= OnThemeChanged;
+}

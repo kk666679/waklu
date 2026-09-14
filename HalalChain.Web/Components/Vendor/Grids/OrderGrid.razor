@@ -1,0 +1,19 @@
+@inject IOrderService Orders
+
+<RadzenDataGrid TItem="Order" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="OrderNumber" Title="Order #" Width="140px" />
+        <RadzenDataGridColumn Property="Status" Title="Status" Width="120px" />
+        <RadzenDataGridColumn Property="Total" Title="Total">
+            <Template Context="o">@o.Total.ToString("C")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="CreatedAt" Title="Date">
+            <Template Context="o">@o.CreatedAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Order> _items = Array.Empty<Order>();
+    protected override async Task OnInitializedAsync() => _items = await Orders.GetAllAsync();
+}

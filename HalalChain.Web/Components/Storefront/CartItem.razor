@@ -1,0 +1,52 @@
+@using Radzen.Blazor
+@using HalalChain.Services
+@using CartItemModel = HalalChain.Services.CartItem
+@using CartItem = HalalChain.Services.CartItem
+
+<div class="cart-item @AdditionalClass">
+    <div class="cart-item__media">
+        <div style="width:64px;height:64px;border-radius:8px;background:var(--color-neutral-100);display:flex;align-items:center;justify-content:center">
+            <span style="font-size:0.875rem;color:var(--color-neutral-400)">@Item.Title</span>
+        </div>
+    </div>
+    <div class="cart-item__details">
+        <div class="cart-item__title font-medium">@Item.Title</div>
+        <div class="text-sm text-muted">@Item.Currency @Item.Price.ToString("N2") each</div>
+        <div class="cart-item__controls" style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem">
+            <RadzenButton Icon="remove" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => Decrement())" Disabled="@(Item.Quantity <= 1)" />
+            <span class="font-medium" style="min-width:2rem;text-align:center">@Item.Quantity</span>
+            <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Increment" />
+            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@Remove" class="ms-2" />
+        </div>
+    </div>
+    <div class="cart-item__price">
+        <span class="font-bold">@Item.Currency @((Item.Price * Item.Quantity).ToString("N2"))</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public CartItemModel Item { get; set; } = default!;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<CartItemModel> OnUpdate { get; set; }
+    [Parameter] public EventCallback<string> OnRemove { get; set; }
+
+    private async Task Increment()
+    {
+        Item.Quantity++;
+        await OnUpdate.InvokeAsync(Item);
+    }
+
+    private async Task Decrement()
+    {
+        if (Item.Quantity > 1)
+        {
+            Item.Quantity--;
+            await OnUpdate.InvokeAsync(Item);
+        }
+    }
+
+    private async Task Remove()
+    {
+        await OnRemove.InvokeAsync(Item.ProductId);
+    }
+}

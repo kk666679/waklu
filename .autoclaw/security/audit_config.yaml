@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — Audit Configuration
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Audit logging configuration
+
+audit:
+  enabled: true
+  level: detailed
+  
+  events:
+    authentication:
+      - login_attempt
+      - login_success
+      - login_failure
+      - logout
+      - password_change
+    
+    access:
+      - agent_access
+      - orchestrator_access
+      - kg_access
+      - data_access
+    
+    operations:
+      - agent_execution
+      - orchestrator_execution
+      - verdict_rendered
+      - certificate_validated
+      - product_verified
+    
+    configuration:
+      - config_change
+      - policy_change
+      - security_change
+    
+    security:
+      - permission_change
+      - role_change
+      - security_event
+
+  logging:
+    format: json
+    rotation:
+      max_size: 100MB
+      max_age: 30 days
+      max_backups: 10
+    
+    storage:
+      type: filesystem
+      path: .autoclaw/audit_logs/
+      encryption: true
+    
+    integrity:
+      enabled: true
+      algorithm: SHA-256
+      verify_on_read: true
+
+  retention:
+    default: 7 years
+    critical: 7 years
+    operational: 1 year

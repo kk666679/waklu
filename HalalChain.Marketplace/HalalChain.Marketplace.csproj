@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>HalalChain.Marketplace</AssemblyName>
+    <RootNamespace>HalalChain.Marketplace</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Pages\Gantt*;Pages\DataGrid*;Pages\DropDown*;Pages\FileInput*;Pages\ExportTo*;Pages\FabMenu*;Pages\AutoComplete*;Pages\Accordion*;Pages\Badge*;Pages\Card*;Pages\Menu*;Pages\Button*;Pages\Chart*;Pages\CheckBox*;Pages\ColorPicker*;Pages\ContextMenu*;Pages\DatePicker*;Pages\Dialog*;Pages\Fieldset*;Steps.razor;Tabs*.razor;Timeline*.razor;ToggleButton*.razor;Tree*.razor;Upload*.razor;TemplateForm*.razor;SplitButton*.razor;Slider*.razor;Scheduler*.razor;SelectBar*.razor;Tooltip*.razor;Sidebar*.razor;SpeechToTextButton*.razor;Rating*.razor;ContextMenu*.razor;Login*.razor;Profile*.razor;ProgressBar*.razor;RadioButton*.razor;ResetPassword*.razor;TextBox*.razor;TextArea*.razor;Switch*.razor;Themes*.razor</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.11" />
+    <PackageReference Include="Radzen.Blazor" Version="11.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj" />
+    <ProjectReference Include="../HalalChain.Platform.Http/HalalChain.Platform.Http.csproj" />
+  </ItemGroup>
+</Project>

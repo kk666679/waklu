@@ -1,0 +1,65 @@
+@inject IChatService ChatService
+@inject NotificationState Notify
+
+<div class="chatbot-widget">
+    <div class="chatbot-widget__header">
+        <strong>@Title</strong>
+    </div>
+    <div class="chatbot-widget__body">
+        @if (_messages.Count == 0)
+        {
+            <p class="text-muted">Ask me anything about halal products, vendors, or your orders.</p>
+        }
+        @foreach (var msg in _messages)
+        {
+            <div class="chatbot-msg chatbot-msg--@msg.Role">
+                @msg.Text
+            </div>
+        }
+    </div>
+    <div class="chatbot-widget__input">
+        <input class="form-input" @bind="_input" @bind:event="oninput" @onkeydown="HandleKey" placeholder="Type a message..." />
+        <button class="btn btn-primary btn-sm" @onclick="Send" disabled="@_sending">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Assistant";
+    [Parameter] public string? Context { get; set; }
+
+    private string _input = "";
+    private bool _sending;
+    private List<ChatMessage> _messages = new();
+
+    private async Task HandleKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_input)) await Send();
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(_input) || _sending) return;
+        var text = _input.Trim();
+        _messages.Add(new ChatMessage("user", text));
+        _input = "";
+        _sending = true;
+        try
+        {
+            var reply = await ChatService.SendMessageAsync(text, Context ?? "");
+            _messages.Add(new ChatMessage("assistant", reply.Reply));
+        }
+        catch (Exception ex)
+        {
+            _messages.Add(new ChatMessage("assistant", "Sorry, I couldn't respond right now."));
+            Notify.Error($"Chat error: {ex.Message}");
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    private record ChatMessage(string Role, string Text);
+}

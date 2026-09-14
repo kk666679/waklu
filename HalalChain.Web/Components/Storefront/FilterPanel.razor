@@ -1,0 +1,118 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="filter-panel @(IsOpen ? "filter-panel--open" : "") @AdditionalClass">
+    <div class="filter-panel__header">
+        <h3 class="filter-panel__title">Filters</h3>
+        @if (Clearable)
+        {
+            <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Text="Clear All" Click="@ClearAll" />
+        }
+    </div>
+    <div class="filter-panel__body">
+        @if (Categories != null && Categories.Any())
+        {
+            <div class="filter-panel__section">
+                <h4 class="filter-panel__section-title">Category</h4>
+                <RadzenDropDown @bind-Value="_selectedCategory"
+                                Data="@Categories"
+                                TextProperty="Name"
+                                ValueProperty="Slug"
+                                Placeholder="All Categories"
+                                Change="@OnCategoryChanged"
+                                Style="width:100%" />
+            </div>
+        }
+        @if (HalalStatuses != null && HalalStatuses.Any())
+        {
+            <div class="filter-panel__section">
+                <h4 class="filter-panel__section-title">Halal Status</h4>
+                <div class="filter-panel__chips">
+                    @foreach (var status in HalalStatuses)
+                    {
+                        <FilterChip Label="@status" IsActive="@(_selectedHalalStatus == status)" OnToggle="@(async (active) => await OnHalalStatusChanged(active ? status : null))" />
+                    }
+                </div>
+            </div>
+        }
+        @if (PriceRange)
+        {
+            <div class="filter-panel__section">
+                <h4 class="filter-panel__section-title">Price Range</h4>
+                <div class="filter-panel__price-range" style="display:flex;align-items:center;gap:0.5rem">
+                    <RadzenNumeric @bind-Value="_minPrice" Placeholder="Min" Style="width:50%" />
+                    <span class="text-muted">-</span>
+                    <RadzenNumeric @bind-Value="_maxPrice" Placeholder="Max" Style="width:50%" />
+                </div>
+                <RadzenButton Text="Apply" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyPriceFilter" Style="width:100%;margin-top:0.5rem" />
+            </div>
+        }
+        @if (Departments != null && Departments.Any())
+        {
+            <div class="filter-panel__section">
+                <h4 class="filter-panel__section-title">Department</h4>
+                <RadzenDropDown @bind-Value="_selectedDepartment"
+                                Data="@Departments"
+                                TextProperty="Name"
+                                ValueProperty="Slug"
+                                Placeholder="All Departments"
+                                Change="@OnDepartmentChanged"
+                                Style="width:100%" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; } = true;
+    [Parameter] public CategoryDto[]? Categories { get; set; }
+    [Parameter] public string[]? HalalStatuses { get; set; } = ["Verified", "VerifiedByPlatform", "MuslimFriendly", "SelfDeclared"];
+    [Parameter] public bool HasPriceRange { get; set; } = true;
+    [Parameter] public DepartmentDto[]? Departments { get; set; }
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<string?> OnCategoryChange { get; set; }
+    [Parameter] public EventCallback<string?> OnHalalStatusChange { get; set; }
+    [Parameter] public EventCallback<string?> OnDepartmentChange { get; set; }
+    [Parameter] public EventCallback<(decimal?, decimal?)> OnPriceRangeChange { get; set; }
+    [Parameter] public EventCallback OnClearAll { get; set; }
+
+    private string? _selectedCategory;
+    private string? _selectedHalalStatus;
+    private string? _selectedDepartment;
+    private decimal? _minPrice;
+    private decimal? _maxPrice;
+
+    private bool PriceRange => HasPriceRange;
+
+    private async Task OnCategoryChanged()
+    {
+        await OnCategoryChange.InvokeAsync(_selectedCategory);
+    }
+
+    private async Task OnHalalStatusChanged(string? status)
+    {
+        _selectedHalalStatus = status;
+        await OnHalalStatusChange.InvokeAsync(status);
+    }
+
+    private async Task OnDepartmentChanged()
+    {
+        await OnDepartmentChange.InvokeAsync(_selectedDepartment);
+    }
+
+    private async Task ApplyPriceFilter()
+    {
+        await OnPriceRangeChange.InvokeAsync((_minPrice, _maxPrice));
+    }
+
+    private async Task ClearAll()
+    {
+        _selectedCategory = null;
+        _selectedHalalStatus = null;
+        _selectedDepartment = null;
+        _minPrice = null;
+        _maxPrice = null;
+        await OnClearAll.InvokeAsync();
+    }
+}

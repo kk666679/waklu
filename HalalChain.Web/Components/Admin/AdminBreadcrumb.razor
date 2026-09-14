@@ -1,0 +1,37 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="admin-breadcrumb @AdditionalClass">
+    <nav aria-label="Breadcrumb">
+        <ol class="admin-breadcrumb__list">
+            <li class="admin-breadcrumb__item">
+                <RadzenLink href="/admin" class="admin-breadcrumb__link">
+                    <RadzenIcon Icon="home" />
+                </RadzenLink>
+            </li>
+            @foreach (var item in Items)
+            {
+                <li class="admin-breadcrumb__separator">
+                    <RadzenIcon Icon="chevron_right" />
+                </li>
+                <li class="admin-breadcrumb__item @(item.IsActive ? "admin-breadcrumb__item--active" : "")">
+                    @if (!string.IsNullOrEmpty(item.Href) && !item.IsActive)
+                    {
+                        <RadzenLink href="@item.Href" class="admin-breadcrumb__link">@item.Label</RadzenLink>
+                    }
+                    else
+                    {
+                        <span class="admin-breadcrumb__current">@item.Label</span>
+                    }
+                </li>
+            }
+        </ol>
+    </nav>
+</div>
+
+@code {
+    [Parameter] public List<BreadcrumbItem> Items { get; set; } = [];
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    public record BreadcrumbItem(string Label, string? Href = null, bool IsActive = false);
+}

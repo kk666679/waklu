@@ -1,0 +1,24 @@
+@page "/account/wishlist"
+@inject AuthService Auth
+@inject IWishlistService WishlistSvc
+
+<PageTitle>Wishlist</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <SignedOut Title="Sign in to view your wishlist" ActionUrl="/account/login?returnUrl=/account/wishlist" />
+}
+else
+{
+    <section class="container section-sm">
+        <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Your wishlist</h1>
+        @if (WishlistSvc.Items.Count == 0)
+        {
+            <EmptyState Icon="♡" Title="Your wishlist is empty" Message="Save products you love by tapping the heart icon on any product card." ActionText="Start browsing" ActionUrl="/browse" />
+        }
+        else
+        {
+            <p class="muted">@WishlistSvc.Items.Count product(s) saved. (Wishlist persistence is in-memory only in this preview.)</p>
+        }
+    </section>
+}

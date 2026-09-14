@@ -1,0 +1,49 @@
+@inject IOrderService Orders
+@inject AppNotificationService Notify
+
+<RadzenDataGrid TItem="Order" Data="@_orders" LoadData="@Load" IsLoading="@_loading" Count="@_count"
+                AllowPaging="true" AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Advanced"
+                PageSize="20" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="OrderNumber" Title="Order #" Width="140px" />
+        <RadzenDataGridColumn Property="UserId" Title="Customer" />
+        <RadzenDataGridColumn Property="Total" Title="Total" Width="120px">
+            <Template Context="o">@o.Total.ToString("C")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="Status" Title="Status" Width="140px">
+            <Template Context="o">
+                <RadzenBadge BadgeStyle="@StatusStyle(o.Status)" Text="@o.Status.ToString()" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="CreatedAt" Title="Created" Width="160px">
+            <Template Context="o">@o.CreatedAt.ToString("yyyy-MM-dd")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Title="Actions" Width="120px">
+            <Template Context="o">
+                <RadzenButton Icon="visibility" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Order> _orders = Array.Empty<Order>();
+    private int _count; private bool _loading;
+
+    private async Task Load(LoadDataArgs _)
+    {
+        _loading = true;
+        _orders = await Orders.GetAllAsync();
+        _count = _orders.Count();
+        _loading = false;
+    }
+
+    private static BadgeStyle StatusStyle(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => BadgeStyle.Warning,
+        OrderStatus.Processing => BadgeStyle.Info,
+        OrderStatus.Shipped => BadgeStyle.Primary,
+        OrderStatus.Delivered => BadgeStyle.Success,
+        _ => BadgeStyle.Danger
+    };
+}

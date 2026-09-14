@@ -1,0 +1,89 @@
+name: HalalChain CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '22'
+  SOLUTION: 'HalalChain.Platform.sln'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install npm workspace deps (includes Sass)
+        run: npm install --no-audit --no-fund
+
+      - name: Compile SCSS
+        run: npm run scss:build
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --no-restore -c Release
+
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION }} --no-build -c Release --verbosity normal
+
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ai-inference deps
+        working-directory: .halalchain/ai-inference
+        run: |
+          pip install -r requirements.txt
+          pip install ../_shared
+          pytest
+      - name: Install tawheed deps
+        working-directory: .halalchain/tawheed
+        run: |
+          pip install -r requirements.txt
+          pip install ../_shared
+          pytest
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Check vulnerable dependencies
+        run: dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Platform API image
+        run: docker build -t halalchain/platform-api:${{ github.sha }} .
+      - name: Build full stack
+        run: docker compose build

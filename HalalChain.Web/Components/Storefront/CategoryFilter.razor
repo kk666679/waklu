@@ -1,0 +1,26 @@
+@inject ICategoryService Categories
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Categories</h4>
+    <RadzenTree Data="@_tree" Expand="@OnExpand" Change="@OnChange">
+        <RadzenTreeLevel TextProperty="Name" ChildrenProperty="Children" HasChildrenProperty="HasChildren" />
+    </RadzenTree>
+</RadzenCard>
+
+@code {
+    [Parameter] public EventCallback<int> OnCategorySelected { get; set; }
+    private IEnumerable<Category> _all = Array.Empty<Category>();
+    private List<Category> _tree = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _all = await Categories.GetAllAsync();
+        _tree = _all.Where(c => c.ParentId is null).ToList();
+    }
+
+    private void OnExpand(TreeExpandEventArgs args) { }
+    private async Task OnChange(TreeEventArgs args)
+    {
+        if (args.Value is Category c) await OnCategorySelected.InvokeAsync(c.Id);
+    }
+}

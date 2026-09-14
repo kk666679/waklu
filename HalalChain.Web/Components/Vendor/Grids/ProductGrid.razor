@@ -1,0 +1,17 @@
+@inject IProductService Products
+
+<RadzenDataGrid TItem="Product" Data="@_items" AllowPaging="true" AllowFiltering="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="Sku" Title="SKU" Width="120px" />
+        <RadzenDataGridColumn Property="Price" Title="Price" Width="100px">
+            <Template Context="p">@p.Price.ToString("C")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="StockQuantity" Title="Stock" Width="100px" />
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Product> _items = Array.Empty<Product>();
+    protected override async Task OnInitializedAsync() => _items = await Products.GetAllAsync();
+}

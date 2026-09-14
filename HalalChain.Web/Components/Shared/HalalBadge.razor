@@ -1,0 +1,9 @@
+<span class="halal-badge @(Certified ? "halal-badge--ok" : "halal-badge--no")">
+    <i class="material-icons">@Icon</i> @Text
+</span>
+
+@code {
+    [Parameter] public bool Certified { get; set; }
+    private string Text => Certified ? "Halal Certified" : "Not Certified";
+    private string Icon => Certified ? "verified" : "info";
+}

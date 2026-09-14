@@ -1,0 +1,57 @@
+@page "/vendor/products/{Id:guid}/verification"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Verification status</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-4);">Verification status</h1>
+    @if (_product == null) { <p class="muted">Loading…</p> }
+    else
+    {
+        <div class="panel card-pad">
+            <h3 style="margin:0 0 var(--space-3);">@_product.Title</h3>
+            @if (_verification == null)
+            {
+                <p class="muted">No verification record yet.</p>
+            }
+            else
+            {
+                <dl class="stack gap-2" style="margin:0;">
+                    <div class="between"><dt class="muted small">Status</dt><dd style="margin:0;"><strong>@_verification.Status</strong></dd></div>
+                    @if (!string.IsNullOrEmpty(_verification.Jurisdiction)) { <div class="between"><dt class="muted small">Jurisdiction</dt><dd class="small" style="margin:0;">@_verification.Jurisdiction</dd></div> }
+                    @if (!string.IsNullOrEmpty(_verification.PolicyVersion)) { <div class="between"><dt class="muted small">Policy</dt><dd class="small" style="margin:0;">@_verification.PolicyVersion</dd></div> }
+                    @if (_verification.VerifiedAt != default) { <div class="between"><dt class="muted small">Verified at</dt><dd class="small" style="margin:0;">@_verification.VerifiedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</dd></div> }
+                </dl>
+            }
+            <div style="margin-top: var(--space-4);">
+                <RadzenButton Text="Trigger verification" ButtonStyle="ButtonStyle.Primary" Click="@Trigger" IsBusy="@_busy" />
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ProductDto? _product;
+    private VerificationDto? _verification;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var product = await Api.GetProductAsync(Id);
+        _product = product.IsSuccess ? product.Data : null;
+        var ver = await Api.GetVerificationAsync(Id);
+        _verification = ver.IsSuccess ? ver.Data : null;
+    }
+
+    private async Task Trigger()
+    {
+        _busy = true;
+        var result = await Api.TriggerVerificationAsync(Id, new TriggerVerificationRequest { Jurisdiction = "MY", PolicyVersion = "MY-v3" });
+        _busy = false;
+        if (result.IsSuccess) { Toast.Success("Verification requested."); Nav.NavigateTo($"/vendor/products/{Id}/verification", forceLoad: true); }
+        else Toast.Error(result.Status == ApiStatus.Forbidden ? "Vendor authorization required to trigger verification." : (result.Error ?? "Could not trigger verification."));
+    }
+}

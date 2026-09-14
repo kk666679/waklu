@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+@inject IThemeService Theme
+@implements IDisposable
+
+<div class="vendor-shell">
+    <header class="vendor-header">
+        <a href="/vendor" class="vendor-brand">
+            <span class="vendor-brand-mark">◈</span>
+            <span class="vendor-brand-name">HalalChain</span>
+            <span class="vendor-brand-sub">Vendor Portal</span>
+        </a>
+        <nav class="vendor-topnav">
+            <a href="/vendor">Dashboard</a>
+            <a href="/vendor/products">Products</a>
+            <a href="/vendors">Storefront</a>
+        </nav>
+        <div class="vendor-actions">
+            <button class="theme-toggle" @onclick="Theme.ToggleAsync" aria-label="Toggle theme">
+                @if (Theme.CurrentTheme == "dark") { <span>☀</span> } else { <span>☾</span> }
+            </button>
+        </div>
+    </header>
+    <main class="vendor-main">
+        @Body
+    </main>
+</div>
+
+@code {
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+    protected override void OnInitialized() => Theme.OnThemeChanged += OnThemeChanged;
+    public void Dispose() => Theme.OnThemeChanged -= OnThemeChanged;
+}

@@ -1,0 +1,153 @@
+@page "/admin/vendors"
+@layout AdminLayout
+@inject PlatformApiClient Api
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@using HalalChain.Platform.Contracts.Vendors.Requests
+@implements IDisposable
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Vendors</h2>
+    <RadzenButton Click="@ShowAddDialog" Icon="add" Text="Add Vendor" ButtonStyle="ButtonStyle.Primary" />
+</div>
+
+@if (_loading)
+{
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" class="mb-4" />
+}
+else if (_vendors == null || !_vendors.Any())
+{
+    <RadzenCard class="empty-state-card">
+        <RadzenIcon Icon="store" class="empty-state-icon" />
+        <h3 class="text-lg font-bold mb-2">No vendors yet</h3>
+        <p class="text-muted mb-4">Add your first vendor to get started</p>
+        <RadzenButton Click="@ShowAddDialog" Icon="add" Text="Add Vendor" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenCard>
+}
+else
+{
+    <RadzenDataGrid TItem="VendorDto"
+                    Data="@_vendors"
+                    AllowSorting="true"
+                    AllowPaging="true"
+                    PageSize="10"
+                    ShowPagingSummary="true"
+                    PagerPosition="PagerPosition.Bottom"
+                    class="hc-datagrid">
+        <Columns>
+            <RadzenDataGridColumn TItem="VendorDto" Property="Name" Title="Vendor" Sortable="true" Filterable="false">
+                <Template Context="v">
+                    <div class="flex items-center gap-3">
+                        <RadzenIcon Icon="store" class="vendor-icon" />
+                        <div>
+                            <div class="font-medium">@v.Name</div>
+                            <div class="text-xs text-muted">@v.Slug</div>
+                        </div>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="VendorDto" Property="Country" Title="Country" Sortable="true" Filterable="false" />
+            <RadzenDataGridColumn TItem="VendorDto" Property="Status" Title="Status" Sortable="true" Filterable="false">
+                <Template Context="v">
+                    <RadzenBadge Text="@v.Status" BadgeStyle="@GetStatusBadgeStyle(v.Status)" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="VendorDto" Property="CreatedAt" Title="Joined" Sortable="true" Filterable="false">
+                <Template Context="v">
+                    @v.CreatedAt.ToString("MMM dd, yyyy")
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="VendorDto" Title="Actions" Sortable="false" Filterable="false">
+                <Template Context="v">
+                    <RadzenButton Click="@(() => ViewVendor(v))" Icon="visibility" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1" />
+                    <RadzenButton Click="@(() => EditVendor(v))" Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1" />
+                    <RadzenButton Click="@(() => DeleteVendor(v))" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    private VendorDto[]? _vendors;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVendorsAsync();
+    }
+
+    private async Task LoadVendorsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _vendors = await Api.GetVendorsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load vendors: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ShowAddDialog()
+    {
+        var result = await DialogService.OpenAsync<AdminVendorDialog>("Add Vendor", new Dictionary<string, object?>(),
+            new DialogOptions { Width = "450px", Height = "auto" });
+
+        if (result is VendorDto newVendor)
+        {
+            _vendors = _vendors != null ? [.. _vendors, newVendor] : [newVendor];
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Vendor added successfully");
+        }
+    }
+
+    private void EditVendor(VendorDto vendor)
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Edit", $"Editing {vendor.Name}");
+    }
+
+    private void ViewVendor(VendorDto vendor)
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "View", $"Viewing {vendor.Name}");
+    }
+
+    private async Task DeleteVendor(VendorDto vendor)
+    {
+        var confirm = await DialogService.Confirm(
+            "Are you sure you want to delete this vendor?",
+            "Delete Vendor",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+
+        if (confirm == true)
+        {
+            try
+            {
+                var success = await Api.DeleteVendorAsync(vendor.Id);
+                if (success)
+                {
+                    _vendors = _vendors?.Where(v => v.Id != vendor.Id).ToArray();
+                    NotificationService.Notify(NotificationSeverity.Success, "Deleted", $"Vendor '{vendor.Name}' deleted");
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to delete: {ex.Message}");
+            }
+        }
+    }
+
+    private static BadgeStyle GetStatusBadgeStyle(string? status) => status switch
+    {
+        "Active" => BadgeStyle.Success,
+        "Pending" => BadgeStyle.Warning,
+        "Suspended" => BadgeStyle.Danger,
+        _ => BadgeStyle.Secondary
+    };
+
+    public void Dispose() { }
+}

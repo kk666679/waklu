@@ -1,0 +1,30 @@
+@using HalalChain.Platform.Contracts.Catalog.Dto
+@inject IProductService Products
+
+<RadzenRow Gap="1rem">
+    @if (_items is null)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        @foreach (var p in _items)
+        {
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <ProductCard Product="p" />
+            </RadzenColumn>
+        }
+    }
+</RadzenRow>
+
+@code {
+    private IEnumerable<ProductDto>? _items;
+
+    protected override void OnInitialized()
+    {
+        _items = new List<ProductDto>
+        {
+            new(Guid.NewGuid(), "Sample Halal Product", "sample", "Premium halal-certified product.", "Spices", "Saffron Foods", "Malaysia", 12.99m, "USD", 50, default!, DateTimeOffset.UtcNow)
+        };
+    }
+}

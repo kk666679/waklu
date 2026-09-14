@@ -1,0 +1,17 @@
+<div class="po-platform-header">
+    <div class="po-platform-header__icon">@Icon</div>
+    <div class="po-platform-header__body">
+        <h1>@Title</h1>
+        <p class="text-muted">@Subtitle</p>
+    </div>
+    <div class="po-platform-header__actions">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string Icon { get; set; } = "🕌";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

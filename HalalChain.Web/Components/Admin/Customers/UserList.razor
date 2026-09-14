@@ -1,0 +1,22 @@
+@inject IAuthService AuthSvc
+
+<RadzenDataGrid TItem="User" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Id" Title="ID" Width="60px" />
+        <RadzenDataGridColumn Property="Email" Title="Email" />
+        <RadzenDataGridColumn Property="FullName" Title="Name" />
+        <RadzenDataGridColumn Property="Role" Title="Role" Width="120px" />
+        <RadzenDataGridColumn Property="IsActive" Title="Active" Width="100px">
+            <Template Context="u">
+                <RadzenBadge BadgeStyle="@(u.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)"
+                             Text="@(u.IsActive ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<User> _items = new[] {
+        new User { Id = "u1", Email = "demo@halalchain.test", FullName = "Demo User", Role = "Customer" }
+    };
+}

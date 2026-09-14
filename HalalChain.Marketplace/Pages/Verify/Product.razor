@@ -1,0 +1,121 @@
+@page "/verify/{ProductId}"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Product verification</PageTitle>
+
+@if (_model == null)
+{
+    <section class="container section-sm"><p class="muted">Loading verification…</p></section>
+}
+else
+{
+    <section class="container section-sm">
+        <nav class="small muted" style="margin-bottom: var(--space-3);">
+            <a href="/verify">Verify</a> <span aria-hidden="true">/</span>
+            <span>@(_model.Product?.Title ?? ProductId)</span>
+        </nav>
+
+        <div class="grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: var(--space-6); align-items:start;">
+            <div>
+                <h1 style="font-size: var(--text-2xl); margin:0;">@(_model.Product?.Title ?? "Unknown product")</h1>
+                <p class="muted">Product ID: <code>@ProductId</code></p>
+
+                <div class="panel card-pad" style="margin-top: var(--space-4);">
+                    <h3 style="margin:0 0 var(--space-3);">Trust chain</h3>
+                    <ol class="stack gap-3" style="list-style:none; padding:0; margin:0;">
+                        <li>
+                            <strong>① Certification</strong>
+                            @if (_model.Verification != null)
+                            {
+                                <p class="small muted" style="margin:4px 0 0;">@_model.Verification.Status · @_model.Verification.Jurisdiction · Policy @_model.Verification.PolicyVersion</p>
+                            }
+                            else { <p class="small muted" style="margin:4px 0 0;">No certification recorded.</p> }
+                        </li>
+                        <li>
+                            <strong>② Platform compliance verdict</strong>
+                            <p class="small muted" style="margin:4px 0 0;">@(_model.Verification?.Status.ToString() ?? "Pending review")</p>
+                        </li>
+                        <li>
+                            <strong>③ On-chain provenance</strong>
+                            @if (_model.OnChainAvailable)
+                            {
+                                <p class="small" style="margin:4px 0 0;">Source: <code>@_model.OnChain!.Source</code> · Status: <strong>@_model.OnChain.Status</strong></p>
+                                @if (!string.IsNullOrEmpty(_model.OnChain.CertificateId))
+                                {
+                                    <p class="small muted" style="margin:4px 0 0;">Cert ID: <code>@_model.OnChain.CertificateId</code></p>
+                                }
+                                @if (!string.IsNullOrEmpty(_model.OnChain.Certifier))
+                                {
+                                    <p class="small muted" style="margin:4px 0 0;">Certifier: @_model.OnChain.Certifier</p>
+                                }
+                                @if (_model.OnChain.Warnings.Length > 0)
+                                {
+                                    <div class="alert alert-warning" style="margin-top: var(--space-2);">
+                                        @foreach (var w in _model.OnChain.Warnings)
+                                        {
+                                            <div>⚠ @w</div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else { <p class="small muted" style="margin:4px 0 0;">On-chain data unavailable. Displaying off-chain record.</p> }
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div>
+                @if (_model.Product != null)
+                {
+                    <div class="panel card-pad">
+                        <h3 style="margin:0 0 var(--space-3);">Product</h3>
+                        <dl class="stack gap-2" style="margin:0;">
+                            <div class="between"><dt class="muted small">Vendor</dt><dd class="small" style="margin:0;">@_model.Product.VendorName</dd></div>
+                            <div class="between"><dt class="muted small">Origin</dt><dd class="small" style="margin:0;">@_model.Product.Origin</dd></div>
+                        </dl>
+                        <a class="btn btn-outline btn-block btn-sm mt-3" href="/products/@_model.Product.Id">View product →</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string ProductId { get; set; } = "";
+    private VerifyViewModel? _model;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Guid.TryParse(ProductId, out var id))
+        {
+            _model = new VerifyViewModel(null, null, null, false);
+            return;
+        }
+        var product = await Api.GetProductAsync(id);
+        var verification = await Api.GetVerificationAsync(id);
+        var onchain = await Api.GetPublicVerificationAsync(ProductId);
+
+        OnChainInfo? info = null;
+        if (onchain.IsSuccess && onchain.Data is System.Text.Json.JsonElement el)
+        {
+            try
+            {
+                info = new OnChainInfo(
+                    Source: el.GetProperty("source").GetString() ?? "",
+                    Status: el.GetProperty("product").GetProperty("status").GetString() ?? "",
+                    Warnings: el.TryGetProperty("warnings", out var w) ? w.EnumerateArray().Select(x => x.GetString() ?? "").ToArray() : [],
+                    CertificateId: el.TryGetProperty("certificate", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Object ? c.GetProperty("certId").GetString() : null,
+                    Certifier: el.TryGetProperty("certificate", out var c2) && c2.ValueKind == System.Text.Json.JsonValueKind.Object ? c2.GetProperty("certifier").GetString() : null);
+            }
+            catch { }
+        }
+
+        _model = new VerifyViewModel(
+            Product: product.IsSuccess ? product.Data : null,
+            Verification: verification.IsSuccess ? verification.Data : null,
+            OnChain: info,
+            OnChainAvailable: onchain.IsSuccess && info != null);
+    }
+}

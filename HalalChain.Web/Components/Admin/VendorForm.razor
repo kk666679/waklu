@@ -1,0 +1,114 @@
+@using Radzen.Blazor
+@using HalalChain.Platform.Contracts.Catalog
+@using HalalChain.Platform.Contracts.Vendors.Dto
+@inject NavigationManager Nav
+
+<AdminForm Title="@Title"
+           Description="@Description"
+           Model="@Model"
+           IsLoading="@IsLoading"
+           OnValidSubmit="@HandleSubmit"
+           OnCancel="@HandleCancel"
+           SubmitText="@SubmitText"
+           AdditionalClass="@AdditionalClass">
+    <div class="form-group">
+        <RadzenLabel Text="Vendor Name *" />
+        <RadzenTextBox @bind-Value="@Model.Name" class="w-100" />
+        <ValidationMessage For="@(() => Model.Name)" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Country" />
+        <RadzenDropDown @bind-Value="@Model.Country"
+                        Data="@Countries"
+                        TextProperty="Name"
+                        ValueProperty="Iso2"
+                        Placeholder="Select Country"
+                        class="w-100" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Status" />
+        <RadzenDropDown @bind-Value="@Model.Status"
+                        Data="@StatusOptions"
+                        Placeholder="Select Status"
+                        class="w-100" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Contact Email" />
+        <RadzenTextBox @bind-Value="@Model.Email" type="email" class="w-100" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Phone" />
+        <RadzenTextBox @bind-Value="@Model.Phone" class="w-100" />
+    </div>
+    <div class="form-group">
+        <RadzenLabel Text="Address" />
+        <RadzenTextBox @bind-Value="@Model.Address" Rows="3" class="w-100" TextArea="true" />
+    </div>
+    @if (!string.IsNullOrEmpty(VendorId))
+    {
+        <div class="form-group">
+            <RadzenLabel Text="Facilities" />
+            <RadzenDataGrid TItem="FacilityDto"
+                            Data="@Model.Facilities"
+                            AllowSorting="false"
+                            AllowPaging="false"
+                            class="hc-datagrid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="FacilityDto" Property="Name" Title="Facility" />
+                    <RadzenDataGridColumn TItem="FacilityDto" Property="City" Title="City" />
+                    <RadzenDataGridColumn TItem="FacilityDto" Property="Country" Title="Country" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    }
+</AdminForm>
+
+@code {
+    [Parameter] public string? VendorId { get; set; }
+    [Parameter] public VendorDto Model { get; set; } = default!;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<VendorDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string Title => string.IsNullOrEmpty(VendorId) ? "Add Vendor" : "Edit Vendor";
+    private string Description => string.IsNullOrEmpty(VendorId) ? "Register a new vendor" : "Update vendor details";
+    private string SubmitText => string.IsNullOrEmpty(VendorId) ? "Register Vendor" : "Save Changes";
+    private bool IsLoading { get; set; }
+
+    private List<CountryDto> Countries = new()
+    {
+        new("MY", "MYS", "Malaysia", "Southeast Asia"),
+        new("ID", "IDN", "Indonesia", "Southeast Asia"),
+        new("TH", "THA", "Thailand", "Southeast Asia"),
+        new("SG", "SGP", "Singapore", "Southeast Asia"),
+        new("AE", "ARE", "UAE", "Middle East"),
+        new("SA", "SAU", "Saudi Arabia", "Middle East"),
+        new("TR", "TUR", "Turkey", "Middle East"),
+        new("PK", "PAK", "Pakistan", "South Asia"),
+        new("IN", "IND", "India", "South Asia"),
+        new("BD", "BGD", "Bangladesh", "South Asia")
+    };
+
+    private List<string> StatusOptions = ["Active", "Pending", "Suspended"];
+
+    private async Task HandleSubmit()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            await OnSubmit.InvokeAsync(Model);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        Nav.NavigateTo("/admin/vendors");
+    }
+}

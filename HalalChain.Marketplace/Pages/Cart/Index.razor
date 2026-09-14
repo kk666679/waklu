@@ -1,0 +1,96 @@
+@page "/cart"
+@inject CartState Cart
+@inject AuthService Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Your cart</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-5);">Your cart</h1>
+
+    @if (!Auth.IsAuthenticated)
+    {
+        <SignedOut Icon="🔒" Title="Your cart is waiting" Message="Sign in to view and manage the items you've saved." ActionText="Sign in" ActionUrl="/account/login?returnUrl=/cart" />
+    }
+    else if (Cart.IsLoading)
+    {
+        <p class="muted">Loading cart…</p>
+    }
+    else if (Cart.Cart == null || Cart.Cart.Items.Length == 0)
+    {
+        <EmptyState Icon="🛒" Title="Your cart is empty" Message="Discover halal-verified products from trusted vendors." ActionText="Start shopping" ActionUrl="/browse" />
+    }
+    else
+    {
+        var groups = Cart.Cart.Items
+            .GroupBy(i => i.VendorName)
+            .Select(g => new CartVendorGroup(g.Key, g.ToArray(), g.Sum(i => i.UnitPrice * i.Quantity), Cart.Cart.Currency))
+            .ToArray();
+
+        <div class="grid" style="grid-template-columns: minmax(0,1fr) 320px; gap: var(--space-5); align-items:start;">
+            <div class="stack gap-4">
+                @foreach (var group in groups)
+                {
+                    <div class="panel card-pad">
+                        <div class="between" style="margin-bottom: var(--space-3);">
+                            <strong>@group.VendorName</strong>
+                            <span class="badge badge-halal">✓ Verified vendor</span>
+                        </div>
+                        @foreach (var item in group.Items)
+                        {
+                            var initials = string.Join("", item.ProductTitle.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+                            <div class="row gap-3" style="padding: var(--space-3) 0; border-top: 1px solid var(--color-border); align-items:start;">
+                                <div class="cart-thumb" aria-hidden="true">@initials</div>
+                                <div class="grow">
+                                    <a href="/products/@item.ProductId" class="product-title" style="display:block;">@item.ProductTitle</a>
+                                    <span class="small muted">@item.Currency @item.UnitPrice.ToString("N2") · @item.HalalStatus</span>
+                                    <div class="row gap-2" style="margin-top:6px; align-items:center;">
+                                        <RadzenNumeric Value="@item.Quantity" TValue="int" Min="0" Change="@((int v) => UpdateQuantity(item.ProductId, v))" Style="width:80px;" />
+                                        <RadzenButton Text="Remove" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveItem(item.ProductId))" />
+                                    </div>
+                                </div>
+                                <div style="font-weight:700; white-space:nowrap;">@item.Currency @((item.UnitPrice * item.Quantity).ToString("N2"))</div>
+                            </div>
+                        }
+                        <div class="between" style="margin-top: var(--space-2);">
+                            <span class="small muted">Estimated shipping · Free</span>
+                            <span class="small">Subtotal: <strong>@group.Currency @group.Subtotal.ToString("N2")</strong></span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <aside class="panel card-pad" style="position:sticky; top: calc(var(--nav-height) + 12px);">
+                <h3 style="margin:0 0 var(--space-3);">Order summary</h3>
+                <div class="between" style="margin-bottom:8px;"><span class="muted small">Items (@Cart.ItemCount)</span><span>@Cart.Currency @Cart.Subtotal.ToString("N2")</span></div>
+                <div class="between" style="margin-bottom:8px;"><span class="muted small">Shipping</span><span class="badge badge-success">Free</span></div>
+                <div class="between" style="margin-bottom: var(--space-3);"><span class="muted small">Tax</span><span class="muted small">Calculated at checkout</span></div>
+                <hr class="divider" />
+                <div class="between" style="margin-bottom: var(--space-4);"><strong>Total</strong><strong style="font-size: var(--text-lg);">@Cart.Currency @Cart.Subtotal.ToString("N2")</strong></div>
+                <a class="btn btn-primary btn-block btn-lg" href="/checkout">Proceed to checkout</a>
+                <a class="btn btn-ghost btn-block btn-sm mt-2" href="/browse">Continue shopping</a>
+            </aside>
+        </div>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Cart.OnChange += OnCartChanged;
+        if (Auth.IsAuthenticated) await Cart.LoadAsync();
+    }
+
+    private void OnCartChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task UpdateQuantity(Guid productId, int quantity)
+    {
+        if (quantity <= 0) await Cart.RemoveAsync(productId);
+        else await Cart.UpdateAsync(productId, quantity);
+    }
+
+    private async Task RemoveItem(Guid productId) => await Cart.RemoveAsync(productId);
+
+    public void Dispose() => Cart.OnChange -= OnCartChanged;
+}

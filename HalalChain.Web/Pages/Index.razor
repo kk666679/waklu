@@ -1,0 +1,21 @@
+@page "/"
+@inject IProductService Products
+
+<PageTitle>HalalChain — Trusted Halal Marketplace</PageTitle>
+
+<section class="hero">
+    <div class="container">
+        <h1>Halal-Certified. Verified. Trusted.</h1>
+        <p>Discover thousands of halal products from verified vendors worldwide.</p>
+        <RadzenButton Text="Shop Now" Icon="storefront" ButtonStyle="ButtonStyle.Primary" Click="@(() => Nav.NavigateTo("/products"))" />
+    </div>
+</section>
+
+<section class="container" style="padding:2rem 0">
+    <h2>Featured Products</h2>
+    <ProductList />
+</section>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+}

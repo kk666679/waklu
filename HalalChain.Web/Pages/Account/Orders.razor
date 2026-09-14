@@ -1,0 +1,76 @@
+@page "/account/orders"
+@layout StorefrontLayout
+@inject AppState State
+@implements IDisposable
+
+<section class="container mt-8 mb-8">
+    <h1 class="text-3xl font-bold mb-6">Order History</h1>
+    @if (State.IsLoading)
+    {
+        <div class="grid" style="gap:var(--space-4)">
+            @for (var i = 0; i < 3; i++) { <div class="skeleton" style="height:120px;border-radius:var(--radius-lg)"></div> }
+        </div>
+    }
+    else if (!State.Orders.Any())
+    {
+        <div class="card" style="text-align:center;padding:var(--space-12)">
+            <i class="fas fa-box fa-3x" style="color:var(--color-neutral-300);margin-bottom:var(--space-4)"></i>
+            <h3 class="text-xl font-bold mb-2">No orders yet</h3>
+            <p class="text-muted mb-4">Your order history will appear here after your first purchase</p>
+            <Button Href="/products" Text="Start Shopping" Icon="shopping-bag" />
+        </div>
+    }
+    else
+    {
+        <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+            @foreach (var order in State.Orders.OrderByDescending(o => o.CreatedAt))
+            {
+                <div class="card">
+                    <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:var(--space-2)">
+                        <div class="flex items-center gap-4">
+                            <span class="font-semibold">Order #@order.Id.ToString()[..8].ToUpper()</span>
+                            <span class="badge @(order.Status switch { "Delivered" => "badge-success", "Processing" => "badge-info", _ => "badge-warning" })">@order.Status</span>
+                        </div>
+                        <span class="text-sm text-muted">@order.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var vo in order.VendorOrders)
+                        {
+                            <div style="margin-bottom:var(--space-3)">
+                                <div class="text-xs text-muted mb-2">From @vo.VendorName</div>
+                                @foreach (var item in vo.Items)
+                                {
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm">@item.ProductTitle x @item.Quantity</span>
+                                        <span class="text-sm font-medium">@item.Currency @((item.UnitPrice * item.Quantity).ToString("N2"))</span>
+                                    </div>
+                                }
+                                @if (vo.TrackingNumber != null)
+                                {
+                                    <div class="text-xs text-primary mt-2">
+                                        <i class="fas fa-truck"></i> Tracking: @vo.TrackingNumber
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <hr style="margin:var(--space-3) 0;border-color:var(--color-neutral-200)" />
+                        <div class="flex justify-between">
+                            <span class="font-semibold">Total</span>
+                            <span class="font-bold text-primary">@order.Currency @order.Total.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnStateChanged;
+        await State.LoadOrdersAsync();
+    }
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.OnChange -= OnStateChanged;
+}

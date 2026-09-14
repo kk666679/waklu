@@ -1,0 +1,20 @@
+@inject IWishlistService Wishlist
+
+<article class="product-card product-card-basic">
+    <a class="product-media" href="/products/@Product.Id" aria-label="@Product.Title">
+        <span class="ph" aria-hidden="true">@Initials</span>
+    </a>
+    <div class="product-body">
+        <a class="product-title" href="/products/@Product.Id">@Product.Title</a>
+        <div class="product-meta small muted">@Product.VendorName</div>
+        <div class="product-price-row">
+            <span class="price">@Product.Currency @Product.Price.ToString("N2")</span>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public ProductDto Product { get; set; } = default!;
+
+    private string Initials => string.Join("", Product.Title.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+}

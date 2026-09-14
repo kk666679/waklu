@@ -1,0 +1,78 @@
+@page "/orders/{Id:guid}"
+@inject IPlatformApiClient Api
+@inject AuthService Auth
+
+<PageTitle>Order detail</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <SignedOut Title="Sign in to view this order" ActionUrl="/account/login?returnUrl=/orders" />
+}
+else if (_order == null)
+{
+    <section class="container section-sm"><p class="muted">Loading order…</p></section>
+}
+else
+{
+    <section class="container section-sm">
+        <div class="between" style="margin-bottom: var(--space-4);">
+            <div>
+                <p class="eyebrow">Order</p>
+                <h1 style="font-size: var(--text-2xl); margin:0;">@_order.Id.ToString()[..8]</h1>
+                <p class="small muted">@_order.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</p>
+            </div>
+            <span class="badge badge-@_order.Status.ToString().ToLower()">@_order.Status</span>
+        </div>
+
+        <div class="grid" style="grid-template-columns: minmax(0,1.4fr) 360px; gap: var(--space-5); align-items:start;">
+            <div class="stack gap-3">
+                @if (_order.VendorOrders != null)
+                {
+                    @foreach (var vo in _order.VendorOrders)
+                    {
+                        <div class="panel card-pad">
+                            <div class="between" style="margin-bottom: var(--space-3);">
+                                <strong>@vo.VendorName</strong>
+                                <span class="badge badge-@vo.Status.ToString().ToLower()">@vo.Status</span>
+                            </div>
+                            <ul class="list">
+                                @if (vo.Items != null)
+                                {
+                                    @foreach (var item in vo.Items)
+                                    {
+                                        <li class="list-item between">
+                                            <div>
+                                                <a href="/products/@item.ProductId"><strong>@item.ProductTitle</strong></a>
+                                                <p class="small muted" style="margin:4px 0 0;">@item.Currency @item.UnitPrice.ToString("N2") × @item.Quantity</p>
+                                            </div>
+                                            <strong>@item.Currency @((item.UnitPrice * item.Quantity).ToString("N2"))</strong>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    }
+                }
+            </div>
+
+            <aside class="panel card-pad">
+                <h3 style="margin:0 0 var(--space-3);">Summary</h3>
+                <div class="between" style="margin-bottom:8px;"><span class="muted small">Total</span><span>@_order.Currency @_order.Total.ToString("N2")</span></div>
+                <hr class="divider" />
+                <div class="between"><strong>Grand total</strong><strong>@_order.Currency @_order.Total.ToString("N2")</strong></div>
+            </aside>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private OrderDto? _order;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        var result = await Api.GetOrderAsync(Id);
+        _order = result.IsSuccess ? result.Data : null;
+    }
+}

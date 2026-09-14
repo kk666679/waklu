@@ -1,0 +1,60 @@
+@inject IProductService Products
+@inject DialogService Dialog
+@inject AppNotificationService Notify
+
+<RadzenDataGrid TItem="Product" Data="@_items" LoadData="@LoadData" IsLoading="@_loading" Count="@_count"
+                AllowPaging="true" AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.Advanced"
+                PageSize="20" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Id" Title="ID" Width="60px" />
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="Sku" Title="SKU" Width="120px" />
+        <RadzenDataGridColumn Property="Price" Title="Price" Width="100px">
+            <Template Context="p">@p.Price.ToString("C")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="StockQuantity" Title="Stock" Width="80px" />
+        <RadzenDataGridColumn Property="IsActive" Title="Active" Width="80px">
+            <Template Context="p">
+                <RadzenBadge BadgeStyle="@(p.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)"
+                             Text="@(p.IsActive ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Title="Actions" Width="140px" Sortable="false" Filterable="false">
+            <Template Context="p">
+                <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                              Click="@(() => Edit(p))" />
+                <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                              Click="@(() => Delete(p))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Product> _items = Array.Empty<Product>();
+    private int _count;
+    private bool _loading;
+
+    private async Task LoadData(LoadDataArgs args)
+    {
+        _loading = true;
+        var all = await Products.GetAllAsync();
+        _items = all;
+        _count = all.Count;
+        _loading = false;
+    }
+
+    private void Edit(Product p) => Dialog.Open<ProductForm>($"Edit {p.Name}",
+        new Dictionary<string, object?> { ["Product"] = p });
+
+    private async Task Delete(Product p)
+    {
+        var ok = await Dialog.Confirm($"Delete {p.Name}?", "Confirm");
+        if (ok == true)
+        {
+            await Products.DeleteAsync(p.Id);
+            Notify.Warning("Deleted", p.Name);
+            _items = await Products.GetAllAsync();
+        }
+    }
+}

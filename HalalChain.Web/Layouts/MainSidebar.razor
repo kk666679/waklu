@@ -1,0 +1,110 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IUserContext UserContext
+
+<aside class="@SidebarClass" aria-label="Primary">
+    <div class="hc-sidebar__brand">
+        <a href="/" class="hc-sidebar__brand-link" aria-label="HalalChain Home">
+            <span class="hc-brand-mark" aria-hidden="true">
+                <i class="fas fa-shield-halved"></i>
+            </span>
+            @if (!_collapsed)
+            {
+                <span class="hc-brand-text">
+                    <span class="text-primary">Halal</span>Chain
+                </span>
+            }
+        </a>
+    </div>
+
+    <nav class="hc-sidebar__nav" aria-label="Main">
+        <ul class="hc-sidebar__list">
+            @foreach (var item in _items)
+            {
+                var isActive = IsActive(item);
+                <li class="hc-sidebar__item @(isActive ? "is-active" : "")">
+                    <a href="@item.Href" class="hc-sidebar__link" title="@item.Title" aria-current="@(isActive ? "page" : null)">
+                        <span class="hc-sidebar__icon" aria-hidden="true"><i class="@item.Icon"></i></span>
+                        @if (!_collapsed)
+                        {
+                            <span class="hc-sidebar__label">@item.Label</span>
+                        }
+                        @if (!_collapsed && item.Badge is > 0)
+                        {
+                            <span class="hc-sidebar__badge">@item.Badge</span>
+                        }
+                    </a>
+                </li>
+            }
+
+            @if (UserContext.IsAuthenticated && UserContext.Roles.Contains("admin"))
+            {
+                <li class="hc-sidebar__section">@(_collapsed ? "" : "Admin")</li>
+                <li class="hc-sidebar__item @(IsActive("/admin") ? "is-active" : "")">
+                    <a href="/admin" class="hc-sidebar__link" title="Admin Console">
+                        <span class="hc-sidebar__icon" aria-hidden="true"><i class="fas fa-gauge-high"></i></span>
+                        @if (!_collapsed) { <span class="hc-sidebar__label">Admin</span> }
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+    <div class="hc-sidebar__footer">
+        <button type="button" class="hc-sidebar__toggle" @onclick="Toggle" aria-label="@(_collapsed ? "Expand sidebar" : "Collapse sidebar")">
+            <i class="fas @(_collapsed ? "fa-angle-double-right" : "fa-angle-double-left")" aria-hidden="true"></i>
+            @if (!_collapsed) { <span>Collapse</span> }
+        </button>
+    </div>
+</aside>
+
+@code {
+    [Parameter] public bool Collapsed { get; set; }
+    [Parameter] public EventCallback<bool> CollapsedChanged { get; set; }
+
+    private record NavItem(string Label, string Href, string Icon, string? MatchPrefix = null, int? Badge = null)
+    {
+        public string Title => Label;
+    }
+
+    private bool _collapsed;
+    private string SidebarClass => "hc-sidebar" + (_collapsed ? " hc-sidebar--collapsed" : "");
+    private List<NavItem> _items = new()
+    {
+        new("Home", "/", "fas fa-house", MatchPrefix: null),
+        new("Products", "/products", "fas fa-bag-shopping", MatchPrefix: "/products"),
+        new("Halal Verified", "/products?halalStatus=1", "fas fa-shield-halved", MatchPrefix: null),
+        new("Cart", "/cart", "fas fa-cart-shopping", MatchPrefix: "/cart"),
+        new("Account", "/account", "fas fa-user-circle", MatchPrefix: "/account"),
+    };
+
+    protected override void OnParametersSet()
+    {
+        _collapsed = Collapsed;
+    }
+
+    private async Task Toggle()
+    {
+        _collapsed = !_collapsed;
+        await CollapsedChanged.InvokeAsync(_collapsed);
+    }
+
+    private bool IsActive(NavItem item)
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        if (item.MatchPrefix is null)
+        {
+            return string.Equals(path, item.Href, StringComparison.OrdinalIgnoreCase);
+        }
+        return path.StartsWith(item.MatchPrefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsActive(string href)
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        return string.Equals(path, href, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose() { }
+}

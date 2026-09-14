@@ -1,0 +1,8 @@
+// =============================================================================
+// HalalChain.Web — abstracts barrel
+//
+// @use 'abstracts' as *;   in a partial gives you $bp-md, $z-modal, the bp()
+// mixin, the glass-surface() mixin, etc. without leaking implementation files.
+// =============================================================================
+@forward 'variables';
+@forward 'mixins';

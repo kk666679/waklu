@@ -1,0 +1,43 @@
+@using Radzen.Blazor
+
+<div class="admin-card @AdditionalClass">
+    <div class="admin-card__header">
+        @if (HeaderTemplate != null)
+        {
+            @HeaderTemplate
+        }
+        else
+        {
+            <div class="admin-card__title">
+                @if (!string.IsNullOrEmpty(Icon))
+                {
+                    <RadzenIcon Icon="@Icon" Style="margin-right:0.5rem" />
+                }
+                <span>@Title</span>
+            </div>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <span class="admin-card__subtitle text-sm text-muted">@Subtitle</span>
+            }
+        }
+    </div>
+    <div class="admin-card__body">
+        @ChildContent
+    </div>
+    @if (FooterTemplate != null)
+    {
+        <div class="admin-card__footer">
+            @FooterTemplate
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+    [Parameter] public RenderFragment? FooterTemplate { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+}

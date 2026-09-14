@@ -1,0 +1,103 @@
+@page "/vendor"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Vendor dashboard</PageTitle>
+
+@if (_model == null)
+{
+    <section class="container section-sm"><p class="muted">Loading vendor dashboard…</p></section>
+}
+else
+{
+    <section class="container section-sm">
+        <div class="between" style="margin-bottom: var(--space-4);">
+            <div>
+                <p class="eyebrow">Vendor portal</p>
+                <h1 style="font-size: var(--text-2xl); margin:0;">@_model.Vendor.Name</h1>
+            </div>
+            <div class="row gap-2">
+                <a class="btn btn-ghost btn-sm" href="/vendor/products">Manage products</a>
+                <a class="btn btn-primary btn-sm" href="/vendor/products/new">+ New product</a>
+            </div>
+        </div>
+
+        <div class="grid grid-4">
+            <div class="card card-pad">
+                <p class="small muted">Total products</p>
+                <h3 style="margin:0;">@_model.TotalProducts</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Verified</p>
+                <h3 style="margin:0; color:var(--color-success);">@_model.Verified</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Pending verification</p>
+                <h3 style="margin:0; color:var(--color-warning);">@_model.PendingVerification</h3>
+            </div>
+            <div class="card card-pad">
+                <p class="small muted">Low stock</p>
+                <h3 style="margin:0;">@_model.LowStock</h3>
+            </div>
+        </div>
+
+        <div class="panel card-pad" style="margin-top: var(--space-5);">
+            <h3 style="margin:0 0 var(--space-3);">Products</h3>
+            @if (_model.Products.Length == 0)
+            {
+                <p class="muted">No products yet. <a href="/vendor/products/new">Add your first product →</a></p>
+            }
+            else
+            {
+                <RadzenDataGrid Data="@_model.Products" TItem="ProductDto" AllowSorting="true" AllowPaging="true" PageSize="20">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ProductDto" Property="Title" Title="Product" />
+                        <RadzenDataGridColumn TItem="ProductDto" Property="Price" Title="Price" FormatString="{0:N2}" />
+                        <RadzenDataGridColumn TItem="ProductDto" Property="Inventory" Title="Stock" />
+                        <RadzenDataGridColumn TItem="ProductDto" Property="HalalStatus.Status" Title="Status" />
+                        <RadzenDataGridColumn TItem="ProductDto" Title="Actions" Sortable="false" Width="280px">
+                            <Template Context="p">
+                                <div class="row gap-1">
+                                    <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id">Edit</a>
+                                    <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id/certificate">Certificate</a>
+                                    <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id/verification">Verify</a>
+                                </div>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public Guid? v { get; set; }
+    private VendorDashboardViewModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vendor = await ResolveVendorAsync(v);
+        if (vendor == null) { Nav.NavigateTo("/admin"); return; }
+        var products = await Api.GetVendorProductsAsync(vendor.Slug ?? vendor.Name, 1, 200);
+        var list = products.IsSuccess && products.Data != null ? products.Data.Items : Array.Empty<ProductDto>();
+        _model = new VendorDashboardViewModel(
+            vendor, list.Length,
+            list.Count(p => p.Inventory > 0 && p.Inventory <= 10),
+            list.Count(p => p.Inventory == 0),
+            list.Count(p => string.Equals(p.HalalStatus.Status, "Verified", StringComparison.OrdinalIgnoreCase)),
+            list.Count(p => !string.Equals(p.HalalStatus.Status, "Verified", StringComparison.OrdinalIgnoreCase)),
+            list);
+    }
+
+    private async Task<VendorDto?> ResolveVendorAsync(Guid? vendorId)
+    {
+        if (vendorId.HasValue)
+        {
+            var r = await Api.GetVendorAsync(vendorId.Value);
+            if (r.IsSuccess && r.Data != null) return r.Data;
+        }
+        var all = await Api.GetVendorsAsync();
+        return all.IsSuccess && all.Data?.Length > 0 ? all.Data[0] : null;
+    }
+}

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>halalchain-platform-api-2026</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
+    <PackageReference Include="Radzen.Blazor" Version="11.3.2" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
+    <PackageReference Include="Nethereum.Web3" Version="6.1.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../HalalChain.Application/HalalChain.Application.csproj" />
+    <ProjectReference Include="../HalalChain.Domain/HalalChain.Domain.csproj" />
+    <ProjectReference Include="../HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <GeneratorProject>$(MSBuildThisFileDirectory)Radzen.Blazor.Api.Generator.csproj</GeneratorProject>
+    <GeneratedPagesDir>$(MSBuildThisFileDirectory)Generated\Pages</GeneratedPagesDir>
+    <RadzenBlazorDll>$(PkgRadzen_Blazor)/lib/net10.0/Radzen.Blazor.dll</RadzenBlazorDll>
+    <RadzenBlazorXml>$(PkgRadzen_Blazor)/lib/net10.0/Radzen.Blazor.xml</RadzenBlazorXml>
+  </PropertyGroup>
+
+  <!-- Usage: dotnet build -p:GenerateApiPages=true -->
+  <Target Name="GenerateApiPages" BeforeTargets="ResolveProjectStaticWebAssets;AssignTargetPaths"
+          Inputs="$(RadzenBlazorDll)"
+          Outputs="$(GeneratedPagesDir)\ApiIndex.razor"
+          Condition="Exists('$(RadzenBlazorDll)') AND '$(GenerateApiPages)' == 'true'">
+    <Message Text="Generating API reference pages..." Importance="high" />
+    <MakeDir Directories="$(GeneratedPagesDir)" />
+    <Exec Command="dotnet run --project &quot;$(GeneratorProject)&quot; -- &quot;$(RadzenBlazorDll)&quot; &quot;$(RadzenBlazorXml)&quot; &quot;$(GeneratedPagesDir)&quot;"
+          ContinueOnError="false" />
+    <Message Text="API reference pages generated in $(GeneratedPagesDir)" Importance="high" />
+  </Target>
+</Project>

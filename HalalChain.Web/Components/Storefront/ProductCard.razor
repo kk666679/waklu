@@ -1,0 +1,40 @@
+@using HalalChain.Platform.Contracts.Catalog.Dto
+@inject CartState Cart
+@inject WishlistService Wishlist
+@inject AppNotificationService Notify
+
+<RadzenCard class="rz-shadow-1" style="height:100%">
+    <div style="width:100%;height:180px;background:var(--rz-surface-2);display:flex;align-items:center;justify-content:center">
+        <i class="material-icons" style="font-size:48px;color:var(--rz-text-muted)">image</i>
+    </div>
+    <div style="margin-top:.5rem">
+        <h4 style="margin:0">@Product?.Title</h4>
+        <div style="color:var(--rz-text-muted)">@Product?.VendorName</div>
+        <div style="margin:.5rem 0">
+            <strong>@((Product?.Price ?? 0m).ToString("C"))</strong>
+        </div>
+    </div>
+    <RadzenStack Orientation="Orientation.Horizontal" Gap=".5rem">
+        <RadzenButton Icon="shopping_cart" Text="Add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Add" />
+        <RadzenButton Icon="favorite" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ToggleWish" />
+    </RadzenStack>
+</RadzenCard>
+
+@code {
+    [Parameter] public ProductDto? Product { get; set; }
+
+    private void Add()
+    {
+        if (Product is null) return;
+        Cart.AddItem(Product.Id.ToString(), Product.Title, Product.Price, Product.Currency);
+        Notify.Success("Added to cart", Product.Title);
+    }
+
+    private void ToggleWish()
+    {
+        if (Product is null) return;
+        if (Wishlist.IsInWishlist(Product.Id)) Wishlist.RemoveFromWishlist(Product.Id);
+        else Wishlist.AddToWishlist(Product.Id, Product.Title, Product.Price, Product.Currency);
+        Notify.Info("Wishlist updated", Product.Title);
+    }
+}

@@ -1,0 +1,26 @@
+@inject IVendorService Vendors
+
+<RadzenDataGrid TItem="Vendor" Data="@_items" AllowPaging="true" class="rz-shadow-1">
+    <Columns>
+        <RadzenDataGridColumn Property="Id" Title="ID" Width="60px" />
+        <RadzenDataGridColumn Property="Name" Title="Name" />
+        <RadzenDataGridColumn Property="Email" Title="Email" />
+        <RadzenDataGridColumn Property="IsVerified" Title="Verified" Width="120px">
+            <Template Context="v">
+                <RadzenBadge BadgeStyle="@(v.IsVerified ? BadgeStyle.Success : BadgeStyle.Warning)"
+                             Text="@(v.IsVerified ? "Verified" : "Pending")" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="IsActive" Title="Active" Width="100px">
+            <Template Context="v">
+                <RadzenBadge BadgeStyle="@(v.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)"
+                             Text="@(v.IsActive ? "Yes" : "No")" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    private IEnumerable<Vendor> _items = Array.Empty<Vendor>();
+    protected override async Task OnInitializedAsync() => _items = await Vendors.GetAllAsync();
+}

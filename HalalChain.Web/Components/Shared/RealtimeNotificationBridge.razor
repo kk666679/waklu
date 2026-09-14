@@ -1,0 +1,50 @@
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IAppNotificationService Notifier
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+@code {
+    private HubConnection? _hub;
+    private bool _started;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started) return;
+        _started = true;
+
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hubs/notifications"))
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+            .Build();
+
+        _hub.On<RealtimeNotification>("notification.received", n =>
+        {
+            var title = string.IsNullOrEmpty(n.Title) ? "Notification" : n.Title;
+            switch (n.Kind)
+            {
+                case RealtimeNotificationKind.Success: Notifier.Success(title, n.Message); break;
+                case RealtimeNotificationKind.Warning: Notifier.Warning(title, n.Message); break;
+                case RealtimeNotificationKind.Error: Notifier.Error(title, n.Message); break;
+                default: Notifier.Info(title, n.Message); break;
+            }
+            return Task.CompletedTask;
+        });
+
+        try
+        {
+            await _hub.StartAsync();
+        }
+        catch
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            try { await _hub.DisposeAsync(); } catch { }
+        }
+    }
+}

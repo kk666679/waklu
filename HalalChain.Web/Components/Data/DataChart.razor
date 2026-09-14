@@ -1,0 +1,51 @@
+@using Radzen.Blazor
+@using Radzen
+
+<div class="data-chart" style="@($"height:{Height};{Style}")">
+    @if (Loading)
+    {
+        <div class="data-chart-skeleton" style="height:@Height;display:flex;align-items:center;justify-content:center">
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="width:200px" />
+        </div>
+    }
+    else
+    {
+        <RadzenChart @ref="_chart" Style="@($"height:{Height}")">
+            <RadzenColumnSeries Visible="@SeriesVisible" Data="@Data" CategoryProperty="@CategoryProperty" ValueProperty="@ValueProperty" Title="@Title" />
+            <RadzenSeriesDataLabels Visible="@ShowBadges" />
+            <RadzenLegend Visible="@ShowLegend" Position="@LegendPosition" />
+            <RadzenValueAxis Format="@ValueFormat" Visible="@ShowValueAxis">
+                <RadzenAxisTitle Text="@ValueAxisTitle" />
+            </RadzenValueAxis>
+            <RadzenCategoryAxis Format="@CategoryFormat" Visible="@ShowCategoryAxis">
+                <RadzenAxisTitle Text="@CategoryAxisTitle" />
+            </RadzenCategoryAxis>
+            <RadzenChartTooltip Shared="@SharedTooltip" />
+        </RadzenChart>
+    }
+</div>
+
+@code {
+    [Parameter] public object?[]? Data { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? CategoryProperty { get; set; }
+    [Parameter] public string? ValueProperty { get; set; }
+    [Parameter] public string ChartType { get; set; } = "Column";
+    [Parameter] public string Height { get; set; } = "300px";
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool SeriesVisible { get; set; } = true;
+    [Parameter] public bool ShowBadges { get; set; } = false;
+    [Parameter] public bool ShowLegend { get; set; } = true;
+    [Parameter] public LegendPosition LegendPosition { get; set; } = LegendPosition.Bottom;
+    [Parameter] public bool ShowValueAxis { get; set; } = true;
+    [Parameter] public bool ShowCategoryAxis { get; set; } = true;
+    [Parameter] public string ValueFormat { get; set; } = "{0:N0}";
+    [Parameter] public string CategoryFormat { get; set; } = "";
+    [Parameter] public string ValueAxisTitle { get; set; } = "";
+    [Parameter] public string CategoryAxisTitle { get; set; } = "";
+    [Parameter] public bool SharedTooltip { get; set; } = true;
+    [Parameter] public EventCallback<object> OnSeriesClick { get; set; }
+
+    private RadzenChart? _chart;
+}

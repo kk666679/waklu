@@ -1,0 +1,21 @@
+<RadzenCard class="rz-shadow-1">
+    <h4>Sales Overview</h4>
+    <RadzenChart>
+        <RadzenLineSeries Data="@_points" CategoryProperty="Date" ValueProperty="Value" Title="Sales">
+            <RadzenMarkers MarkerType="MarkerType.Circle" />
+        </RadzenLineSeries>
+    </RadzenChart>
+</RadzenCard>
+
+@code {
+    record P(DateTime Date, double Value);
+    private List<P> _points = new();
+
+    protected override void OnInitialized()
+    {
+        var start = DateTime.Today.AddDays(-14);
+        var rng = new Random(13);
+        for (var i = 0; i < 14; i++)
+            _points.Add(new P(start.AddDays(i), 100 + rng.NextDouble() * 400));
+    }
+}

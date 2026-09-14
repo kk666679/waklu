@@ -1,0 +1,54 @@
+@inject IProductService Products
+@inject CartState Cart
+@inject WishlistService Wishlist
+@inject NavigationManager Nav
+@inject AppNotificationService Notify
+@page "/product/{Id:int}"
+
+<RadzenRow>
+    <RadzenColumn Size="12" SizeMD="6">
+        <RadzenImage Path="@(_product?.ImageUrl)" Style="width:100%;border-radius:.5rem" />
+    </RadzenColumn>
+    <RadzenColumn Size="12" SizeMD="6">
+        @if (_product is null)
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        }
+        else
+        {
+            <HalalBadge Certified="@_product.IsHalal" />
+            <h2>@_product.Name</h2>
+            <div class="text-muted">SKU: @_product.Sku</div>
+            <h3>@((_product.SalePrice ?? _product.Price).ToString("C"))</h3>
+            <p>@_product.Description</p>
+            <RadzenButton Icon="shopping_cart" Text="Add to Cart" ButtonStyle="ButtonStyle.Primary" Click="@Add" />
+            <RadzenButton Icon="favorite" Text="Wishlist" ButtonStyle="ButtonStyle.Light" Click="@Wish" />
+        }
+    </RadzenColumn>
+</RadzenRow>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Product? _product;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _product = await Products.GetByIdAsync(Id);
+    }
+
+    private void Add()
+    {
+        if (_product is null) return;
+        Cart.AddItem(_product.Id.ToString(), _product.Name, _product.SalePrice ?? _product.Price, "USD");
+        Notify.Success("Added to cart", _product.Name);
+    }
+
+    private void Wish()
+    {
+        if (_product is null) return;
+        var gid = Guid.NewGuid();
+        if (Wishlist.IsInWishlist(gid)) Wishlist.RemoveFromWishlist(gid);
+        else Wishlist.AddToWishlist(gid, _product.Name, _product.Price, "USD");
+        Notify.Info("Wishlist updated", _product.Name);
+    }
+}

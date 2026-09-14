@@ -1,0 +1,104 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="data-card @(Clickable ? "data-card--clickable" : "") @AdditionalClass" @onclick="HandleClick">
+    <div class="data-card__header">
+        @if (HeaderTemplate != null)
+        {
+            @HeaderTemplate
+        }
+        else
+        {
+            <div class="data-card__title">
+                @if (!string.IsNullOrEmpty(Icon))
+                {
+                    <RadzenIcon Icon="@Icon" Style="margin-right:0.5rem;font-size:1.25rem" />
+                }
+                <span>@Title</span>
+            </div>
+            @if (BadgeText != null && BadgeVariant.HasValue)
+            {
+                <RadzenBadge Text="@BadgeText" BadStyle="@GetBadgeStyle(BadgeVariant.Value)" />
+            }
+        }
+    </div>
+    <div class="data-card__body">
+        @if (ValueTemplate != null)
+        {
+            @ValueTemplate
+        }
+        else
+        {
+            <span class="data-card__value">@Value</span>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(Subtitle) || !string.IsNullOrEmpty(Footer))
+    {
+        <div class="data-card__footer">
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <span class="data-card__subtitle">@Subtitle</span>
+            }
+            @if (!string.IsNullOrEmpty(Footer))
+            {
+                <span class="data-card__footer-text">@Footer</span>
+            }
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Change))
+    {
+        <div class="data-card__change @(ChangeStartsWithPositive ? "data-card__change--positive" : "data-card__change--negative")">
+            <RadzenIcon Icon="@(ChangeStartsWithPositive ? "trending_up" : "trending_down")" />
+            <span>@Change</span>
+        </div>
+    }
+    @if (ActionTemplate != null)
+    {
+        <div class="data-card__actions">
+            @ActionTemplate
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Footer { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Change { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Clickable { get; set; } = false;
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public string? BadgeText { get; set; }
+    [Parameter] public CardBadgeStyle? BadgeVariant { get; set; }
+    [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+    [Parameter] public RenderFragment? ValueTemplate { get; set; }
+    [Parameter] public RenderFragment? ActionTemplate { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool ChangeStartsWithPositive => Change is not null && (Change.StartsWith("+") || Change.StartsWith("▲") || Change.StartsWith("↑"));
+
+    private async Task HandleClick()
+    {
+        if (!Clickable) return;
+        if (!string.IsNullOrEmpty(Href))
+        {
+            Nav.NavigateTo(Href);
+        }
+        await OnClick.InvokeAsync();
+    }
+
+    private static BadgeStyle GetBadgeStyle(CardBadgeStyle s) => s switch
+    {
+        CardBadgeStyle.Success => global::Radzen.BadgeStyle.Success,
+        CardBadgeStyle.Warning => global::Radzen.BadgeStyle.Warning,
+        CardBadgeStyle.Danger => global::Radzen.BadgeStyle.Danger,
+        CardBadgeStyle.Info => global::Radzen.BadgeStyle.Info,
+        CardBadgeStyle.Secondary => global::Radzen.BadgeStyle.Secondary,
+        CardBadgeStyle.Light => global::Radzen.BadgeStyle.Light,
+        _ => global::Radzen.BadgeStyle.Primary
+    };
+
+    public enum CardBadgeStyle { Primary, Secondary, Success, Danger, Warning, Info, Light }
+}

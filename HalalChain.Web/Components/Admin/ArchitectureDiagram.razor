@@ -1,0 +1,14 @@
+@if (string.IsNullOrWhiteSpace(Diagram))
+{
+    <p class="text-muted">No architecture diagram available.</p>
+}
+else
+{
+    <div class="po-architecture-diagram">
+        <pre>@Diagram</pre>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Diagram { get; set; }
+}

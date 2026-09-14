@@ -1,0 +1,17 @@
+@inject NavigationManager Nav
+@inject IProductService Products
+
+<RadzenTextBox Placeholder="Search halal products..." @bind-Value="_query" Change="@OnSearch" Style="width:100%" />
+
+@code {
+    private string? _query;
+    [Parameter] public EventCallback<string> OnSearchChanged { get; set; }
+
+    private async Task OnSearch()
+    {
+        if (OnSearchChanged.HasDelegate)
+            await OnSearchChanged.InvokeAsync(_query);
+        else
+            Nav.NavigateTo(_query is null ? "/products" : $"/products?q={Uri.EscapeDataString(_query)}");
+    }
+}

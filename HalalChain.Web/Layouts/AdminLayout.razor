@@ -1,0 +1,172 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IThemeService ThemeService
+@inject IUserContext UserContext
+@inject IAuthService Auth
+@inject NotificationState Notify
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject IJSRuntime JsRuntime
+@inject ILogger<AdminLayout> Logger
+
+<RadzenLayout class="@LayoutClass">
+    <RadzenHeader class="admin-header">
+        <div class="admin-header-inner">
+            <div class="admin-header-left">
+                <RadzenSidebarToggle Click="@(() => _sidebarExpanded = !_sidebarExpanded)" />
+                <RadzenLink Path="/admin" Text="HalalChain Admin" class="admin-brand" />
+            </div>
+
+            <div class="admin-header-center">
+                <RadzenTextBox Placeholder="Search admin..." class="admin-search-box" />
+            </div>
+
+            <div class="admin-header-right">
+                <RadzenButton Icon="notifications" class="admin-notification-btn" ButtonStyle="ButtonStyle.Light" />
+                <RadzenButton Icon="@(ThemeService.CurrentTheme == "dark" ? "light_mode" : "dark_mode")"
+                               Click="@ToggleTheme"
+                               class="admin-theme-btn"
+                               ButtonStyle="ButtonStyle.Light" />
+
+                <div class="admin-user-menu">
+                    <RadzenButton Click="@ToggleProfileMenu" class="admin-profile-btn" ButtonStyle="ButtonStyle.Light">
+                        <Avatar Text="@GetUserInitials()" Size="Avatar.AvatarSize.Small" />
+                        <span class="admin-user-name">@UserContext.UserName</span>
+                        <RadzenIcon Icon="expand_more" />
+                    </RadzenButton>
+                    @if (_profileMenuOpen)
+                    {
+                        <div class="admin-profile-dropdown" @onclick:stopPropagation="true">
+                            <div class="admin-profile-header">
+                                <strong>@UserContext.FullName</strong>
+                                <span class="text-muted">@UserContext.Email</span>
+                            </div>
+                            <div class="admin-profile-divider"></div>
+                            <NavLink href="/admin/profile" class="admin-profile-item" @onclick="() => _profileMenuOpen = false">
+                                <RadzenIcon Icon="account_circle" /> Profile
+                            </NavLink>
+                            <NavLink href="/admin/settings" class="admin-profile-item" @onclick="() => _profileMenuOpen = false">
+                                <RadzenIcon Icon="settings" /> Settings
+                            </NavLink>
+                            <div class="admin-profile-divider"></div>
+                            <button class="admin-profile-item text-danger" @onclick="Logout">
+                                <RadzenIcon Icon="logout" /> Logout
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </RadzenHeader>
+
+    <RadzenSidebar @bind-Expanded="_sidebarExpanded" class="admin-sidebar">
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Path="/admin" Text="Dashboard" Icon="dashboard" Match="NavLinkMatch.All" />
+            <RadzenPanelMenuItem Text="Sales" Icon="shopping_bag">
+                <RadzenPanelMenuItem Path="/admin/orders" Text="Orders" Icon="shopping_bag" />
+                <RadzenPanelMenuItem Path="/admin/returns" Text="Returns" Icon="undo" />
+            </RadzenPanelMenuItem>
+            <RadzenPanelMenuItem Text="Catalog" Icon="inventory_2">
+                <RadzenPanelMenuItem Path="/admin/products" Text="Products" Icon="inventory_2" />
+                <RadzenPanelMenuItem Path="/admin/categories" Text="Categories" Icon="category" />
+                <RadzenPanelMenuItem Path="/admin/brands" Text="Brands" Icon="branding_watermark" />
+            </RadzenPanelMenuItem>
+            <RadzenPanelMenuItem Text="People" Icon="people">
+                <RadzenPanelMenuItem Path="/admin/customers" Text="Customers" Icon="people" />
+                <RadzenPanelMenuItem Path="/admin/vendors" Text="Vendors" Icon="store" />
+            </RadzenPanelMenuItem>
+            <RadzenPanelMenuItem Text="System" Icon="settings">
+                <RadzenPanelMenuItem Path="/admin/verifications" Text="Verifications" Icon="verified" />
+                <RadzenPanelMenuItem Path="/admin/design-system" Text="Design System" Icon="palette" />
+                <RadzenPanelMenuItem Path="/admin/settings" Text="Settings" Icon="settings" />
+            </RadzenPanelMenuItem>
+        </RadzenPanelMenu>
+        <div class="admin-sidebar-footer">
+            <RadzenLink Path="/" Target="blank" class="admin-storefront-link">
+                <RadzenIcon Icon="open_in_new" />
+                <span>View Storefront</span>
+            </RadzenLink>
+        </div>
+    </RadzenSidebar>
+
+    <RadzenBody>
+        <div class="admin-content">
+            @Body
+        </div>
+    </RadzenBody>
+
+    <RadzenFooter>
+        <div class="admin-footer">
+            <span>&copy; @DateTime.UtcNow.Year HalalChain Admin. Powered by Tawheed AI Agents.</span>
+        </div>
+    </RadzenFooter>
+</RadzenLayout>
+
+@code {
+    private bool _sidebarExpanded = true;
+    private bool _profileMenuOpen;
+
+    private string LayoutClass => "admin-layout" + (ThemeService.CurrentTheme == "dark" ? " admin-layout--dark" : "");
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        Notify.OnChange += OnNotifyChanged;
+    }
+
+    private void OnNotifyChanged() => InvokeAsync(StateHasChanged);
+
+    private DotNetObjectReference<AdminLayout>? _themeCallbackRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _themeCallbackRef = DotNetObjectReference.Create(this);
+            try { await JsRuntime.InvokeVoidAsync("registerThemeCallback", _themeCallbackRef); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Failed to register theme callback"); }
+        }
+    }
+
+    [JSInvokable]
+    public void OnNativeThemeChanged(string theme)
+    {
+        try { ThemeService.SetTheme(theme); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Failed to set theme from native callback"); }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetUserInitials()
+    {
+        var name = UserContext.UserName ?? "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+
+    private void ToggleProfileMenu() => _profileMenuOpen = !_profileMenuOpen;
+
+    private void ToggleTheme()
+    {
+        var newTheme = ThemeService.CurrentTheme == "dark" ? "light" : "dark";
+        ThemeService.SetTheme(newTheme);
+    }
+
+    private async Task Logout()
+    {
+        _profileMenuOpen = false;
+        await Auth.LogoutAsync();
+        NotificationService.Notify(NotificationSeverity.Info, "Signed out", "You have been logged out successfully.");
+        Nav.NavigateTo("/", true);
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        Notify.OnChange -= OnNotifyChanged;
+    }
+}

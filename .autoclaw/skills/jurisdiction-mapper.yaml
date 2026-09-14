@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Jurisdiction Mapper Skill
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+name: jurisdiction-mapper
+version: 2.0.0
+description: Maps jurisdiction-specific halal requirements
+type: sync
+timeout: 5s
+
+input:
+  schema:
+    type: object
+    properties:
+      jurisdiction:
+        type: string
+        description: Jurisdiction code
+        enum: [MY, ID, SG, AE, SA, EU, US, CN, IN, UK]
+        required: true
+      product_category:
+        type: string
+        description: Product category
+        required: false
+      ingredients:
+        type: array
+        description: List of ingredients
+        items:
+          type: string
+        required: false
+
+output:
+  schema:
+    type: object
+    properties:
+      jurisdiction:
+        type: string
+      authority:
+        type: string
+      standard:
+        type: string
+      requirements:
+        type: array
+        items:
+          type: string
+      restrictions:
+        type: array
+        items:
+          type: string
+      exceptions:
+        type: array
+        items:
+          type: string
+      certification_required:
+        type: boolean
+      certification_bodies:
+        type: array
+        items:
+          type: object
+      ingredient_restrictions:
+        type: array
+        items:
+          type: string
+      additional_notes:
+        type: string
+      priority:
+        type: integer
+      compliance_required: 
+        type: boolean
+      default_verdict:
+        type: string
+        enum: [HALAL, HARAM, MASHBOOH]
+      links:
+        type: array
+        items:
+          type: string
+
+execution:
+  provider: python
+  source: skills/implementations/jurisdiction_mapper.py
+  entrypoint: map_jurisdiction
+  
+  dependencies:
+    - yaml
+    - json
+
+knowledge_sources:
+  - .autoclaw/kg/jurisdiction_standards.yaml
+
+security:
+  required_permissions: [kg:read]
+  data_classification: level_1
+  input_sanitization: true
+  output_sanitization: true
+
+caching:
+  enabled: true
+  ttl: 86400
+  max_entries: 1000

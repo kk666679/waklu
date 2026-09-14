@@ -1,0 +1,4 @@
+// Fluent base theme — emitted as `wwwroot/css/fluent-base.css`.
+// Each theme file is a single CSS asset so the runtime <link id="radzen-theme-link">
+// can swap variants without reloading the whole bundle.
+@forward "fluent-base";

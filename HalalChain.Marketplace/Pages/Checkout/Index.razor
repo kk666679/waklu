@@ -1,0 +1,138 @@
+@page "/checkout"
+@inject IPlatformApiClient Api
+@inject CartState Cart
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject INotificationService Toast
+@implements IDisposable
+
+<PageTitle>Checkout</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-5);">Checkout</h1>
+
+    @if (!Auth.IsAuthenticated)
+    {
+        <SignedOut Icon="🔒" Title="Sign in to check out" Message="Your cart is secure — please sign in to complete your purchase." ActionText="Sign in" ActionUrl="/account/login?returnUrl=/checkout" />
+    }
+    else if (Cart.Cart == null || Cart.Cart.Items.Length == 0)
+    {
+        <EmptyState Icon="🛒" Title="Your cart is empty" Message="Add products to your cart before checking out." ActionText="Start shopping" ActionUrl="/browse" />
+    }
+    else
+    {
+        var groups = Cart.Cart.Items
+            .GroupBy(i => i.VendorName)
+            .Select(g => new CartVendorGroup(g.Key, g.ToArray(), g.Sum(i => i.UnitPrice * i.Quantity), Cart.Cart.Currency))
+            .ToArray();
+
+        <div class="grid" style="grid-template-columns: minmax(0,1.4fr) 360px; gap: var(--space-5); align-items:start;">
+            <div class="panel card-pad">
+                <h3 style="margin:0 0 var(--space-3);">Delivery address</h3>
+                <EditForm Model="@_form" OnValidSubmit="@Submit">
+                    <DataAnnotationsValidator />
+                    <div class="grid grid-2 gap-3">
+                        <div>
+                            <label class="small muted">First name</label>
+                            <RadzenTextBox @bind-Value="_form.FirstName" Style="width:100%;" />
+                        </div>
+                        <div>
+                            <label class="small muted">Last name</label>
+                            <RadzenTextBox @bind-Value="_form.LastName" Style="width:100%;" />
+                        </div>
+                    </div>
+                    <div style="margin-top: var(--space-3);">
+                        <label class="small muted">Email</label>
+                        <RadzenTextBox @bind-Value="_form.Email" Style="width:100%;" />
+                    </div>
+                    <div style="margin-top: var(--space-3);">
+                        <label class="small muted">Address</label>
+                        <RadzenTextBox @bind-Value="_form.Address" Style="width:100%;" />
+                    </div>
+                    <div class="grid grid-2 gap-3" style="margin-top: var(--space-3);">
+                        <div>
+                            <label class="small muted">City</label>
+                            <RadzenTextBox @bind-Value="_form.City" Style="width:100%;" />
+                        </div>
+                        <div>
+                            <label class="small muted">Postal code</label>
+                            <RadzenTextBox @bind-Value="_form.PostalCode" Style="width:100%;" />
+                        </div>
+                    </div>
+                    <div style="margin-top: var(--space-4);">
+                        <RadzenButton Text="Place order" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" ButtonType="ButtonType.Submit" IsBusy="@_submitting" />
+                    </div>
+                </EditForm>
+            </div>
+
+            <aside class="panel card-pad" style="position:sticky; top: calc(var(--nav-height) + 12px);">
+                <h3 style="margin:0 0 var(--space-3);">Order summary</h3>
+                @foreach (var g in groups)
+                {
+                    <div style="margin-bottom: var(--space-3);">
+                        <strong class="small">@g.VendorName</strong>
+                        @foreach (var item in g.Items)
+                        {
+                            <div class="between small muted" style="margin-top:4px;">
+                                <span>@item.ProductTitle × @item.Quantity</span>
+                                <span>@item.Currency @((item.UnitPrice * item.Quantity).ToString("N2"))</span>
+                            </div>
+                        }
+                    </div>
+                }
+                <hr class="divider" />
+                <div class="between"><span class="muted small">Items (@Cart.ItemCount)</span><span>@Cart.Currency @Cart.Subtotal.ToString("N2")</span></div>
+                <div class="between"><span class="muted small">Shipping</span><span class="badge badge-success">Free</span></div>
+                <hr class="divider" />
+                <div class="between" style="margin-top: var(--space-2);"><strong>Total</strong><strong style="font-size: var(--text-lg);">@Cart.Currency @Cart.Subtotal.ToString("N2")</strong></div>
+            </aside>
+        </div>
+    }
+</section>
+
+@code {
+    private CheckoutForm _form = new();
+    private bool _submitting;
+
+    public class CheckoutForm
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Address { get; set; } = "";
+        public string City { get; set; } = "";
+        public string PostalCode { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Cart.OnChange += OnCartChanged;
+        if (Auth.IsAuthenticated) await Cart.LoadAsync();
+    }
+
+    private void OnCartChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Address) || string.IsNullOrWhiteSpace(_form.City))
+        {
+            Toast.Warning("Please provide a delivery address.");
+            return;
+        }
+        _submitting = true;
+        var shippingAddress = $"{_form.FirstName} {_form.LastName}, {_form.Address}, {_form.City} {_form.PostalCode}, {_form.Email}";
+        var result = await Api.CheckoutAsync(shippingAddress, null);
+        _submitting = false;
+        if (result.IsSuccess && result.Data != null)
+        {
+            Toast.Success("Order placed!");
+            Nav.NavigateTo($"/orders/{result.Data.Id}");
+        }
+        else
+        {
+            Toast.Error(result.Error ?? "Checkout failed. Please try again.");
+        }
+    }
+
+    public void Dispose() => Cart.OnChange -= OnCartChanged;
+}

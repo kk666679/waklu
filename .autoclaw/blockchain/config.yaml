@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Blockchain Configuration
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Blockchain configuration for HalalChain
+
+# ============================================================
+# Network Configuration
+# ============================================================
+networks:
+  mainnet:
+    name: HalalChain Mainnet
+    chain_id: 1
+    rpc_url: https://rpc.halalchain.com
+    ws_url: wss://ws.halalchain.com
+    explorer_url: https://explorer.halalchain.com
+    native_currency: HALAL
+    decimals: 18
+    gas_price: 1000000000
+    gas_limit: 5000000
+
+  testnet:
+    name: HalalChain Testnet
+    chain_id: 1337
+    rpc_url: https://testnet-rpc.halalchain.com
+    ws_url: wss://testnet-ws.halalchain.com
+    explorer_url: https://testnet-explorer.halalchain.com
+    native_currency: tHALAL
+    decimals: 18
+    gas_price: 1000000000
+    gas_limit: 5000000
+
+# ============================================================
+# Contract Addresses
+# ============================================================
+contracts:
+  HalalVerification:
+    mainnet: 0x0000000000000000000000000000000000000001
+    testnet: 0x0000000000000000000000000000000000000001
+
+  CertificateRegistry:
+    mainnet: 0x0000000000000000000000000000000000000002
+    testnet: 0x0000000000000000000000000000000000000002
+
+  SupplyChainTracker:
+    mainnet: 0x0000000000000000000000000000000000000003
+    testnet: 0x0000000000000000000000000000000000000003
+
+  ComplianceAudit:
+    mainnet: 0x0000000000000000000000000000000000000004
+    testnet: 0x0000000000000000000000000000000000000004
+
+  VerificationOracle:
+    mainnet: 0x0000000000000000000000000000000000000005
+    testnet: 0x0000000000000000000000000000000000000005
+
+# ============================================================
+# Transaction Settings
+# ============================================================
+transactions:
+  confirmation_blocks: 12
+  max_retries: 5
+  retry_delay: 5
+  timeout: 120
+
+  gas:
+    min: 1000000
+    max: 5000000
+    multiplier: 1.1
+
+  nonce_management: auto
+
+# ============================================================
+# Event Monitoring
+# ============================================================
+events:
+  enabled: true
+  polling_interval: 3
+  max_events_per_block: 100
+  start_block: 1
+
+  filters:
+    - VerificationRecorded
+    - CertificateIssued
+    - EventRecorded
+    - AuditRecorded
+
+# ============================================================
+# Security
+# ============================================================
+security:
+  private_key_encryption: AES-256-GCM
+  keystore_path: .autoclaw/blockchain/keystore/
+  hsm_enabled: false
+  audit_log: true

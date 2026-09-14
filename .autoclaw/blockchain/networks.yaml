@@ -1,0 +1,107 @@
+# ═══════════════════════════════════════════════════════════════════
+# PROPRIETARY — HalalChain Network Configuration
+# Copyright © HalalChain. All rights reserved.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2.0.0
+description: Network configurations for blockchain interactions
+
+networks:
+  halalchain:
+    name: HalalChain Mainnet
+    chain_id: 1
+    type: evm
+    rpc:
+      - https://rpc.halalchain.com
+      - https://rpc2.halalchain.com
+    ws:
+      - wss://ws.halalchain.com
+    explorer: https://explorer.halalchain.com
+    currency:
+      symbol: HALAL
+      decimals: 18
+    gas:
+      price: 1000000000
+      limit: 5000000
+      max_priority: 100000000
+    block_time: 3
+    confirmations: 12
+
+  halalchain-testnet:
+    name: HalalChain Testnet
+    chain_id: 1337
+    type: evm
+    rpc:
+      - https://testnet-rpc.halalchain.com
+    ws:
+      - wss://testnet-ws.halalchain.com
+    explorer: https://testnet-explorer.halalchain.com
+    currency:
+      symbol: tHALAL
+      decimals: 18
+    gas:
+      price: 1000000000
+      limit: 5000000
+    block_time: 2
+    confirmations: 6
+
+  ethereum:
+    name: Ethereum Mainnet
+    chain_id: 1
+    type: evm
+    rpc:
+      - https://mainnet.infura.io/v3/${INFURA_KEY}
+    explorer: https://etherscan.io
+    currency:
+      symbol: ETH
+      decimals: 18
+    gas:
+      price: auto
+      limit: 5000000
+
+  polygon:
+    name: Polygon Mainnet
+    chain_id: 137
+    type: evm
+    rpc:
+      - https://polygon-rpc.com
+    explorer: https://polygonscan.com
+    currency:
+      symbol: MATIC
+      decimals: 18
+    gas:
+      price: auto
+      limit: 5000000
+
+  bsc:
+    name: BSC Mainnet
+    chain_id: 56
+    type: evm
+    rpc:
+      - https://bsc-dataseed.binance.org
+    explorer: https://bscscan.com
+    currency:
+      symbol: BNB
+      decimals: 18
+    gas:
+      price: auto
+      limit: 5000000
+
+# ============================================================
+# Cross-Chain Configuration
+# ============================================================
+cross_chain:
+  enabled: true
+  bridges:
+    - name: halal-bridge
+      source: halalchain
+      target: ethereum
+      contract: 0x0000000000000000000000000000000000001000
+    - name: halal-bridge-polygon
+      source: halalchain
+      target: polygon
+      contract: 0x0000000000000000000000000000000000001001
+    - name: halal-bridge-bsc
+      source: halalchain
+      target: bsc
+      contract: 0x0000000000000000000000000000000000001002

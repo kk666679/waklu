@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HalalChain Marketplace</title>
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link id="radzen-theme-link" rel="stylesheet" href="css/fluent-base.css" />
+    <link id="radzen-theme-wcag" rel="stylesheet" href="css/fluent-wcag.css" />
+    <base href="~/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('hc-theme');
+          if (t !== 'dark' && t !== 'light') t = 'light';
+          var d = t === 'dark';
+          document.documentElement.classList.toggle('dark-theme', d);
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (_) {}
+      })();
+      (function () {
+        try {
+          var theme = (localStorage.getItem('hc-theme') || 'light').toLowerCase();
+          var variant = theme === 'dark' ? '-dark' : '';
+          var base = document.getElementById('radzen-theme-link');
+          if (base) base.setAttribute('href', 'css/fluent' + variant + '-base.css');
+        } catch (_) {}
+      })();
+    </script>
+</head>
+<body>
+    @RenderBody()
+    <script src="js/site.js"></script>
+    <script src="js/radzen-theme.js"></script>
+    <script src="_framework/blazor.server.js"></script>
+</body>
+</html>

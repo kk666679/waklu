@@ -1,0 +1,19 @@
+@inject IReportService Reports
+
+<RadzenCard class="rz-shadow-1">
+    <h4>Vendor Performance</h4>
+    <RadzenChart>
+        <RadzenBarSeries Data="@_data" CategoryProperty="Name" ValueProperty="Value" Title="Revenue" />
+    </RadzenChart>
+</RadzenCard>
+
+@code {
+    record V(string Name, double Value);
+    private List<V> _data = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var r = await Reports.GetVendorsReportAsync(DateTime.Today.AddMonths(-1), DateTime.Today);
+        _data = r.Breakdowns.Select(kv => new V(kv.Key, (double)kv.Value)).ToList();
+    }
+}

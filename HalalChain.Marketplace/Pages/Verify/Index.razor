@@ -1,0 +1,47 @@
+@page "/verify"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Verify a product</PageTitle>
+
+<section class="container section-sm">
+    <div class="hero" style="background: radial-gradient(120% 140% at 100% 0%, var(--color-brand-700), var(--color-brand-900));">
+        <p class="eyebrow">Trust</p>
+        <h1 style="color:#fff;">Verify a product</h1>
+        <p>Look up any HalalChain product by its ID to see its full certification, on-chain provenance, and trust score.</p>
+        <form @onsubmit="@OnSearch" @onsubmit:preventDefault class="row gap-2" style="margin-top: var(--space-4);">
+            <RadzenTextBox @bind-Value="_query" Placeholder="Enter product ID (e.g. 0b1c5e7a-…) or product name" Style="flex:1; max-width:480px;" />
+            <RadzenButton Text="Verify" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" />
+        </form>
+    </div>
+</section>
+
+@if (_featured?.Length > 0)
+{
+    <section class="container section">
+        <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-4);">Recently verified</h2>
+        <div class="grid grid-products">
+            @foreach (var p in _featured) { <ProductCard Product="p" /> }
+        </div>
+    </section>
+}
+
+@code {
+    private string _query = "";
+    private EnrichedProductDto[]? _featured;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Api.BrowseAsync(new ProductQuery(Status: 1, PageSize: 6));
+        _featured = result.IsSuccess ? result.Data?.Items ?? [] : null;
+    }
+
+    private void OnSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        if (Guid.TryParse(_query, out _))
+            Nav.NavigateTo($"/verify/{_query}");
+        else
+            Nav.NavigateTo($"/browse?search={Uri.EscapeDataString(_query)}");
+    }
+}

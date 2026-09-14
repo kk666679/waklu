@@ -1,0 +1,63 @@
+@using Radzen.Blazor
+
+<div class="order-summary @AdditionalClass">
+    <div class="order-summary__header">
+        <h3 class="order-summary__title font-semibold">Order Summary</h3>
+    </div>
+    <div class="order-summary__items">
+        @if (Items != null && Items.Any())
+        {
+            @foreach (var item in Items)
+            {
+                <div class="order-summary__item">
+                    <div class="order-summary__item-info">
+                        <span class="order-summary__item-name">@item.ProductTitle</span>
+                        <span class="text-sm text-muted">@item.Quantity x @item.Currency @item.UnitPrice.ToString("N2")</span>
+                    </div>
+                    <span class="order-summary__item-price font-medium">@item.Currency @((item.Quantity * item.UnitPrice).ToString("N2"))</span>
+                </div>
+            }
+        }
+    </div>
+    <div class="order-summary__divider"></div>
+    <div class="order-summary__totals">
+        <div class="order-summary__row">
+            <span>Subtotal</span>
+            <span>@Currency @Subtotal.ToString("N2")</span>
+        </div>
+        <div class="order-summary__row">
+            <span>Shipping</span>
+            <span>@(Shipping == 0 ? "Free" : $"{Currency} {Shipping.ToString("N2")}")</span>
+        </div>
+        @if (Discount > 0)
+        {
+            <div class="order-summary__row order-summary__row--discount">
+                <span>Discount</span>
+                <span>-@Currency @Discount.ToString("N2")</span>
+            </div>
+        }
+        <div class="order-summary__row order-summary__row--total">
+            <span class="font-bold">Total</span>
+            <span class="font-bold">@Currency @Total.ToString("N2")</span>
+        </div>
+    </div>
+    @if (ShowPromo)
+    {
+        <div class="order-summary__promo" style="margin-top:var(--space-3)">
+            <RadzenTextBox Placeholder="Promo code" class="w-100" Style="margin-bottom:var(--space-2)" />
+            <RadzenButton Text="Apply" ButtonStyle="ButtonStyle.Secondary" class="w-100" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<OrderItemDto>? Items { get; set; }
+    [Parameter] public string Currency { get; set; } = "MYR";
+    [Parameter] public decimal Shipping { get; set; } = 0;
+    [Parameter] public decimal Discount { get; set; } = 0;
+    [Parameter] public bool ShowPromo { get; set; } = true;
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private decimal Subtotal => Items?.Sum(i => i.Quantity * i.UnitPrice) ?? 0;
+    private decimal Total => Subtotal + Shipping - Discount;
+}

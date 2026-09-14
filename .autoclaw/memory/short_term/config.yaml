@@ -1,0 +1,35 @@
+name: short-term-memory
+version: 2.0.0
+memory_type: short_term
+capacity:
+  max_entries: 1000
+  max_tokens_per_entry: 1000
+  max_total_tokens: 100000
+retention:
+  ttl: 3600
+  max_ttl: 86400
+  min_ttl: 60
+  refresh_on_access: true
+storage:
+  type: hybrid
+  in_memory: true
+  persistence: true
+  database: .autoclaw/memory/agent_memory.db
+  cache_size: 100
+  cache_ttl: 300
+eviction:
+  policy: LRU
+  batch_size: 10
+  priority: [importance, recency]
+compression:
+  enabled: true
+  strategy: summarization
+  threshold: 500
+  target_length: 200
+security:
+  encryption: true
+  access_level: level_2
+  audit: true
+monitoring:
+  enabled: true
+  metrics: [size, hit_rate, miss_rate, eviction_rate, avg_latency]

@@ -1,0 +1,103 @@
+@using Radzen.Blazor
+@inject NavigationManager Nav
+
+<div class="cart-drawer @(IsOpen ? "cart-drawer--open" : "") @AdditionalClass">
+    <div class="cart-drawer__backdrop" @onclick="Close"></div>
+    <div class="cart-drawer__panel">
+        <div class="cart-drawer__header">
+            <h2 class="cart-drawer__title">
+                <RadzenIcon Icon="shopping_bag" Style="margin-right:0.5rem" />
+                Your Cart (@CartState.Count)
+            </h2>
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        </div>
+        <div class="cart-drawer__body">
+            @if (!CartState.Items.Any())
+            {
+                <div class="cart-drawer__empty">
+                    <RadzenIcon Icon="shopping_bag" Style="font-size:3rem;opacity:0.2" />
+                    <p class="text-muted">Your cart is empty</p>
+                    <RadzenButton Text="Continue Shopping" ButtonStyle="ButtonStyle.Primary" Click="@Close" />
+                </div>
+            }
+            else
+            {
+                <div class="cart-drawer__items">
+                    @foreach (var item in CartState.Items)
+                    {
+                        <div class="cart-drawer__item">
+                            <div class="cart-drawer__item-media">
+                                <span style="font-size:1.5rem;color:var(--color-neutral-300)">@item.Title</span>
+                            </div>
+                            <div class="cart-drawer__item-details">
+                                <div class="cart-drawer__item-title">@item.Title</div>
+                                <div class="text-sm text-muted">@item.Currency @item.Price.ToString("N2") each</div>
+                                <div class="cart-drawer__item-controls">
+                                    <RadzenButton Icon="remove" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => UpdateQuantity(item.ProductId, item.Quantity - 1))" Disabled="@(item.Quantity <= 1)" />
+                                    <span class="cart-drawer__item-qty">@item.Quantity</span>
+                                    <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => UpdateQuantity(item.ProductId, item.Quantity + 1))" />
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => RemoveItem(item.ProductId))" />
+                                </div>
+                            </div>
+                            <div class="cart-drawer__item-price">
+                                <span class="font-semibold">@item.Currency @((item.Price * item.Quantity).ToString("N2"))</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        @if (CartState.Items.Any())
+        {
+            <div class="cart-drawer__footer">
+                <div class="cart-drawer__summary">
+                    <div class="cart-drawer__subtotal">
+                        <span>Subtotal</span>
+                        <span class="font-bold">@CartState.Currency @CartState.Subtotal.ToString("N2")</span>
+                    </div>
+                    <p class="text-xs text-muted">Shipping and taxes calculated at checkout</p>
+                </div>
+                <RadzenButton Text="View Cart" ButtonStyle="ButtonStyle.Secondary" class="w-100 mb-2" Click="@ViewCart" />
+                <RadzenButton Text="Checkout" ButtonStyle="ButtonStyle.Primary" class="w-100" Click="@Checkout" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private CartState CartState => cartState ??= GetCartState();
+    [Inject] private CartState? cartState { get; set; }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private void ViewCart() => Nav.NavigateTo("/cart");
+    private void Checkout() => Nav.NavigateTo("/checkout");
+
+    private void UpdateQuantity(string productId, int qty)
+    {
+        CartState.UpdateQuantity(productId, qty);
+        StateHasChanged();
+    }
+
+    private void RemoveItem(string productId)
+    {
+        CartState.RemoveItem(productId);
+        StateHasChanged();
+    }
+
+    private CartState GetCartState()
+    {
+        var serviceProvider = (ServiceProvider)appServices;
+        return serviceProvider.GetRequiredService<CartState>();
+    }
+
+    [Inject] private IServiceProvider appServices { get; set; } = default!;
+}

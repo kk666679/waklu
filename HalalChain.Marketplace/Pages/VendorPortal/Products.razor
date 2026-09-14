@@ -1,0 +1,58 @@
+@page "/vendor/products"
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Products</PageTitle>
+
+<section class="container section-sm">
+    <div class="between" style="margin-bottom: var(--space-4);">
+        <h1 style="font-size: var(--text-2xl); margin:0;">Products</h1>
+        <a class="btn btn-primary btn-sm" href="/vendor/products/new">+ New product</a>
+    </div>
+    @if (_products == null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else
+    {
+        <RadzenDataGrid Data="@_products" TItem="ProductDto" AllowSorting="true" AllowPaging="true" PageSize="20">
+            <Columns>
+                <RadzenDataGridColumn TItem="ProductDto" Property="Title" Title="Product" />
+                <RadzenDataGridColumn TItem="ProductDto" Property="Price" Title="Price" FormatString="{0:N2}" />
+                <RadzenDataGridColumn TItem="ProductDto" Property="Inventory" Title="Stock" />
+                <RadzenDataGridColumn TItem="ProductDto" Property="HalalStatus.Status" Title="Status" />
+                <RadzenDataGridColumn TItem="ProductDto" Title="Actions" Sortable="false" Width="280px">
+                    <Template Context="p">
+                        <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id">Edit</a>
+                        <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id/certificate">Certificate</a>
+                        <a class="btn btn-ghost btn-sm" href="/vendor/products/@p.Id/verification">Verify</a>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+</section>
+
+@code {
+    [Parameter, SupplyParameterFromQuery] public Guid? v { get; set; }
+    private ProductDto[]? _products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vendor = await ResolveVendor(v);
+        if (vendor == null) return;
+        var products = await Api.GetVendorProductsAsync(vendor.Slug ?? vendor.Name, 1, 200);
+        _products = products.IsSuccess && products.Data != null ? products.Data.Items : Array.Empty<ProductDto>();
+    }
+
+    private async Task<VendorDto?> ResolveVendor(Guid? vendorId)
+    {
+        if (vendorId.HasValue)
+        {
+            var r = await Api.GetVendorAsync(vendorId.Value);
+            if (r.IsSuccess && r.Data != null) return r.Data;
+        }
+        var all = await Api.GetVendorsAsync();
+        return all.IsSuccess && all.Data?.Length > 0 ? all.Data[0] : null;
+    }
+}
