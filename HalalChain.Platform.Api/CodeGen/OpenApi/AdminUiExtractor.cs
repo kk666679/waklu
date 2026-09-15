@@ -94,7 +94,11 @@ public sealed class AdminUiExtractor
         var schema = op.Responses
             .FirstOrDefault(r => r.Key.StartsWith("200"))
             .Value?.Content?.FirstOrDefault().Value?.Schema;
-        return schema?.Reference is not null or schema?.Items?.Reference is not null;
+
+        if (schema is null) return false;
+        if (schema.Reference is not null) return true;
+        if (schema.Items is not null && schema.Items.Reference is not null) return true;
+        return false;
     }
 
     private static string DeriveDisplayName(string path)
