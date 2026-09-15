@@ -1,0 +1,32 @@
+groups:
+  - name: logs
+    rules:
+      - alert: LogErrorSpike
+        expr: |
+          sum by (service_name) (
+            rate({env="prod"} |= "level=error" [5m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service_name }} error rate > 10/s"
+
+      - alert: LogPanicDetected
+        expr: |
+          sum by (service_name) (
+            count_over_time({env="prod"} |~ "panic|OutOfMemory|StackOverflow" [5m])
+          ) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service_name }} panic detected"
+
+      - alert: SecurityAuditFailure
+        expr: |
+          sum(rate({env="prod"} | json | event_type="audit_failure" [5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Audit chain validation failure"
