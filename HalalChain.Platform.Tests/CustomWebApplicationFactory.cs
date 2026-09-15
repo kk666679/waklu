@@ -6,10 +6,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebToken;
 using HalalChain.Domain.Catalog;
 using HalalChain.Domain.Vendors;
 using HalalChain.Platform.Api.Persistence;
@@ -181,7 +181,8 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, name)
+            new Claim(ClaimTypes.Name, name),
+            new(JwtRegisteredClaimNames.Sub, name),
         };
 
         if (Request.Headers.TryGetValue(RolesHeader, out var rolesHeader))
