@@ -1,0 +1,20 @@
+@inherits ComponentBase
+
+@if (_hasContent)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string Flag { get; set; } = null!;
+    [Parameter] public RenderFragment ChildContent { get; set; } = null!;
+    [Parameter] public RenderFragment? Fallback { get; set; }
+    [Inject] public required HalalChain.Platform.Http.Abstractions.IFeatureFlag FeatureFlag { get; set; }
+
+    private bool _hasContent;
+
+    protected override void OnInitialized()
+    {
+        _hasContent = FeatureFlag.IsEnabled(Flag);
+    }
+}

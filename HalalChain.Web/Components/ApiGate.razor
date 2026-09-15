@@ -1,0 +1,28 @@
+@using HalalChain.Web.Infrastructure
+@inherits ComponentBase
+@typeparam TData
+
+@if (IsLoading)
+{
+    <div class="api-gate-loading">
+        <Radzen.Blazor.RadzenProgressBar />
+    </div>
+}
+else if (Error is not null)
+{
+    <div class="alert alert-danger api-gate-error">
+        <Radzen.Blazor.RadzenIcon IconName="error" Style="margin-right: 4px;" />
+        @Error
+    </div>
+}
+else
+{
+    @ChildContent(Data)
+}
+
+@code {
+    [Parameter] public TData? Data { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public RenderFragment<TData?> ChildContent { get; set; } = null!;
+}

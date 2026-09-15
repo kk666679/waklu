@@ -2,9 +2,10 @@ using HalalChain.AppServices;
 using HalalChain.Localization;
 using HalalChain.Realtime;
 using HalalChain.Services;
+using HalalChain.Web.Infrastructure;
 using HalalChain.Platform.Contracts.Auth;
+using HalalChain.Platform.Http.Abstractions;
 using HalalChain.Platform.Http.Extensions;
-using HalalChain.Platform.Http.Services;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.IdentityModel.Tokens;
@@ -45,6 +46,11 @@ public class Program
             client.BaseAddress = new Uri(platformApiBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // Shared API client with resilience, correlation ID & feature flags
+        builder.Services.AddHalalChainApiClient(builder.Configuration);
+        builder.Services.AddScoped<IApiNotifier, WebApiNotifier>();
+        builder.Services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
 
         // Shared Platform API transport (sender + typed HttpClient + token
         // accessor). The Blazor token accessor reads the token from the
