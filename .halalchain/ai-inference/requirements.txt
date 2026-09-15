@@ -41,3 +41,8 @@ python-dotenv==1.0.1
 # ── Observability ────────────────────────────────────────────────────────
 structlog==25.1.0
 prometheus-client==0.21.1
+opentelemetry-api==1.29.0
+opentelemetry-sdk==1.29.0
+opentelemetry-exporter-otlp==1.29.0
+python-json-logger==4.0.0
+prometheus-fastapi-instrumentator==7.0.0

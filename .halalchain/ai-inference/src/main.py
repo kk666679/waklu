@@ -15,12 +15,21 @@ from .reranker import rerank
 from .ingredient_parser import parse_and_summarize
 from .certificate_extractor import extract_certificate
 from .auth import verify_api_key, ensure_auth_configured
-from .metrics import record_request, record_duration, record_cache_hit, record_cache_miss, get_metrics
+from .observability import (
+    init_tracing, setup_logging, get_metrics,
+    measure_request, record_llm_tokens, record_cache_hit, record_cache_miss,
+)
 from .llm import get_llm_provider
 from .vector_store import get_vector_store
 from .document_processor import processor
 
+setup_logging()
 logger = logging.getLogger(__name__)
+
+# Initialize OpenTelemetry tracing if endpoint is configured
+otel_endpoint = settings.otlp_endpoint if hasattr(settings, 'otlp_endpoint') else None
+if otel_endpoint:
+    init_tracing(service_name="ai-inference", endpoint=otel_endpoint)
 
 
 HARAM_LABELS = {"halal", "haram", "mashbooh", "unknown"}
