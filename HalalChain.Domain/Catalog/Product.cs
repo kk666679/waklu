@@ -40,6 +40,7 @@ public sealed class Product
     public List<HalalVerification> Verifications { get; set; } = [];
     public List<Commerce.CartItem> CartItems { get; set; } = [];
     public List<Commerce.OrderItem> OrderItems { get; set; } = [];
+    public List<Commerce.WishlistItem> WishlistItems { get; set; } = [];
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
