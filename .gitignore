@@ -139,3 +139,4 @@ tmp_*/
 # Build output for generated SCSS/CSS
 wwwroot/css/*.scss.map
 tmp_test/scss-build.manifest.json
+/HalalChain.Platform.Api/obj/openapi/

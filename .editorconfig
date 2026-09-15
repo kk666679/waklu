@@ -58,3 +58,13 @@ indent_size = 4
 
 [*.sln]
 indent_style = tab
+
+[HalalChain.Web/Components/Admin/Generated/**.razor]
+generated_code = true
+
+[HalalChain.Marketplace/Components/Shared/*.razor]
+indent_size = 2
+
+# Generated code — suppress warnings
+[HalalChain.Web/Components/Admin/Generated/**/*.{razor,cs}]
+generated_code = true
