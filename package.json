@@ -15,6 +15,8 @@
   ],
   "scripts": {
     "halalchain:cli": "npm run dev -w HalalChain-Cli",
+    "ai:dev": "cd .halalchain/_shared && python3.12 -m pip install --break-system-packages -e . && cd ../ai-inference && python3.12 -m pip install --break-system-packages -r requirements.txt && python3.12 -m pip install --break-system-packages -e . && AI_GATEWAY_DEV_AUTH_BYPASS=true python3.12 -m uvicorn src.main:app --host 0.0.0.0 --port 7071 --reload",
+    "tawheed:dev": "cd .halalchain/_shared && python3.12 -m pip install --break-system-packages -e . && cd ../tawheed && python3.12 -m pip install --break-system-packages -r requirements.txt && python3.12 -m pip install --break-system-packages -e . && python3.12 -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload",
     "scss:build": "node scripts/build-scss.mjs",
     "scss:watch": "node scripts/watch-scss.mjs",
     "test": "node --test HalalChain-Cli/test/store.test.mjs HalalChain-Cli/test/commands.test.mjs",
