@@ -1,0 +1,92 @@
+groups:
+  - name: infra
+    interval: 30s
+    rules:
+      - alert: Postgres_Down
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/postgres-down.md
+        annotations:
+          summary: "PostgreSQL is unreachable"
+
+      - alert: Postgres_HighConnections
+        expr: |
+          sum(pg_stat_activity_count) by (datname)
+          / max(pg_settings_max_connections) by (datname) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/postgres-connections.md
+        annotations:
+          summary: "PostgreSQL connection usage > 80%"
+
+      - alert: Postgres_SlowQueries
+        expr: |
+          rate(pg_stat_statements_mean_time_seconds_sum[5m])
+          /
+          rate(pg_stat_statements_mean_time_seconds_count[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/postgres-slow-queries.md
+        annotations:
+          summary: "PostgreSQL slow queries detected"
+
+      - alert: Redis_MemoryPressure
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/redis-memory.md
+        annotations:
+          summary: "Redis memory usage > 85%"
+
+      - alert: Redis_EvictionRate_High
+        expr: rate(redis_evicted_keys_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/redis-evictions.md
+        annotations:
+          summary: "Redis evicting keys > 100/s"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/disk-space.md
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} on {{ $labels.instance }} < 15%"
+
+      - alert: OutboxLag_High
+        expr: outbox:lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/outbox-lag.md
+        annotations:
+          summary: "Outbox lag > 60s"
+
+      - alert: OutboxDeadLetter_Growth
+        expr: increase(outbox_dead_lettered_total[1h]) > 5
+        labels:
+          severity: warning
+          runbook: docs/runbooks/outbox-dead-letter.md
+        annotations:
+          summary: "Outbox dead-letter growth > 5/hr"
+
+      - alert: OtelCollector_RefusingData
+        expr: |
+          rate(otelcol_receiver_refused_spans_total[5m]) > 0
+          or
+          rate(otelcol_receiver_refused_metric_points_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/otel-refusing.md
+        annotations:
+          summary: "OTel collector refusing data"

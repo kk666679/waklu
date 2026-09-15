@@ -1,0 +1,48 @@
+groups:
+  - name: slo-tawheed
+    interval: 30s
+    rules:
+      - alert: Tawheed_ServiceDown
+        expr: up{job="tawheed"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/service-down.md
+        annotations:
+          summary: "tawheed is unreachable"
+          description: "Prometheus cannot scrape tawheed for 1 minute."
+
+      - alert: Tawheed_VerdictLatencyP95_High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(tawheed_verdict_latency_ms_bucket[5m]))
+          ) > 1500
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/tawheed-latency.md
+        annotations:
+          summary: "tawheed P95 verdict latency > 1.5s"
+
+      - alert: Tawheed_EvidenceFetchErrors
+        expr: |
+          sum(rate(tawheed_evidence_errors_total[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/tawheed-evidence-errors.md
+        annotations:
+          summary: "tawheed evidence collection failing > 1/s"
+
+      - alert: Tawheed_DeterminismViolation
+        expr: |
+          increase(tawheed_determinism_violation_total[1h]) > 0
+        labels:
+          severity: critical
+          runbook: docs/runbooks/determinism-violation.md
+        annotations:
+          summary: "Tawheed produced non-deterministic verdicts"
+          description: |
+            The Policy Engine is designed to be deterministic.
+            Any increase in this counter means the same evidence produced
+            different verdicts. This is a P0 incident.

@@ -1,0 +1,48 @@
+groups:
+  - name: slo-ai-inference
+    interval: 30s
+    rules:
+      - alert: AiInference_ServiceDown
+        expr: up{job="ai-inference"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/service-down.md
+        annotations:
+          summary: "ai-inference is unreachable"
+
+      - alert: AiInference_LlmLatency_High
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, endpoint) (
+              rate(ai_inference_request_duration_seconds_bucket{endpoint=~"/llm.*"}[5m])
+            )
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/llm-latency.md
+        annotations:
+          summary: "ai-inference /llm* P95 latency > 30s"
+
+      - alert: AiInference_ErrorRate_High
+        expr: |
+          sum(rate(ai_inference_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(ai_inference_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/ai-inference-errors.md
+        annotations:
+          summary: "ai-inference error rate > 5%"
+
+      - alert: AiInference_GpuMemoryPressure
+        expr: |
+          nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/gpu-memory.md
+        annotations:
+          summary: "ai-inference GPU memory > 90%"

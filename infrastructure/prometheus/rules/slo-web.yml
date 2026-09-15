@@ -1,0 +1,46 @@
+groups:
+  - name: slo-web
+    interval: 30s
+    rules:
+      - alert: Web_SignalRConnectionDrop
+        expr: |
+          sum(rate(signalr_connections_dropped_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/signalr-drops.md
+        annotations:
+          summary: "Web SignalR connection drop rate > 10/s"
+
+      - alert: Web_HighClientErrorRate
+        expr: |
+          sum(rate(api_client_errors_total{code!~"client\\.cancelled"}[5m]))
+          /
+          sum(rate(api_client_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/web-client-errors.md
+        annotations:
+          summary: "Web client error rate > 5%"
+
+      - alert: Web_CircuitBreakerOpen
+        expr: max(api_client_circuit_breaker_state{state="open"}) > 0
+        for: 1m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/circuit-breaker.md
+        annotations:
+          summary: "Web circuit breaker is open"
+
+      - alert: Web_HighApiLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(api_client_latency_ms_bucket[5m]))
+          ) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          runbook: docs/runbooks/web-api-latency.md
+        annotations:
+          summary: "Web client API P95 latency > 1000ms"
