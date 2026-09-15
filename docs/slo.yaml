@@ -1,0 +1,47 @@
+slos:
+  - name: platform-api-availability
+    service: platform-api
+    sli:
+      ratio: |
+        sum(rate(http_server_request_duration_seconds_count{service="platform-api",http_response_status_code!~"5..",route!~"/(health|metrics).*"}[5m]))
+        / sum(rate(http_server_request_duration_seconds_count{service="platform-api",route!~"/(health|metrics).*"}[5m]))
+    target: 0.999
+    window: 30d
+    burn_rate_alerts:
+      - { window: 5m, factor: 14.4, severity: critical }
+      - { window: 1h, factor: 14.4, severity: critical }
+      - { window: 30m, factor: 6, severity: warning }
+      - { window: 6h, factor: 6, severity: warning }
+
+  - name: platform-api-latency
+    service: platform-api
+    sli:
+      p95: |
+        histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service="platform-api"}[5m])))
+    target: 0.5  # seconds
+    window: 30d
+
+  - name: tawheed-availability
+    service: tawheed
+    sli:
+      ratio: |
+        sum(rate(tawheed_requests_total{status!~"5.."}[5m]))
+        / sum(rate(tawheed_requests_total[5m]))
+    target: 0.999
+    window: 30d
+
+  - name: tawheed-verdict-latency
+    service: tawheed
+    sli:
+      p95: |
+        histogram_quantile(0.95, sum by (le) (rate(tawheed_verdict_latency_ms_bucket[5m])))
+    target: 1500  # ms
+    window: 30d
+
+  - name: tawheed-determinism
+    service: tawheed
+    sli:
+      ratio: |
+        increase(tawheed_determinism_violation_total[30d])
+    target: 0  # zero tolerance
+    window: 30d
