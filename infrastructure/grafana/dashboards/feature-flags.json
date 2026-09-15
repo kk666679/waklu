@@ -1,0 +1,27 @@
+{
+  "title": "Feature Flags & Rollouts",
+  "uid": "feature-flags",
+  "tags": ["halalchain", "infra", "flags"],
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Active Feature Flags",
+      "targets": [{
+        "expr": "feature_flag_enabled",
+        "format": "table",
+        "instant": true
+      }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "API vs Memory Backend Usage",
+      "targets": [{
+        "expr": "sum by (service, backend) (rate(service_backend_requests_total[5m]))",
+        "legendFormat": "{{ service }} -> {{ backend }}"
+      }]
+    }
+  ]
+}

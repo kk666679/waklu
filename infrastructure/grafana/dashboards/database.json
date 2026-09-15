@@ -1,0 +1,58 @@
+{
+  "title": "Database Health",
+  "uid": "database",
+  "tags": ["halalchain", "infra", "postgres", "redis"],
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Postgres Up",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "pg_up" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.5 }] }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Postgres Connection Usage",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(pg_stat_activity_count) by (datname) / max(pg_settings_max_connections) by (datname)",
+        "legendFormat": "{{ datname }}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Redis Memory Usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "redis_memory_used_bytes / redis_memory_max_bytes",
+        "legendFormat": "memory ratio"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Redis Eviction Rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "rate(redis_evicted_keys_total[5m])",
+        "legendFormat": "evictions/s"
+      }]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "title": "Circuit Breakers",
+  "uid": "circuit-breakers",
+  "tags": ["halalchain", "infra", "resilience"],
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "state-timeline",
+      "title": "Circuit Breaker State",
+      "targets": [{
+        "expr": "api_client_circuit_breaker_state",
+        "legendFormat": "{{ target }} ({{ state }})"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{
+            "type": "value",
+            "options": {
+              "0": { "text": "Closed", "color": "green" },
+              "1": { "text": "Half-Open", "color": "yellow" },
+              "2": { "text": "Open", "color": "red" }
+            }
+          }]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Circuit Breaker Transitions",
+      "targets": [{ "expr": "increase(api_client_circuit_breaker_transitions_total[5m])", "legendFormat": "{{ target }} -> {{ state }}" }]
+    }
+  ]
+}

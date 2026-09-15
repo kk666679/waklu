@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: 'HalalChain Observability Dashboards'
+    folder: 'Observability'
+    options:
+      path: /var/lib/grafana/dashboards
+    disableDelete: false
+    editable: true
+    updateIntervalSeconds: 30

@@ -1,0 +1,72 @@
+{
+  "title": "Platform API SLO",
+  "uid": "api-slo",
+  "tags": ["halalchain", "slo"],
+  "refresh": "1m",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "gauge",
+      "title": "Availability (30d)",
+      "targets": [{ "expr": "1 - (sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\",http_response_status_code=~\"5..\"}[30d])) / sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\"}[30d])))" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.99,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.999 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error Budget Burn Rate",
+      "targets": [
+        { "expr": "(sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\",http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\"}[5m]))) / (1 - 0.999)", "legendFormat": "5m burn rate" },
+        { "expr": "(sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\",http_response_status_code=~\"5..\"}[1h])) / sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\"}[1h]))) / (1 - 0.999)", "legendFormat": "1h burn rate" },
+        { "expr": "(sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\",http_response_status_code=~\"5..\"}[6h])) / sum(rate(http_server_request_duration_seconds_count{service=\"platform-api\"}[6h]))) / (1 - 0.999)", "legendFormat": "6h burn rate" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 6 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Top Routes by Error Rate",
+      "targets": [{
+        "expr": "topk(20, sum by (route) (rate(http_server_request_duration_seconds_count{service=\"platform-api\",http_response_status_code=~\"5..\"}[5m])) / sum by (route) (rate(http_server_request_duration_seconds_count{service=\"platform-api\"}[5m])))",
+        "format": "table",
+        "instant": true
+      }],
+      "transformations": [{ "id": "organize", "options": { "excludeByName": { "Time": true } } }]
+    },
+    {
+      "id": 4,
+      "type": "heatmap",
+      "title": "Latency Heatmap",
+      "targets": [{
+        "expr": "sum by (le) (rate(http_server_request_duration_seconds_bucket{service=\"platform-api\"}[5m]))",
+        "format": "heatmap"
+      }],
+      "options": { "calculate": false, "yAxis": { "unit": "s" } }
+    }
+  ]
+}

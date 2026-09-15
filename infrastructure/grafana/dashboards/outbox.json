@@ -1,0 +1,33 @@
+{
+  "title": "Outbox & Event Bus",
+  "uid": "outbox",
+  "tags": ["halalchain", "infra", "outbox"],
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Outbox Pending Count",
+      "targets": [{ "expr": "outbox:pending_count", "legendFormat": "{{ instance }}" }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Outbox Lag (seconds)",
+      "targets": [{ "expr": "outbox:lag_seconds", "legendFormat": "{{ instance }}" }],
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 60 } ] } } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Dead-lettered (24h)",
+      "targets": [{ "expr": "increase(outbox_dead_lettered_total[24h])" }]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Dispatched Events by Type",
+      "targets": [{ "expr": "sum by (type) (rate(outbox_dispatched_total[5m]))", "legendFormat": "{{ type }}" }]
+    }
+  ]
+}

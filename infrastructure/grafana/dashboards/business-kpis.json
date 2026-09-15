@@ -1,0 +1,59 @@
+{
+  "title": "Business KPIs",
+  "uid": "business-kpis",
+  "tags": ["halalchain", "business"],
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Orders Created (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "biz:orders_created:rate1h * 3600", "legendFormat": "orders/hr" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Verifications Completed (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "biz:verifications_completed:rate1h * 3600", "legendFormat": "verifications/hr" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "GMV (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "biz:gmv:rate1h * 3600", "legendFormat": "GMV/hr" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Verdict Breakdown",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum by (verdict) (rate(tawheed_verdicts_total[5m]))",
+        "legendFormat": "{{ verdict }}"
+      }]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Order Value Distribution",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(halalchain_orders_total_value_usd[5m]))",
+        "legendFormat": "order value/s"
+      }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "title": "Web UX & Client",
+  "uid": "web-ux",
+  "tags": ["halalchain", "web", "blazor"],
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Client API Request Rate",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum by (route) (rate(api_client_requests_total[5m]))",
+        "legendFormat": "{{ route }}"
+      }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Client Error Rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum by (code) (rate(api_client_errors_total[5m])) / sum by (code) (rate(api_client_requests_total[5m]))",
+        "legendFormat": "{{ code }}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Client API P95 Latency",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(api_client_latency_ms_bucket[5m])))",
+        "legendFormat": "P95"
+      }],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "SignalR Connections",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum by (hub) (rate(signalr_connections_dropped_total[5m]))",
+        "legendFormat": "{{ hub }}"
+      }]
+    }
+  ]
+}

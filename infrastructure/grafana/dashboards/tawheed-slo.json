@@ -1,0 +1,57 @@
+{
+  "title": "Tawheed SLO",
+  "uid": "tawheed-slo",
+  "tags": ["halalchain", "slo", "tawheed"],
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Determinism Violations (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "increase(tawheed_determinism_violation_total[24h])" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0 }] }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Verdict Latency P95",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(tawheed_verdict_latency_ms_bucket[5m])))",
+        "legendFormat": "P95"
+      }],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Verdict Breakdown",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum by (verdict) (rate(tawheed_verdicts_total[5m]))",
+        "legendFormat": "{{ verdict }}"
+      }]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Evidence Fetch Errors",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(tawheed_evidence_errors_total[5m]))",
+        "legendFormat": "errors/s"
+      }]
+    }
+  ]
+}
