@@ -14,6 +14,8 @@ global using HalalChain.Domain.Halal;
 global using HalalChain.Domain.Vendors;
 global using FluentValidation;
 global using MediatR;
+global using HalalChain.Application.Common.Abstractions;
+global using HalalChain.Application.Common.Exceptions;
 global using HalalChain.Application.Catalog.Handlers;
 global using HalalChain.Application.Catalog.Validators;
 global using HalalChain.Application.Common.Behaviors;

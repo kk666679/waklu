@@ -28,6 +28,7 @@ public sealed class HalalChainDbContext : DbContext
     public DbSet<Domain.Commerce.VendorOrder> VendorOrders => Set<Domain.Commerce.VendorOrder>();
     public DbSet<Domain.Commerce.OrderItem> OrderItems => Set<Domain.Commerce.OrderItem>();
     public DbSet<Domain.Commerce.CartItem> CartItems => Set<Domain.Commerce.CartItem>();
+    public DbSet<Domain.Commerce.WishlistItem> WishlistItems => Set<Domain.Commerce.WishlistItem>();
     public DbSet<Domain.Catalog.ProductEmbedding> ProductEmbeddings => Set<Domain.Catalog.ProductEmbedding>();
     public DbSet<Domain.Common.OutboxMessage> OutboxMessages => Set<Domain.Common.OutboxMessage>();
 
@@ -302,6 +303,17 @@ public sealed class HalalChainDbContext : DbContext
             e.HasOne(ci => ci.Product)
              .WithMany(p => p.CartItems)
              .HasForeignKey(ci => ci.ProductId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── WishlistItem ────────────────────────────────────────────────
+        modelBuilder.Entity<Domain.Commerce.WishlistItem>(e =>
+        {
+            e.HasKey(wi => wi.Id);
+            e.HasIndex(wi => new { wi.CustomerId, wi.ProductId }).IsUnique();
+            e.HasOne(wi => wi.Product)
+             .WithMany(p => p.WishlistItems)
+             .HasForeignKey(wi => wi.ProductId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

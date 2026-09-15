@@ -18,7 +18,8 @@ namespace HalalChain.Platform.Api.Modules.Halal;
 public sealed class HalalController(
     HalalChainDbContext db,
     IEventBus eventBus,
-    ITawheedClient tawheed) : ControllerBase
+    ITawheedClient tawheed,
+    ICurrentUser user) : ControllerBase
 {
     [HttpPost("products/{productId:guid}/certificates")]
     [Authorize(Roles = $"{AuthConstants.RoleVendor},{AuthConstants.RoleAdmin}")]
@@ -31,7 +32,8 @@ public sealed class HalalController(
         var product = await db.Products.FindAsync([productId], ct);
         if (product is null) return NotFound(new ErrorResponse("PRODUCT_NOT_FOUND", $"Product {productId} not found."));
 
-        var subjectId = Guid.TryParse(User.Identity?.Name, out var g) ? g : Guid.Empty;
+        // The caller's Guid identity from the JWT sub claim.
+        var subjectId = user.RequireUserId();
         if (product.VendorId != subjectId && !User.IsInRole(AuthConstants.RoleAdmin))
             return Forbid();
 

@@ -15,9 +15,9 @@ namespace HalalChain.Platform.Api.Modules.Commerce;
 [Route("api/v1/commerce")]
 [Authorize(Roles = AuthConstants.RoleMarketplaceUser)]
 [ApiVersion("1.0")]
-public sealed class CommerceController(HalalChainDbContext db, IEventBus eventBus) : ControllerBase
+public sealed class CommerceController(HalalChainDbContext db, IEventBus eventBus, ICurrentUser user) : ControllerBase
 {
-    private string CustomerId => User.Identity?.Name ?? "";
+    private Guid CustomerId => user.RequireUserId();
 
     [HttpGet("cart")]
     public async Task<ActionResult<CartDto>> GetCart(CancellationToken ct)

@@ -15,7 +15,7 @@ namespace HalalChain.Platform.Api.Modules.Catalog;
 [Route("api/v1/catalog")]
 [Authorize]
 [ApiVersion("1.0")]
-public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus) : ControllerBase
+public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus, ICurrentUser user) : ControllerBase
 {
     [HttpGet("products")]
     [AllowAnonymous]
@@ -119,7 +119,7 @@ public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus
         {
             Id = Guid.NewGuid(), Title = request.Title, Slug = request.Title.ToLowerInvariant().Replace(" ", "-"),
             Description = request.Description, CategoryId = request.CategoryId,
-            VendorId = Guid.Parse(User.Identity?.Name ?? throw new InvalidOperationException()),
+            VendorId = user.RequireUserId(),
             Origin = request.Origin, Price = request.Price, Currency = request.Currency, Inventory = request.Inventory,
         };
 

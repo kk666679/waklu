@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
+using HalalChain.Platform.Api.Modules.Auth;
 using HalalChain.Platform.Api.Modules.Blockchain;
 using HalalChain.Platform.Api.Modules.Indexer;
 using HalalChain.Platform.Api.Modules.Ipfs;
@@ -141,13 +142,18 @@ builder.Services
             ValidateAudience = true,
             ValidAudience = jwtSettings.Audience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(2),
+            ClockSkew = TimeSpan.FromSeconds(30),
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = signingKey,
-            NameClaimType = System.Security.Claims.ClaimTypes.Name,
+            NameClaimType = JwtRegisteredClaimNames.Sub,
             RoleClaimType = AuthConstants.RoleClaimType
         };
     });
+
+builder.Services.AddScoped<ICurrentUser, HalalChain.Platform.Api.Infrastructure.Security.HttpContextCurrentUser>();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ITokenService, HalalChain.Platform.Api.Modules.Auth.TokenService>();
 
 // ── AI Inference client ───────────────────────────────────────────────────
 builder.Services.AddHttpClient("AiInference", (sp, client) =>
@@ -253,10 +259,10 @@ else
 }
 
 // IPFS storage (provider-pluggable; default kubo-local in dev, pinata in prod)
+builder.Services.AddSingleton<ContentValidator>();
 if (!string.IsNullOrWhiteSpace(builder.Configuration["IPFS:KuboApiUrl"]) ||
     !string.IsNullOrWhiteSpace(builder.Configuration["IPFS:PinataJwt"]))
 {
-    builder.Services.AddSingleton<ContentValidator>();
     var provider = builder.Configuration["IPFS:Provider"] ?? "kubo-local";
     if (string.Equals(provider, "pinata", StringComparison.OrdinalIgnoreCase))
     {
@@ -267,6 +273,11 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["IPFS:KuboApiUrl"]) ||
         builder.Services.AddHttpClient<IStorageService, LocalKuboStorageService>();
     }
     Console.WriteLine($"[startup] IPFS module enabled (provider: {provider}).");
+}
+else
+{
+    builder.Services.AddSingleton<IStorageService, LocalFileStorageService>();
+    Console.WriteLine("[startup] IPFS module running on local fallback (no provider configured).");
 }
 
 var app = builder.Build();

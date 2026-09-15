@@ -63,5 +63,5 @@ public sealed record ProductUpdatedEvent(Guid ProductId, string Title);
 public sealed record CertificateSubmittedEvent(Guid ProductId, Guid CertificateId, string CertificateNumber);
 public sealed record HalalVerificationRequestedEvent(Guid ProductId, Guid VerificationId);
 public sealed record HalalVerificationCompletedEvent(Guid ProductId, Guid VerificationId, string ComplianceStatus, bool RequiresHumanReview);
-public sealed record OrderPlacedEvent(Guid OrderId, string CustomerId, decimal Total, string Currency);
+public sealed record OrderPlacedEvent(Guid OrderId, Guid CustomerId, decimal Total, string Currency);
 public sealed record VendorApprovedEvent(Guid VendorId, string VendorName);

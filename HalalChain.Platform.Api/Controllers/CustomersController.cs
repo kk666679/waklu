@@ -17,8 +17,8 @@ public sealed class CustomersController(HalalChainDbContext db) : ControllerBase
         var customers = await db.Orders
             .GroupBy(o => o.CustomerId)
             .Select(g => new CustomerDto(
-                Guid.Parse(g.Key),
                 g.Key,
+                g.Key.ToString(),
                 g.Key + "@example.com",
                 g.Count(),
                 g.Sum(o => o.Total),

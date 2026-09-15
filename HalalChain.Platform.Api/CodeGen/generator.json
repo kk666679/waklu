@@ -1,0 +1,40 @@
+{
+  "$schema": "./generator.schema.json",
+  "version": "1.0",
+  "openApiPath": "obj/openapi/v1.json",
+  "outputRoot": "../HalalChain.Web/Components/Admin/Generated",
+  "namespace": "HalalChain.Web.Components.Admin.Generated",
+  "routePrefix": "/admin/generated",
+  "stripRoutePrefixes": ["/api/v1/admin", "/api/v1"],
+  "templates": {
+    "list": "Templates/List.razor.tpl",
+    "form": "Templates/Form.razor.tpl",
+    "detail": "Templates/Detail.razor.tpl",
+    "nav": "Templates/NavFragment.razor.tpl"
+  },
+  "globalUsing": [
+    "@using HalalChain.Platform.Http.Abstractions",
+    "@using HalalChain.Platform.Http.Models",
+    "@using HalalChain.Web.Components.Shared",
+    "@using Radzen",
+    "@using Radzen.Blazor"
+  ],
+  "diagnostics": {
+    "emitSourceMap": true,
+    "failOnWarning": true
+  },
+  "overrides": {
+    "Products": {
+      "listPage": "HalalChain.Web/Components/Admin/Catalog/ProductList.razor",
+      "formPage": "HalalChain.Web/Components/Admin/Catalog/ProductForm.razor"
+    },
+    "Vendors": {
+      "listPage": "HalalChain.Web/Components/Admin/Vendors/VendorList.razor"
+    }
+  },
+  "skip": [
+    { "path": "/api/ai/**", "reason": "AI endpoints have no CRUD shape" },
+    { "path": "/api/auth/**", "reason": "Auth flow is hand-crafted" },
+    { "controller": "ChatController", "reason": "Streaming protocol" }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["version", "openApiPath", "outputRoot", "namespace"],
+  "properties": {
+    "version": { "const": "1.0" },
+    "openApiPath": { "type": "string" },
+    "outputRoot": { "type": "string" },
+    "namespace": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.]+$" },
+    "routePrefix": { "type": "string" },
+    "stripRoutePrefixes": { "type": "array", "items": { "type": "string" } },
+    "templates": {
+      "type": "object",
+      "required": ["list", "form", "detail"],
+      "properties": {
+        "list": { "type": "string" },
+        "form": { "type": "string" },
+        "detail": { "type": "string" },
+        "nav": { "type": "string" }
+      }
+    },
+    "globalUsing": { "type": "array", "items": { "type": "string" } },
+    "diagnostics": {
+      "type": "object",
+      "properties": {
+        "emitSourceMap": { "type": "boolean" },
+        "failOnWarning": { "type": "boolean" }
+      }
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "listPage": { "type": "string" },
+          "formPage": { "type": "string" },
+          "detailPage": { "type": "string" }
+        }
+      }
+    },
+    "skip": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "controller": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}
