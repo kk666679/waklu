@@ -1,0 +1,29 @@
+# Tail-based sampling configuration — extracted for reuse in gateway-config.yml.
+# Included here for documentation and as an import target for K8s deployments
+# that build the gateway config dynamically.
+tail_sampling:
+  decision_wait: 10s
+  num_traces: 100_000
+  expected_new_traces_per_sec: 100
+  policies:
+    # Keep every error — the ones you debug
+    - name: errors
+      type: status_code
+      status_code: { status_codes: [ERROR] }
+
+    # Keep every slow trace
+    - name: slow
+      type: latency
+      latency: { threshold_ms: 1000 }
+
+    # Keep every trace with a high-priority marker
+    - name: important
+      type: string_attribute
+      string_attribute:
+        key: sampling.priority
+        values: ["high", "critical"]
+
+    # Sample 10% of the remaining healthy, fast traces
+    - name: random-sample
+      type: probabilistic
+      probabilistic: { sampling_percentage: 10 }

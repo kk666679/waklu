@@ -1,0 +1,105 @@
+groups:
+  - name: halalchain-sli
+    interval: 30s
+    rules:
+      # ---- Availability SLI ----
+      - record: sli:http_requests:rate5m
+        expr: |
+          sum by (service, route) (
+            rate(http_server_request_duration_seconds_count[5m])
+          )
+
+      - record: sli:http_errors:rate5m
+        expr: |
+          sum by (service, route) (
+            rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])
+          )
+
+      - record: sli:http_success_ratio:5m
+        expr: |
+          sli:http_requests:rate5m{route!~"/(health|metrics).*"} 
+          > 0
+          and on (service, route)
+          (
+            1 - (
+              sli:http_errors:rate5m
+              /
+              sli:http_requests:rate5m
+            )
+          )
+
+      # ---- Latency SLI ----
+      - record: sli:http_latency_p50:5m
+        expr: |
+          histogram_quantile(0.50,
+            sum by (service, route, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      - record: sli:http_latency_p95:5m
+        expr: |
+          histogram_quantile(0.95,
+            sum by (service, route, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      - record: sli:http_latency_p99:5m
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, route, le) (
+              rate(http_server_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      # ---- Error budget (30d window) ----
+      - record: slo:availability_target
+        expr: 0.999
+
+      - record: slo:error_budget_remaining:30d
+        expr: |
+          1 - (
+            (
+              sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[30d]))
+              /
+              sum(rate(http_server_request_duration_seconds_count[30d]))
+            )
+            /
+            (1 - slo:availability_target)
+          )
+
+      # ---- Business KPIs ----
+      - record: biz:orders_created:rate1h
+        expr: |
+          sum(rate(halalchain_orders_created_total[1h]))
+
+      - record: biz:verifications_completed:rate1h
+        expr: |
+          sum(rate(tawheed_verdicts_total[1h]))
+
+      - record: biz:verdict_breakdown:rate1h
+        expr: |
+          sum by (verdict) (rate(tawheed_verdicts_total[1h]))
+
+      - record: biz:gmv:rate1h
+        expr: |
+          sum(rate(halalchain_orders_total_value_usd[1h]))
+
+      # ---- Outbox health ----
+      - record: outbox:pending_count
+        expr: |
+          max by (instance) (outbox_pending_total)
+
+      - record: outbox:lag_seconds
+        expr: |
+          max by (instance) (
+            time() - max by (instance) (outbox_oldest_pending_timestamp_seconds)
+          )
+
+      # ---- Circuit breaker ----
+      - record: cb:state
+        expr: |
+          max by (service, target) (
+            resilience_circuit_breaker_state{state="open"}
+          )

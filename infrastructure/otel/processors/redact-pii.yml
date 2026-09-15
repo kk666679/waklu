@@ -1,0 +1,20 @@
+# PII redaction processor — deletes sensitive attributes before data leaves the
+# collector. Applied in both agent and gateway pipelines.
+attributes/redact:
+  actions:
+    - key: http.request.header.authorization
+      action: delete
+    - key: http.request.header.cookie
+      action: delete
+    - key: http.response.header.set-cookie
+      action: delete
+    - key: db.statement.parameters
+      action: delete
+    - key: http.request.body
+      action: delete
+    - key: password
+      action: delete
+    - key: jwt
+      action: delete
+    - key: api_key
+      action: delete

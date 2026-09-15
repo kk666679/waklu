@@ -1,0 +1,85 @@
+groups:
+  - name: slo-platform-api
+    interval: 30s
+    rules:
+      # Burn rate alerts (Google SRE multi-window)
+      - alert: PlatformApi_ErrorBudgetBurn_Fast
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api",http_response_status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api"}[5m]))
+          ) > (14.4 * (1 - 0.999))
+          and
+          (
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api",http_response_status_code=~"5.."}[1h]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api"}[1h]))
+          ) > (14.4 * (1 - 0.999))
+        for: 2m
+        labels:
+          severity: critical
+          slo: platform-api-availability
+          runbook: docs/runbooks/slo-burn-fast.md
+        annotations:
+          summary: "platform-api is burning error budget 14× fast"
+          description: "5xx ratio is {{ $value | humanizePercentage }} over 5m. Runbook: {{ $labels.runbook }}"
+          dashboard: "https://grafana.halalchain.dev/d/api-slo"
+
+      - alert: PlatformApi_ErrorBudgetBurn_Slow
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api",http_response_status_code=~"5.."}[30m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api"}[30m]))
+          ) > (6 * (1 - 0.999))
+          and
+          (
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api",http_response_status_code=~"5.."}[6h]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{service="platform-api"}[6h]))
+          ) > (6 * (1 - 0.999))
+        for: 15m
+        labels:
+          severity: warning
+          slo: platform-api-availability
+          runbook: docs/runbooks/slo-burn-slow.md
+        annotations:
+          summary: "platform-api is burning error budget 6× slow"
+          description: "5xx ratio over 30m is {{ $value | humanizePercentage }}. Runbook: {{ $labels.runbook }}"
+
+      - alert: PlatformApi_LatencyP95_Breach
+        expr: sli:http_latency_p95:5m{service="platform-api"} > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          slo: platform-api-latency
+          runbook: docs/runbooks/latency-p95-breach.md
+        annotations:
+          summary: "platform-api P95 latency > 500ms"
+          description: "Route {{ $labels.route }} P95 = {{ $value }}s"
+
+      - alert: PlatformApi_LatencyP99_Breach
+        expr: sli:http_latency_p99:5m{service="platform-api"} > 1.5
+        for: 5m
+        labels:
+          severity: critical
+          slo: platform-api-latency
+          runbook: docs/runbooks/latency-p99-breach.md
+        annotations:
+          summary: "platform-api P99 latency > 1.5s"
+
+      # Dependency health
+      - alert: PlatformApi_DownstreamTawheedErrors
+        expr: |
+          sum(rate(http_client_request_duration_seconds_count{
+            service="platform-api",
+            http_target=~".*tawheed.*",
+            http_response_status_code=~"5.."
+          }[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          runbook: docs/runbooks/tawheed-unavailable.md
+        annotations:
+          summary: "platform-api -> tawheed 5xx rate > 0.5 rps"

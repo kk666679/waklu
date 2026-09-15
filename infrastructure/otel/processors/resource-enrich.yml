@@ -1,0 +1,16 @@
+# Resource enrichment processor — adds standard resource attributes to
+# every telemetry signal (metrics, traces, logs).
+resource:
+  attributes:
+    - key: deployment.environment
+      value: ${env:ENV}
+      action: upsert
+    - key: service.namespace
+      value: halalchain
+      action: upsert
+    - key: k8s.cluster.name
+      value: ${env:CLUSTER_NAME}
+      action: upsert
+    - key: git.commit.sha
+      value: ${env:GIT_SHA}
+      action: upsert

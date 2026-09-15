@@ -1,0 +1,206 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 16
+        keepalive:
+          server_parameters:
+            max_connection_idle: 60s
+            max_connection_age: 300s
+            time: 10s
+            timeout: 20s
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins: ["*"]
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['localhost:8888']
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 20
+
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${env:ENV}
+        action: upsert
+      - key: service.namespace
+        value: halalchain
+        action: upsert
+      - key: k8s.cluster.name
+        value: ${env:CLUSTER_NAME}
+        action: upsert
+      - key: git.commit.sha
+        value: ${env:GIT_SHA}
+        action: upsert
+
+  attributes/redact:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.response.header.set-cookie
+        action: delete
+      - key: db.statement.parameters
+        action: delete
+      - key: http.request.body
+        action: delete
+      - key: password
+        action: delete
+      - key: jwt
+        action: delete
+      - key: api_key
+        action: delete
+
+  transform/sanitize:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(name, "\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b", "{uuid}")
+          - replace_pattern(name, "\\b[0-9]+\\b", "{num}")
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100_000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: errors
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow
+        type: latency
+        latency: { threshold_ms: 1000 }
+      - name: important
+        type: string_attribute
+        string_attribute:
+          key: sampling.priority
+          values: ["high", "critical"]
+      - name: random-sample
+        type: probabilistic
+        probabilistic: { sampling_percentage: 10 }
+
+  metricstransform:
+    transforms:
+      - include: http.server.request.duration
+        action: update
+        new_name: http_server_request_duration_seconds
+      - include: http.client.request.duration
+        action: update
+        new_name: http_client_request_duration_seconds
+
+  filter/drop_noise:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.route"] == "/health"'
+        - 'attributes["http.route"] == "/health/live"'
+        - 'attributes["http.route"] == "/health/ready"'
+        - 'attributes["http.route"] == "/metrics"'
+        - 'attributes["http.target"] == "/favicon.ico"'
+
+  probabilistic_sampler:
+    hash_seed: 22
+    sampling_percentage: 100
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    retry_on_failure:
+      enabled: true
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    default_labels_enabled:
+      exporter: false
+      job: true
+      instance: true
+      level: true
+      service_name: true
+    labels:
+      attributes:
+        service.name: service_name
+        service.version: service_version
+        deployment.environment: env
+      resource:
+        host.name: host
+        k8s.pod.name: pod
+
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 1000
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  telemetry:
+    logs:
+      level: info
+      encoding: json
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resource
+        - attributes/redact
+        - transform/sanitize
+        - filter/drop_noise
+        - tail_sampling
+        - batch
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp, prometheus]
+      processors:
+        - memory_limiter
+        - resource
+        - batch
+        - metricstransform
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resource
+        - attributes/redact
+        - batch
+      exporters: [loki]

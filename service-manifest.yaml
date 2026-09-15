@@ -1,6 +1,5 @@
 # HalalChain Platform — Service Manifest
 # This file describes the CURRENT repository reality.
-# See ARCHITECTURE.md for full standards and future plans.
 
 services:
 
