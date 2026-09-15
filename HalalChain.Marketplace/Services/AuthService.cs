@@ -1,7 +1,6 @@
 using HalalChain.Platform.Contracts.Auth;
 using HalalChain.Platform.Http.Abstractions;
 using HalalChain.Platform.Http.Models;
-using HalalChain.Platform.Http.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace HalalChain.Marketplace.Services;
@@ -14,10 +13,10 @@ namespace HalalChain.Marketplace.Services;
 /// (wrapper -> AuthService -> wrapper).</summary>
 public sealed class AuthService : IPlatformTokenAccessor
 {
-    private readonly IPlatformApiClient _api;
+    private readonly IApiClient _api;
     private readonly NavigationManager _nav;
 
-    public AuthService(IPlatformApiClient api, NavigationManager nav)
+    public AuthService(IApiClient api, NavigationManager nav)
     {
         _api = api;
         _nav = nav;
@@ -36,27 +35,27 @@ public sealed class AuthService : IPlatformTokenAccessor
     Task<bool> IPlatformTokenAccessor.IsAuthenticatedAsync(CancellationToken ct)
         => Task.FromResult(IsAuthenticated);
 
-    public async Task<ApiResult<LoginResponse?>> LoginAsync(string email, string password, CancellationToken ct = default)
+    public async Task<Result<LoginResponse>> LoginAsync(string email, string password, CancellationToken ct = default)
     {
-        var result = await _api.LoginAsync(email, password, ct);
-        if (result.IsSuccess && result.Data?.Token != null)
+        var result = await _api.PostAsync<LoginResponse>("/api/auth/login", new { email, password }, ct: ct);
+        if (result.IsSuccess && result.Value?.Token != null)
         {
-            Token = result.Data.Token;
-            UserName = result.Data.UserName ?? email.Split('@')[0];
-            Roles = result.Data.Roles ?? new[] { "marketplace-user" };
+            Token = result.Value.Token;
+            UserName = result.Value.UserName ?? email.Split('@')[0];
+            Roles = result.Value.Roles ?? new[] { "marketplace-user" };
             OnAuthStateChanged?.Invoke();
         }
         return result;
     }
 
-    public async Task<ApiResult<LoginResponse?>> RegisterAsync(string email, string password, string name, CancellationToken ct = default)
+    public async Task<Result<LoginResponse>> RegisterAsync(string email, string password, string name, CancellationToken ct = default)
     {
-        var result = await _api.RegisterAsync(email, password, name, ct);
-        if (result.IsSuccess && result.Data?.Token != null)
+        var result = await _api.PostAsync<LoginResponse>("/api/auth/register", new { email, password, name }, ct: ct);
+        if (result.IsSuccess && result.Value?.Token != null)
         {
-            Token = result.Data.Token;
-            UserName = result.Data.UserName ?? name;
-            Roles = result.Data.Roles ?? new[] { "marketplace-user" };
+            Token = result.Value.Token;
+            UserName = result.Value.UserName ?? name;
+            Roles = result.Value.Roles ?? new[] { "marketplace-user" };
             OnAuthStateChanged?.Invoke();
         }
         return result;

@@ -57,7 +57,7 @@
         _submitting = true; _error = null;
         var result = await Auth.RegisterAsync(_form.Email, _form.Password, _form.Name);
         _submitting = false;
-        if (result.IsSuccess && result.Data?.Token != null)
+        if (result.IsSuccess && result.Value?.Token != null)
         {
             Toast.Success("Welcome to HalalChain!");
             Nav.NavigateTo(ReturnUrl ?? "/account", forceLoad: true);

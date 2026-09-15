@@ -12,6 +12,11 @@ public sealed class NotificationState
         OnChange?.Invoke();
     }
 
+    public void ShowError(string message) => Push("Error", message, "error");
+    public void ShowWarning(string message) => Push("Warning", message, "warning");
+    public void ShowSuccess(string message) => Push("Success", message, "success");
+    public void ShowInfo(string message) => Push("Info", message, "info");
+
     public void Dismiss(Guid id)
     {
         Messages.RemoveAll(m => m.Id == id);
