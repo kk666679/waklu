@@ -1,0 +1,99 @@
+name: Generate Admin Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'HalalChain.Platform.Api/Modules/**'
+      - 'HalalChain.Platform.Api/Controllers/**'
+      - 'HalalChain.Platform.Api/CodeGen/**'
+      - 'HalalChain.Platform.Contracts/**'
+  pull_request:
+    paths:
+      - 'HalalChain.Platform.Api/Modules/**'
+      - 'HalalChain.Platform.Api/CodeGen/**'
+      - 'HalalChain.Platform.Contracts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: generate-admin-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Generate & Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/Directory.Build.props', '**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Install swagger CLI
+        run: dotnet tool install -g Swashbuckle.AspNetCore.Cli
+
+      - name: Build with generation
+        run: |
+          dotnet build HalalChain.Platform.Api/HalalChain.Platform.Api.csproj \
+            -c Release \
+            -p:GenerateApiPages=true \
+            --nologo
+
+      - name: Verify generated output compiles
+        run: |
+          dotnet build HalalChain.Web/HalalChain.Web.csproj \
+            -c Release --nologo
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if [[ -n "$(git status --porcelain HalalChain.Web/Components/Admin/Generated/)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat HalalChain.Web/Components/Admin/Generated/ > /tmp/diff-stat.txt
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload generated artifacts
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-admin-pages
+          path: HalalChain.Web/Components/Admin/Generated/
+          retention-days: 14
+
+      # On main: commit directly
+      - name: Commit to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "halalchain-bot"
+          git config user.email "bot@halalchain.dev"
+          git add HalalChain.Web/Components/Admin/Generated/
+          git commit -m "chore(codegen): regenerate admin pages [skip ci]"
+          git push
+
+      # On PR: verify up-to-date, fail if drift
+      - name: Verify PR is up-to-date
+        if: github.event_name == 'pull_request' && steps.diff.outputs.changed == 'true'
+        run: |
+          echo "::error::Generated admin pages are out of date."
+          echo "Run locally: dotnet build HalalChain.Platform.Api -p:GenerateApiPages=true"
+          echo ""
+          cat /tmp/diff-stat.txt
+          exit 1
