@@ -171,7 +171,11 @@
     {
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
-        try { _suggestions = await Search.GetSuggestionsAsync(_searchQuery, 8, _searchCts.Token); }
+        try 
+        { 
+            var result = await Search.GetSuggestionsAsync(_searchQuery, 8, _searchCts.Token);
+            _suggestions = result.IsSuccess ? (result.Value ?? []) : []; 
+        }
         catch { _suggestions = Array.Empty<SearchSuggestionDto>(); }
     }
 
