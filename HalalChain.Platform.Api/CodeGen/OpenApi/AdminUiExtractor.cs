@@ -1,4 +1,8 @@
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+using HalalChain.Platform.Api.CodeGen.Models;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace HalalChain.Platform.Api.CodeGen.OpenApi;
 
@@ -13,7 +17,7 @@ public sealed class AdminUiExtractor
             if (ShouldSkip(path, pathItem, cfg)) continue;
 
             var listOp = FindListOperation(pathItem);
-            if (listOp is null || !TryGetAdminUi(listOp, out var meta)) continue;
+            if (listOp is null || !TryGetAdminUi(listOp, path, out var meta)) continue;
 
             var dtoType = ExtractDtoType(listOp);
             if (dtoType is null) continue;
@@ -57,20 +61,55 @@ public sealed class AdminUiExtractor
         return false;
     }
 
-    private static bool TryGetAdminUi(OpenApiOperation op, out AdminUiMeta meta)
+    private static bool TryGetAdminUi(OpenApiOperation op, string path, out AdminUiMeta meta)
     {
         meta = default!;
-        if (!op.Extensions.TryGetValue("x-admin-ui", out var extRaw)) return false;
-        if (extRaw is not OpenApiObject ext) return false;
+        if (op.Extensions.TryGetValue("x-admin-ui", out var extRaw) && extRaw is OpenApiObject ext)
+        {
+            meta = new AdminUiMeta(
+                DisplayName: (ext["displayName"] as OpenApiString)?.Value ?? DeriveDisplayName(path),
+                RouteSegment: (ext["routeSegment"] as OpenApiString)?.Value ?? DeriveSegment(path),
+                Order: (ext["order"] as OpenApiInteger)?.Value ?? 100,
+                Icon: (ext["icon"] as OpenApiString)?.Value ?? "widgets",
+                Policy: (ext["policy"] as OpenApiString)?.Value ?? "",
+                Roles: (ext["roles"] as OpenApiArray)?.OfType<OpenApiString>().Select(s => s.Value).ToArray() ?? []);
+            return true;
+        }
+
+        // Convention-based: all non-skipped endpoints with a list shape get admin UI
+        if (!HasListResponse(op)) return false;
 
         meta = new AdminUiMeta(
-            DisplayName: (ext["displayName"] as OpenApiString)?.Value ?? "Untitled",
-            RouteSegment: (ext["routeSegment"] as OpenApiString)?.Value ?? "untitled",
-            Order: (ext["order"] as OpenApiInteger)?.Value ?? 100,
-            Icon: (ext["icon"] as OpenApiString)?.Value ?? "widgets",
-            Policy: (ext["policy"] as OpenApiString)?.Value ?? "",
-            Roles: (ext["roles"] as OpenApiArray)?.OfType<OpenApiString>().Select(s => s.Value).ToArray() ?? []);
+            DisplayName: DeriveDisplayName(path),
+            RouteSegment: DeriveSegment(path),
+            Order: 100,
+            Icon: "widgets",
+            Policy: "",
+            Roles: []);
         return true;
+    }
+
+    private static bool HasListResponse(OpenApiOperation op)
+    {
+        var schema = op.Responses
+            .FirstOrDefault(r => r.Key.StartsWith("200"))
+            .Value?.Content?.FirstOrDefault().Value?.Schema;
+        return schema?.Reference is not null or schema?.Items?.Reference is not null;
+    }
+
+    private static string DeriveDisplayName(string path)
+    {
+        var segments = path.Trim('/').Split('/');
+        var last = segments.LastOrDefault();
+        if (string.IsNullOrEmpty(last)) return "Root";
+        return char.ToUpperInvariant(last[0]) + last[1..];
+    }
+
+    private static string DeriveSegment(string path)
+    {
+        var segments = path.Trim('/').Split('/');
+        var last = segments.LastOrDefault();
+        return string.IsNullOrEmpty(last) ? "root" : last;
     }
 
     private static OpenApiOperation? FindListOperation(OpenApiPathItem item)

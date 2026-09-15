@@ -32,14 +32,11 @@ public static class GeneratorConfigLoader
     {
         if (!File.Exists(schemaPath)) return;
         var schema = JsonSchema.FromText(File.ReadAllText(schemaPath));
-        var doc = JsonNode.Parse(json)!;
-        var result = schema.Evaluate(doc, new EvaluationOptions { OutputFormat = OutputFormat.List });
+        var doc = JsonDocument.Parse(json);
+        var result = schema.Evaluate(doc.RootElement, new EvaluationOptions { OutputFormat = OutputFormat.List });
         if (!result.IsValid)
         {
-            var errors = string.Join("\n", result.Details
-                .Where(d => d.HasErrors)
-                .SelectMany(d => d.Errors!.Select(e => $"  {d.InstanceLocation}: {e.Value}")));
-            throw new InvalidOperationException($"generator.json failed schema validation:\n{errors}");
+            throw new InvalidOperationException($"generator.json failed schema validation: {result.IsValid}");
         }
     }
 
