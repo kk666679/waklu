@@ -1,0 +1,65 @@
+name: Observability Stack
+
+on:
+  push:
+    paths:
+      - 'infrastructure/otel/**'
+      - 'infrastructure/prometheus/**'
+      - 'infrastructure/grafana/**'
+      - 'infrastructure/alertmanager/**'
+      - 'infrastructure/tempo/**'
+      - 'infrastructure/loki/**'
+      - 'docs/runbooks/**'
+      - 'docs/slo.yaml'
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+      - 'docs/runbooks/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate OTel configs
+        run: ./infrastructure/otel/validate.sh
+
+      - name: Validate Prometheus rules
+        run: ./infrastructure/prometheus/validate.sh
+
+      - name: Validate Grafana dashboards
+        run: ./infrastructure/grafana/validate.sh
+
+      - name: Validate AlertManager config
+        run: |
+          docker run --rm \
+            -v "$PWD/infrastructure/alertmanager:/etc/alertmanager:ro" \
+            --entrypoint amtool \
+            prom/alertmanager:v0.28.0 \
+            check-config /etc/alertmanager/alertmanager.yml
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start stack
+        run: ./infrastructure/observability-smoke.sh
+        env:
+          GRAFANA_ADMIN_PASSWORD: ci-password
+          SLACK_WEBHOOK_URL: ""
+          PAGERDUTY_KEY: ""
+          PAGERDUTY_P0_KEY: ""
+          SMTP_HOST: ""
+          SMTP_USER: ""
+          SMTP_PASS: ""
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-logs
+          path: |
+            /tmp/observability-logs/
