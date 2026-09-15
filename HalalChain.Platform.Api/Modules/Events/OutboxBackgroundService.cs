@@ -1,4 +1,5 @@
 using System.Text.Json;
+using HalalChain.Platform.Api.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -96,7 +97,14 @@ public sealed class OutboxBackgroundService : BackgroundService
         var outbox = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
         var handlerRegistry = scope.ServiceProvider.GetRequiredService<IEventHandlerRegistry>();
 
+        // Record pending count before processing
         var pending = await outbox.GetPendingAsync(batchSize: 50, ct);
+        OutboxMetrics.Pending.Record(pending.Count);
+        if (pending.Count > 0)
+        {
+            var oldest = pending.Min(m => m.CreatedAt);
+            OutboxMetrics.OldestTimestamp.Record((DateTimeOffset.UtcNow - oldest).TotalSeconds);
+        }
 
         foreach (var message in pending)
         {
@@ -107,6 +115,7 @@ public sealed class OutboxBackgroundService : BackgroundService
                 {
                     _logger.LogWarning("No handler registered for event type {EventType}", message.EventType);
                     await outbox.MarkProcessedAsync(message.Id, ct); // Mark as processed (no handler)
+                    OutboxMetrics.Dispatched.Record(1, new System.Diagnostics.Metrics.KeyValuePair<string, object?>("type", message.EventType));
                     continue;
                 }
 
@@ -116,6 +125,7 @@ public sealed class OutboxBackgroundService : BackgroundService
                 {
                     _logger.LogWarning("Cannot resolve event type {EventType}", message.EventType);
                     await outbox.MarkFailedAsync(message.Id, "Cannot resolve event type", ct);
+                    OutboxMetrics.DeadLettered.Record(1, new System.Diagnostics.Metrics.KeyValuePair<string, object?>("type", message.EventType));
                     continue;
                 }
 
@@ -124,12 +134,14 @@ public sealed class OutboxBackgroundService : BackgroundService
                 {
                     _logger.LogWarning("Failed to deserialize event {EventType}", message.EventType);
                     await outbox.MarkFailedAsync(message.Id, "Deserialization failed", ct);
+                    OutboxMetrics.DeadLettered.Record(1, new System.Diagnostics.Metrics.KeyValuePair<string, object?>("type", message.EventType));
                     continue;
                 }
 
                 // Invoke the handler
                 await handlerRegistry.HandleAsync(message.EventType, @event, ct);
                 await outbox.MarkProcessedAsync(message.Id, ct);
+                OutboxMetrics.Dispatched.Record(1, new System.Diagnostics.Metrics.KeyValuePair<string, object?>("type", message.EventType));
 
                 _logger.LogDebug("Processed outbox message {MessageId} ({EventType})", message.Id, message.EventType);
             }
@@ -137,6 +149,7 @@ public sealed class OutboxBackgroundService : BackgroundService
             {
                 _logger.LogError(ex, "Failed to process outbox message {MessageId} ({EventType})", message.Id, message.EventType);
                 await outbox.MarkFailedAsync(message.Id, ex.Message, ct);
+                OutboxMetrics.DeadLettered.Record(1, new System.Diagnostics.Metrics.KeyValuePair<string, object?>("type", message.EventType));
             }
         }
     }

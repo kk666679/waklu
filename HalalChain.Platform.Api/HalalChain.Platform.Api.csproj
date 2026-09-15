@@ -27,15 +27,25 @@
     <ProjectReference Include="../HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="CodeGen\**\*.cs" />
+  </ItemGroup>
+
   <PropertyGroup>
+    <!-- Existing Radzen page generation (API reference) -->
     <GeneratorProject>$(MSBuildThisFileDirectory)Radzen.Blazor.Api.Generator.csproj</GeneratorProject>
     <GeneratedPagesDir>$(MSBuildThisFileDirectory)Generated\Pages</GeneratedPagesDir>
     <RadzenBlazorDll>$(PkgRadzen_Blazor)/lib/net10.0/Radzen.Blazor.dll</RadzenBlazorDll>
     <RadzenBlazorXml>$(PkgRadzen_Blazor)/lib/net10.0/Radzen.Blazor.xml</RadzenBlazorXml>
+
+    <!-- New: Admin CRUD page generation from OpenAPI -->
+    <GenerateApiPages Condition="'$(GenerateApiPages)' == ''">false</GenerateApiPages>
+    <GeneratorConfigPath>CodeGen\generator.json</GeneratorConfigPath>
+    <CodeGenOutputRoot>..\HalalChain.Web\Components\Admin\Generated</CodeGenOutputRoot>
   </PropertyGroup>
 
-  <!-- Usage: dotnet build -p:GenerateApiPages=true -->
-  <Target Name="GenerateApiPages" BeforeTargets="ResolveProjectStaticWebAssets;AssignTargetPaths"
+  <!-- Existing Radzen API reference generation -->
+  <Target Name="GenerateRadzenApiPages" BeforeTargets="ResolveProjectStaticWebAssets;AssignTargetPaths"
           Inputs="$(RadzenBlazorDll)"
           Outputs="$(GeneratedPagesDir)\ApiIndex.razor"
           Condition="Exists('$(RadzenBlazorDll)') AND '$(GenerateApiPages)' == 'true'">
@@ -44,5 +54,26 @@
     <Exec Command="dotnet run --project &quot;$(GeneratorProject)&quot; -- &quot;$(RadzenBlazorDll)&quot; &quot;$(RadzenBlazorXml)&quot; &quot;$(GeneratedPagesDir)&quot;"
           ContinueOnError="false" />
     <Message Text="API reference pages generated in $(GeneratedPagesDir)" Importance="high" />
+  </Target>
+
+  <!-- New: OpenAPI spec + admin CRUD page generation -->
+  <Target Name="GenerateOpenApiSpec"
+          Condition="'$(GenerateApiPages)' == 'true'"
+          BeforeTargets="BuildAdminPages">
+    <Message Text="Generating OpenAPI v1 spec..." Importance="high" />
+    <Exec Command="dotnet swagger tofile --output obj/openapi/v1.json &quot;$(TargetPath)&quot; v1 --validate"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ContinueOnError="false" />
+  </Target>
+
+  <Target Name="BuildAdminPages"
+          AfterTargets="Build"
+          BeforeTargets="AfterBuild"
+          Condition="'$(GenerateApiPages)' == 'true'"
+          DependsOnTargets="GenerateOpenApiSpec">
+    <Message Text="Generating admin CRUD pages from OpenAPI..." Importance="high" />
+    <Exec Command="dotnet run --project &quot;$(GeneratorProject)&quot; -- --generate --config &quot;$(GeneratorConfigPath)&quot; --project-dir &quot;$(MSBuildProjectDirectory)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ContinueOnError="false" />
   </Target>
 </Project>
