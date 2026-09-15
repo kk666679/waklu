@@ -7,10 +7,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
 from src.core.config import get_settings
+from src.observability import init_tracing, setup_logging
 
+setup_logging()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Initialize OpenTelemetry tracing if endpoint is configured
+if settings.otlp_endpoint:
+    init_tracing(service_name="tawheed", endpoint=settings.otlp_endpoint)
 
 
 @asynccontextmanager
