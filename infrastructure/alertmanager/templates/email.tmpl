@@ -1,0 +1,14 @@
+{{ define "email.subject" }}
+[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Alerts | len }})
+{{ end }}
+
+{{ define "email.body" }}
+{{ range .Alerts -}}
+Summary: {{ .Annotations.summary }}
+Description: {{ .Annotations.description }}
+Severity: {{ .Labels.severity }}
+Service: {{ .Labels.service }}
+{{ if .Annotations.runbook }}Runbook: {{ .Annotations.runbook }}{{ end }}
+{{ if .Annotations.dashboard }}Dashboard: {{ .Annotations.dashboard }}{{ end }}
+{{ end }}
+{{ end }}

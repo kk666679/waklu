@@ -1,0 +1,16 @@
+{{ define "slack.title" }}
+[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Alerts | len }})
+{{ end }}
+
+{{ define "slack.text" }}
+{{ range .Alerts -}}
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Severity:* {{ .Labels.severity }}
+*Service:* {{ .Labels.service }}
+{{ if .Annotations.runbook }}*Runbook:* https://github.com/halalchain/halalchain/blob/main/{{ .Annotations.runbook }}{{ end }}
+{{ if .Annotations.dashboard }}*Dashboard:* {{ .Annotations.dashboard }}{{ end }}
+{{ if .Labels.trace_id }}*Trace:* https://grafana.halalchain.dev/explore?schemaVersion=1&panes=%7B%22t%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22query%22%3A%22{{ .Labels.trace_id }}%22%7D%5D%7D%7D{{ end }}
+{{ end }}
+{{ if .CommonAnnotations.runbook }}*Runbook:* {{ .CommonAnnotations.runbook }}{{ end }}
+{{ end }}
