@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.JsonWebToken;
+using System.IdentityModel.Tokens.Jwt;
 using HalalChain.Domain.Catalog;
 using HalalChain.Domain.Vendors;
 using HalalChain.Platform.Api.Persistence;

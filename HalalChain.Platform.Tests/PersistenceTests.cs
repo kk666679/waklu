@@ -115,7 +115,7 @@ public sealed class PersistenceTests : IDisposable
         _db.Categories.Add(cat); _db.Vendors.Add(ven); await _db.SaveChangesAsync();
         var p=new Product { Title="P", Slug="pord1", CategoryId=cat.Id, VendorId=ven.Id, Price=25m, Currency="MYR" };
         _db.Products.Add(p); await _db.SaveChangesAsync();
-        var o=new Order { CustomerId="c1", Status="Paid", Total=50m, Currency="MYR" };
+        var o=new Order { CustomerId=Guid.NewGuid(), Status="Paid", Total=50m, Currency="MYR" };
         _db.Orders.Add(o); await _db.SaveChangesAsync();
         var vo=new VendorOrder { OrderId=o.Id, VendorId=ven.Id, Subtotal=50m, Currency="MYR" };
         _db.VendorOrders.Add(vo); await _db.SaveChangesAsync();
