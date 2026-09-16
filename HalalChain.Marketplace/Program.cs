@@ -48,6 +48,7 @@ public class Program
 
         builder.Services.AddScoped<AppState>();
         builder.Services.AddScoped<NotificationState>();
+        builder.Services.AddScoped<CartState>();
 
         // Routed services: InMemory + Api + Router (flag-controlled)
         builder.Services.AddRoutedService<IWishlistService, WishlistServiceInMemory, WishlistServiceApi, WishlistServiceRouter>();
