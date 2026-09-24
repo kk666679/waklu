@@ -117,7 +117,7 @@ All EF entities live in `HalalChain.Platform.Api/Persistence/Entities/`:
 
 ## 8. UI architecture
 
-- **Marketplace** (`HalalChain.Marketplace`): ASP.NET Core MVC. 12 controllers, classic views, `ViewComponents/SiteNavViewComponent.cs`. Consumes the platform via `HalalChain.Platform.Http` (`IPlatformApiClient`).
+- **Marketplace** (`HalalChain.Marketplace`): ASP.NET Core web app using Razor Pages + Blazor Server + SignalR. It consumes the platform via `HalalChain.Platform.Http` (`IPlatformApiClient`) and exposes a vendor workflow surface with real-time UI updates.
 - **Storefront + Admin** (`HalalChain.Web`, single Blazor Server project): Radzen components, SignalR hubs (`/hubs/chat`, `/hubs/notifications`), 5 cultures, 40+ services. Admin and Vendor pages live in the same project, gated by `AdminLayout.razor` and `VendorLayout.razor`. **There is no separate Admin or Storefront project.** Splitting them is Phase 8.
 - **No `UI.Shared` project.** Shared components live in `HalalChain.Web/Components/Shared/`, `Components/Data/`, etc.
 - **No `HalalChain.Admin` project.**

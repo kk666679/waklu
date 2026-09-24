@@ -44,6 +44,21 @@ This project keeps the LLM and AI services in a supporting role. They observe, c
 └── .env.example                 # Example env file for local setup (when present in the repo)
 ```
 
+## Runtime diagram
+
+```mermaid
+flowchart LR
+    user[Operator / Customer] --> halalchain[halalchain\nBlazor Server\n:5200]
+    user --> marketplace[marketplace\nRazor Pages + Blazor Server + SignalR\n:5201]
+    user --> api[platform-api\nASP.NET Core API\n:5001]
+
+    api --> postgres[(PostgreSQL\n:5432)]
+    api --> redis[(Redis\n:6379)]
+    api --> ai[ai-inference\nFastAPI\n:7071]
+    api --> tawheed[tawheed\nFastAPI\n:8000]
+    ai --> qdrant[(Qdrant\n:6333)]
+```
+
 ## Core components
 
 | Component | Purpose |

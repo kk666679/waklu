@@ -4,26 +4,48 @@
 
 ## 1. System Overview
 
-```
-                         INTERNET
-                            │
-              ┌─────────────┼─────────────┐
-              ▼             ▼             ▼
-       halalchain      marketplace    platform-api
-      (Blazor Server)  (Razor + Blazor Server + SignalR)   (REST API)
-          :5200           :5201                   :5001
-                                            │
-                     ┌──────────────────────┼─────────────────────┐
-                     │                      │                     │
-                     ▼                      ▼                     ▼
-                 ai-inference          tawheed               PostgreSQL
-                  (Python/Node)       (Python)                :5432
-                    :7071               :8000
-                     │                    │
-                     ├────────────────────┤
-                     ▼                    ▼
-                  Qdrant               Redis
-                  :6333                :6379
+```mermaid
+flowchart LR
+    User[Users / Vendors] --> halalchain[halalchain
+Blazor Server
+:5200]
+    User --> marketplace[marketplace
+Razor Pages + Blazor Server + SignalR
+:5201]
+    halalchain --> api[platform-api
+REST API
+:5001]
+    marketplace --> api
+
+    api --> postgres[(PostgreSQL
+:5432)]
+    api --> redis[(Redis
+:6379)]
+    api --> ai[ai-inference
+Python/Node
+:7071]
+    api --> tawheed[tawheed
+Python
+:8000]
+    ai --> qdrant[(Qdrant
+:6333)]
+    tawheed --> neo4j[(Neo4j
+:7687)]
+    tawheed --> postgres
+
+    subgraph "Trust Layer"
+        blockchain[Blockchain (Polygon)
+        Smart Contracts
+        ]
+        ipfs[IPFS (Content-Addressed Storage)]
+    end
+
+    halalchain -.-> blockchain
+    tawheed -.-> blockchain
+    tawheed -.-> ipfs
+    marketplace -.-> blockchain
+    api -.-> blockchain
+    halalchain -.-> ipfs
 ```
 
 ## 2. Service Catalog
@@ -56,18 +78,18 @@ Every HTTP service exposes three endpoints:
 | Endpoint | Purpose | Docker uses | K8s uses |
 |----------|---------|-------------|----------|
 | `/health` | Diagnostic aggregate — may include dependency status | | |
-| `/health/live` | Process is alive — MUST NOT require external dependencies | Healthcheck | Liveness probe |
+| `/health/live` | Process is alive — MUST NOT require external dependencies | | |
 | `/health/ready` | Service can receive traffic — MAY require critical dependencies | | Readiness probe |
 
 **Dependency readiness classification:**
 
 | Service | postgres | redis | ai-inference | tawheed |
-|---------|----------|-------|--------------|---------|
+|---------|----------|-------|--------------|----------|
 | platform-api | Required | Optional | Optional | Optional |
 | halalchain | — | — | — | — |
 | marketplace | — | — | — | — |
 | ai-inference | — | Optional | — | — |
-| tawheed | Optional | Optional | — | — |
+| tawheed | — | — | — | — |
 
 Services remain available for operations that don't require unavailable dependencies.
 
@@ -76,17 +98,18 @@ Services remain available for operations that don't require unavailable dependen
 ### Environment Variable Conventions
 
 **ASP.NET services** use `__` for config section binding (matches `IConfiguration`):
+
 ```
 Jwt__Issuer
 Jwt__Key
 ConnectionStrings__Postgres
-ConnectionStrings__Redis
 AiGateway__BaseUrl
 Tawheed__BaseUrl
 PlatformApi__BaseUrl
 ```
 
 **Python services** use `_` for pydantic-settings:
+
 ```
 POSTGRES_URL
 REDIS_URL
@@ -127,26 +150,23 @@ The outbox pattern ensures reliable event publication within database transactio
 
 ```
 platform-api → Redis Streams → Consumer Groups
-                                  ├── AI worker
-                                  ├── Verification worker
-                                  └── Document worker
+                                    ├── AI worker
+                                    ├── Verification worker
+                                    └── Document worker
 ```
 
 ## 6. Halal Verification Flow
 
-```
-AI Agents (tawheed)
-    │
-    ├── Certificate evidence
-    ├── Ingredient evidence
-    └── Supplier evidence
-            │
-        Evidence Store
-            │
-    Deterministic Policy Engine
-            │
-    ┌───────┴───────┐
- VERIFIED      MANUAL_REVIEW / REJECT
+```mermaid
+graph TD
+    AIAgents[tawheed]
+    AIAgents --> CertificateEvidence[Certificate evidence]
+    AIAgents --> IngredientEvidence[Ingredient evidence]
+    AIAgents --> SupplierEvidence[Supplier evidence]
+    EvidenceStore[Evidence Store]
+    EvidenceStore --> DeterministicPolicyEngine[Deterministic Policy Engine]
+    DeterministicPolicyEngine --> VERIFIED[VERIFIED]
+    DeterministicPolicyEngine --> MANUAL_REVIEW[MANUAL_REVIEW / REJECT]
 ```
 
 The LLM is used **only** for document interpretation when structure is ambiguous.
@@ -155,9 +175,9 @@ It **never** assigns or overrides a compliance status.
 ## 7. Data Architecture
 
 | Database | Owner | Purpose |
-|----------|-------|---------|
+|----------|-------|----------|
 | PostgreSQL | platform-api | Catalog, vendors, orders, halal records, outbox |
-| Redis | shared | Cache, sessions, rate limits |
+| Redis | shared | Cache, sessions, locks |
 | Qdrant | ai-inference | Document/product embeddings, semantic search |
 | Neo4j | (planned) | Supply-chain relationships, provenance |
 
@@ -169,12 +189,13 @@ It **never** assigns or overrides a compliance status.
 HalalChain.Platform.sln       .NET solution (10 projects + supporting test projects)
 global.json                   .NET SDK version pin (10.0.200)
 Directory.Build.props         Shared .csproj properties
-.editorconfig                 Code style rules
+.editorconfig                  Code style rules
 .gitignore                    Ignore patterns
-.env.example                  Environment template
+.env.example                   Environment template
 docker-compose.yml            Full stack orchestration
 service-manifest.yaml         Service catalog (source of truth)
 Modelfile                     Ollama system prompt for the local halal assistant
+```
 
 # ── .NET projects (HalalChain.*) ───────────────────────────────────────
 HalalChain.Domain/             Domain model and business concepts
@@ -182,11 +203,18 @@ HalalChain.Application/        Application services and orchestration logic
 HalalChain.Platform.Contracts/ Shared DTOs, enums, Solidity contracts
 HalalChain.Platform.Http/      Typed HttpClient library
 HalalChain.Platform.Api/       Core REST API (modular monolith, ASP.NET Core)
-HalalChain.Marketplace/        Razor Pages + Blazor Server + SignalR vendor marketplace
+HalalChain.Marketplace/       Razor Pages + Blazor Server + SignalR vendor marketplace
 HalalChain.Web/                Blazor Server customer-facing UI
 HalalChain.Mcp/                Model-Context-Protocol server (console host)
 HalalChain.Mcp.Tests/          xUnit tests for the MCP server
-HalalChain.Platform.Tests/     xUnit tests for the API + persistence
+HalalChain.Platform.Contracts/ API gateway (Python/Node)
+HalalChain.Platform.Api/       Core REST API (modular monolith, ASP.NET Core)
+HalalChain.Marketplace/       Razor Pages + Blazor Server + SignalR vendor marketplace
+HalalChain.Web/                Blazor Server customer-facing UI
+HalalChain.Mcp/                Model-Context-Protocol server (console host)
+HalalChain.Mcp.Tests/          xUnit tests for the MCP server
+HalalChain.Platform.Contracts/ Shared DTOs, enums, Solidity contracts
+HalalChain.Platform.Api/       Core REST API (modular monolith, ASP.NET Core)
 HalalChain.Architecture.Tests/ Architecture guard tests
 
 # ── Operator CLI (HalalChain-*, hyphen) ───────────────────────────────
@@ -223,9 +251,9 @@ on the operator's machine, not as a long-running container.
 ### Modelfile placement
 
 `Modelfile` is the Ollama system prompt for the local halal assistant. It
-sits at the repository root (not under `.halalchain/`) because Ollama
-expects to be invoked from the directory that owns the `Modelfile`, and
-`docs/FOUNDRY_LEVERAGE.md` references it from the root.
+sits at the repository root (not under `.halalchain/`) because Ollama expects
+to be invoked from the directory that owns the `Modelfile`, and `docs/FOUNDRY_LEVERAGE.md`
+refers to it from the root.
 
 ### Architectural principle
 
@@ -233,8 +261,8 @@ expects to be invoked from the directory that owns the `Modelfile`, and
 > business and compliance outcomes.**
 
 The full invariant and its enforcement points are documented once in
-`docs/ARCHITECTURE.md` § 6. Other locations reference this canonical
-statement rather than re-stating it.
+`docs/ARCHITECTURE.md` § 6. Other locations reference this canonical statement rather
+than re-stating it.
 
 ## 9. Future Architecture
 
@@ -246,3 +274,7 @@ The following are planned but NOT currently implemented:
 - **API versioning:** `/api/v1/`, `/api/v2/` URL strategy
 - **Observability:** Correlation IDs, structured logging, distributed tracing
 - **Multi-region:** Cross-region backup replication
+
+---
+
+*Document generated by Kilo*
