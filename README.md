@@ -1,113 +1,149 @@
 # HalalChain Platform
 
-> AI-native halal commerce platform — modular monolith evolving toward a full marketplace with on-chain attestation.
+AI-native halal commerce and compliance platform for supplier verification, evidence collection, policy evaluation, and vendor-facing workflows. The repository combines a .NET modular platform, customer + marketplace front ends, Python AI/evidence services, and a local developer stack for running the full system together.
 
 ## Architectural principle
 
-> **AI discovers and interprets evidence. Deterministic systems decide business and compliance outcomes.**
+> AI gathers evidence. Deterministic systems decide business and compliance outcomes.
 
-AI agents collect evidence. The Policy Engine decides compliance status. An LLM never assigns or overrides a halal verdict.
+This project keeps the LLM and AI services in a supporting role. They observe, classify, summarize, and enrich evidence; the deterministic policy engine is responsible for the halal verdict and operating decisions. That rule is reflected in the local assistant prompt and in the API design where evidence is sent to the `tawheed` service rather than letting an LLM assign the final verdict.
 
-This rule is enforced in two places:
+## Repository overview
 
-- the `Modelfile` system prompt for the local halal assistant, and
-- the API design in `HalalChain.Platform.Api/Modules/Halal/` — it forwards to
-  `tawheed` for **evidence**, not verdicts.
-
-## Repository layout
-
-```
+```text
 .
-├── HalalChain.Platform.sln        # .NET 10 solution
-├── Directory.Build.props          # Shared MSBuild defaults (net10.0, nullable, implicit usings)
-├── global.json                    # Pins the .NET SDK to 10.0.200 (rollForward: latestFeature)
-├── docker-compose.yml             # Local full-stack orchestration
-├── service-manifest.yaml          # Authoritative inventory of services and ports
-├── Modelfile                      # Ollama system prompt for the halal assistant
-├── package.json                   # Root Node workspace manifest
-│
-├── HalalChain.Platform.Contracts/ # Shared DTOs, enums, and Solidity contracts
-│   ├── Halal/ Catalog/ Commerce/ Vendors/ Auth/ Api/ AI/
-│   └── contracts/                 # Foundry workspace (Solidity)
-│
-├── HalalChain.Platform.Api/       # Core REST API (modular monolith, ASP.NET Core)
-│   └── Modules/ Halal/ Vendors/ Catalog/ Commerce/ AI/ Blockchain/ Events/ Indexer/ Ipfs/ Verification/
-│
-├── HalalChain.Platform.Http/      # Typed HTTP client library used by the frontends
-│
-├── HalalChain.Marketplace/        # ASP.NET Core MVC vendor marketplace UI
-│
-├── HalalChain.Web/                # Blazor Server customer-facing UI (Radzen)
-│
-├── HalalChain.Mcp/                # Model-Context-Protocol server (console host)
-├── HalalChain.Mcp.Tests/          # xUnit tests for the MCP server
-│
-├── HalalChain.Platform.Tests/     # xUnit tests for the API + persistence + vendor isolation
-│
-├── HalalChain-Cli/                # Node 22 operator CLI (halalchain)
-│
-├── .halalchain/
-│   ├── ai-inference/              # Python FastAPI AI gateway (embeddings, classify, rerank, LLM)
-│   ├── tawheed/                   # Python FastAPI multi-agent evidence + Policy Engine
-│   └── config.json                # Local shared config (gitignored in real use)
-│
-├── docs/                          # Architecture, runbooks, MVP notes
-├── infrastructure/                # Dev docker-compose, helper scripts
-└── .github/                       # CI workflows
+├── AGENTS.md                     # Contributor/build guide for the repository
+├── HalalChain.Platform.sln      # Main .NET solution
+├── Directory.Build.props        # Shared .NET defaults (net10.0, nullable, implicit usings)
+├── global.json                  # Pins the .NET SDK (10.0.200 with latestFeature roll-forward)
+├── docker-compose.yml           # Full local stack definition for the platform and infra
+├── service-manifest.yaml        # Canonical service inventory and ports
+├── Modelfile                    # Local assistant system prompt for Ollama/OpenClaw
+├── package.json                 # Root Node workspace scripts and tooling
+├── README.md                    # This document
+├── docs/                        # Architecture, development, and operations docs
+├── infrastructure/              # Compose overlays and helper scripts
+├── HalalChain-Cli/              # Node-based operator/CLI toolkit
+├── HalalChain.Application/      # Application-layer services and orchestration
+├── HalalChain.Domain/           # Domain model for catalog, vendors, halal policy, and commerce
+├── HalalChain.Platform.Api/     # ASP.NET Core modular monolith API
+├── HalalChain.Platform.Contracts/ # Shared DTOs, API contracts, and Solidity/Foundry artifacts
+├── HalalChain.Platform.Http/    # Typed HTTP client used by front ends
+├── HalalChain.Platform.Tests/   # API and platform integration tests
+├── HalalChain.Web/              # Customer-facing Blazor Server UI
+├── HalalChain.Marketplace/      # Vendor marketplace UI (Razor Pages + Blazor Server + SignalR)
+├── HalalChain.Mcp/              # MCP server for solution inspection and tooling
+├── HalalChain.Mcp.Tests/        # MCP server tests
+├── HalalChain.Architecture.Tests/ # Architecture guard tests
+├── .halalchain/                 # Python services and shared library
+│   ├── _shared/                 # Shared Python package for AI/inference and policy engine
+│   ├── ai-inference/            # FastAPI AI gateway for embeddings, classification, rerank, LLM calls
+│   ├── tawheed/                 # FastAPI evidence gathering + deterministic policy engine
+│   └── config.json              # Local-only shared config placeholder
+├── scripts/                     # Supporting scripts
+└── .env.example                 # Example env file for local setup (when present in the repo)
 ```
 
-## Services and ports
+## Core components
 
-| Service        | Runtime                | Port | Public | Notes                                   |
-|----------------|------------------------|------|--------|-----------------------------------------|
-| `platform-api` | .NET 10 (ASP.NET Core) | 5001 | yes    | Core REST API, modular monolith         |
-| `halalchain`   | .NET 10 (Blazor)       | 5200 | yes    | Customer-facing UI                      |
-| `marketplace`  | .NET 10 (ASP.NET MVC)  | 5201 | yes    | Vendor marketplace UI                   |
-| `ai-inference` | Python 3.11 / Node 20  | 7071 | no     | Embeddings, classify, rerank, LLM       |
-| `tawheed`      | Python 3.11 (FastAPI)  | 8000 | no     | Evidence collection + deterministic Policy Engine |
-| `postgres`     | postgres:17-alpine     | 5432 | no     | Primary relational store                |
-| `redis`        | redis:7-alpine         | 6379 | no     | Cache, sessions, distributed locks      |
-| `neo4j`        | neo4j:5-community      | 7687 | no     | Reserved for supply-chain graph         |
-| `qdrant`       | qdrant/qdrant:v1.19.0  | 6333 | no     | Vector store for embeddings             |
+| Component | Purpose |
+|---|---|
+| `HalalChain.Platform.Api` | Main ASP.NET Core modular monolith exposing the platform API |
+| `HalalChain.Platform.Contracts` | Shared DTOs, request/response models, and Solidity contract artifacts |
+| `HalalChain.Platform.Http` | Typed client library for interacting with the API |
+| `HalalChain.Domain` | Business entities and domain concepts |
+| `HalalChain.Application` | Application use cases and orchestration logic |
+| `HalalChain.Web` | Blazor Server customer experience |
+| `HalalChain.Marketplace` | Vendor marketplace UI using Razor Pages + Blazor Server + SignalR |
+| `HalalChain.Mcp` | MCP server exposing read-only tooling and solution introspection |
+| `HalalChain-Cli` | Operator CLI for local workflows and AI tooling |
+| `.halalchain/ai-inference` | AI gateway for embeddings, classification, rerank, and model access |
+| `.halalchain/tawheed` | Evidence ingestion and deterministic policy evaluation |
+| `docker-compose.yml` | Runs the full platform, Python services, and supporting infra |
 
-See `service-manifest.yaml` for the authoritative inventory.
+## Stack and runtime services
 
-## Build, test, run
+The repo is built around .NET 10, Python 3.11+, Node 22+, and Docker Compose. The default local stack includes:
+
+| Service | Runtime | Port | Purpose |
+|---|---|---:|---|
+| `platform-api` | ASP.NET Core / .NET 10 | 5001 | Main API |
+| `halalchain` | Blazor Server / .NET 10 | 5200 | Customer UI |
+| `marketplace` | Razor Pages + Blazor Server / .NET 10 | 5201 | Vendor marketplace UI with SignalR |
+| `ai-inference` | Python FastAPI | 7071 | AI gateway and document processing |
+| `tawheed` | Python FastAPI | 8000 | Policy engine and evidence collection |
+| `postgres` | Postgres 17 | 5432 | Primary relational store |
+| `redis` | Redis 7 | 6379 | Cache and distributed state |
+| `neo4j` | Neo4j 5 | 7687 | Graph data layer |
+| `qdrant` | Qdrant | 6333 | Vector search and embeddings |
+
+The authoritative service inventory and ports are defined in `service-manifest.yaml` and the Compose definition in `docker-compose.yml`.
+
+## Prerequisites
+
+- .NET SDK 10 (pinned by `global.json`)
+- Node.js 22 or newer
+- Python 3.11+
+- Docker and Docker Compose
+- Optional local model runtime such as Ollama/OpenClaw for the AI assistant
+
+## Quick start
+
+### 1) Restore and build the .NET solution
 
 ```bash
-# .NET
 dotnet restore HalalChain.Platform.sln
-dotnet build   HalalChain.Platform.sln -c Release
-dotnet test    HalalChain.Platform.sln -c Release --no-build
+dotnet build HalalChain.Platform.sln -c Release
+```
 
-# Full local stack
+### 2) Run the test suite
+
+```bash
+dotnet test HalalChain.Platform.sln -c Release --no-build
+```
+
+### 3) Start the full local stack
+
+```bash
 docker compose up --build
 ```
 
-The first build after a rename may need a clean: `dotnet clean HalalChain.Platform.sln` then rebuild.
+This brings up the API, customer app, marketplace, AI inference service, policy engine, and required backing infrastructure.
 
-## CLI
-
-The operator CLI lives in `HalalChain-Cli/`:
+### 4) Run the Node CLI and Python dev services
 
 ```bash
-npm run halalchain:cli          # or: node HalalChain-Cli/bin/halalchain.js
+npm install
+npm run halalchain:cli
+npm run ai:dev
+npm run tawheed:dev
 ```
 
-## Configuration
+The root Node workspace also provides SCSS build helpers and test scripts for the CLI toolkit.
 
-- Real secrets must come from environment variables, not from `appsettings.json`.
-  The non-development `Jwt:Key` value is rejected at startup if it matches the
-  example value.
-- `.env` files must not be committed. `.env.example` documents the MCP env vars;
-  `docker-compose.yml` documents the platform services' env vars.
+## Configuration and secrets
 
-## Documentation
+- Real credentials and production secrets should come from environment variables, not committed config files.
+- Do not commit `.env` files in normal development workflows.
+- `docker-compose.yml` defines the required environment values for the platform services and infra.
+- The non-development JWT key is rejected if it matches the example value, and platform services expect required variables like `JWT__KEY`, `AI_GATEWAY_API_KEY`, `POSTGRES_CONNECTION_STRING`, and `REDIS_CONNECTION_STRING` to be set when running the full stack.
 
-- `AGENTS.md` — contributor and build instructions.
-- `docs/ARCHITECTURE.md` — overall system architecture.
-- `docs/mvp-architecture.md` — MVP-specific architecture notes.
-- `docs/local-development.md` — local dev workflow.
-- `docs/runbooks/` — operational runbooks (chain reorg, compromised keys).
-- `docs/FOUNDRY_LEVERAGE.md` — how we use Microsoft Foundry.
-- `service-manifest.yaml` — declarative service inventory.
+## Developer docs
+
+- `AGENTS.md` — build/test workflow and repository conventions
+- `docs/ARCHITECTURE.md` — overall architecture and component relationships
+- `docs/mvp-architecture.md` — MVP-specific architecture notes
+- `docs/local-development.md` — local setup and developer workflow
+- `docs/runbooks/` — operational runbooks and recovery procedures
+- `service-manifest.yaml` — declarative inventory of services and ports
+
+## Design intent
+
+The repository is intentionally structured around a clear split of responsibilities:
+
+- AI services collect and interpret evidence
+- the deterministic policy engine makes compliance decisions
+- the .NET platform exposes business capabilities and integrations
+- UI and marketplace layers consume those capabilities in a modular, service-oriented way
+
+This separation keeps the platform aligned with a compliance-first model rather than letting the LLM become the source of truth for halal outcomes.

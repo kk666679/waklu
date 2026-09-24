@@ -10,8 +10,8 @@
               ┌─────────────┼─────────────┐
               ▼             ▼             ▼
        halalchain      marketplace    platform-api
-        (Blazor)          (MVC)        (REST API)
-          :5200           :5201           :5001
+      (Blazor Server)  (Razor + Blazor Server + SignalR)   (REST API)
+          :5200           :5201                   :5001
                                             │
                      ┌──────────────────────┼─────────────────────┐
                      │                      │                     │
@@ -36,7 +36,7 @@ See `service-manifest.yaml` for machine-readable service definitions.
 |---------|---------|------|--------|---------|
 | platform-api | .NET 10 | 5001 | Yes | Core REST API — modular monolith |
 | halalchain | .NET 10 | 5200 | Yes | Blazor Server frontend |
-| marketplace | .NET 10 | 5201 | Yes | MVC vendor marketplace |
+| marketplace | .NET 10 | 5201 | Yes | Razor Pages + Blazor Server + SignalR vendor marketplace |
 | ai-inference | Python/Node | 7071 | No | Embeddings, classify, rerank |
 | tawheed | Python | 8000 | No | Multi-agent halal verification |
 
@@ -166,26 +166,28 @@ It **never** assigns or overrides a compliance status.
 ## 8. Repository Structure
 
 ```
-HalalChain.Platform.sln       .NET solution (8 projects + 1 xUnit MCP test project)
+HalalChain.Platform.sln       .NET solution (10 projects + supporting test projects)
 global.json                   .NET SDK version pin (10.0.200)
 Directory.Build.props         Shared .csproj properties
 .editorconfig                 Code style rules
 .gitignore                    Ignore patterns
 .env.example                  Environment template
 docker-compose.yml            Full stack orchestration
-docker/Dockerfile.template    Parameterized .NET service Dockerfile source of truth
 service-manifest.yaml         Service catalog (source of truth)
 Modelfile                     Ollama system prompt for the local halal assistant
 
 # ── .NET projects (HalalChain.*) ───────────────────────────────────────
-HalalChain.Platform.Contracts/    Shared DTOs, enums, Solidity contracts
-HalalChain.Platform.Http/         Typed HttpClient library
-HalalChain.Platform.Api/          Core REST API (modular monolith, ASP.NET Core)
-HalalChain.Marketplace/           ASP.NET Core MVC vendor marketplace
-HalalChain.Web/                   Blazor Server customer-facing UI
-HalalChain.Mcp/                   Model-Context-Protocol server (console host)
-HalalChain.Mcp.Tests/             xUnit tests for the MCP server
-HalalChain.Platform.Tests/        xUnit tests for the API + persistence
+HalalChain.Domain/             Domain model and business concepts
+HalalChain.Application/        Application services and orchestration logic
+HalalChain.Platform.Contracts/ Shared DTOs, enums, Solidity contracts
+HalalChain.Platform.Http/      Typed HttpClient library
+HalalChain.Platform.Api/       Core REST API (modular monolith, ASP.NET Core)
+HalalChain.Marketplace/        Razor Pages + Blazor Server + SignalR vendor marketplace
+HalalChain.Web/                Blazor Server customer-facing UI
+HalalChain.Mcp/                Model-Context-Protocol server (console host)
+HalalChain.Mcp.Tests/          xUnit tests for the MCP server
+HalalChain.Platform.Tests/     xUnit tests for the API + persistence
+HalalChain.Architecture.Tests/ Architecture guard tests
 
 # ── Operator CLI (HalalChain-*, hyphen) ───────────────────────────────
 HalalChain-Cli/                   Node 22 operator CLI (binary: halalchain)

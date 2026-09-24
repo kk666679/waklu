@@ -1,11 +1,13 @@
 # Local development
 
+This guide reflects the current runtime layout for the repository: the marketplace app is a Razor Pages + Blazor Server + SignalR application, while the customer app is a Blazor Server frontend and the API is the central .NET 10 service layer.
+
 ## Prerequisites
 
 - .NET 10 SDK (`global.json` pins `10.0.200`, `rollForward: latestFeature`)
 - Node.js ≥ 22 (CLI under `HalalChain-Cli/`)
 - Python ≥ 3.11 (services under `.halalchain/`)
-- Docker Desktop (optional, for full stack)
+- Docker + Docker Compose for the full local stack
 
 ## Secrets
 

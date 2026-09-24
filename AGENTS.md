@@ -12,18 +12,20 @@ This file documents how to build, test, and operate the HalalChain platform.
 
 ## Solution layout
 
-The solution contains **8 .NET projects** plus an `MCP.Tests` xUnit project:
+The main solution currently contains **10 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
 
 | Project                              | Type                | Role                                  |
 |--------------------------------------|---------------------|---------------------------------------|
+| `HalalChain.Domain`                  | .NET class library  | Domain model and business concepts     |
 | `HalalChain.Platform.Contracts`      | .NET class library  | Shared DTOs + Solidity sources        |
 | `HalalChain.Platform.Http`           | .NET class library  | Typed `HttpClient` for the API        |
 | `HalalChain.Platform.Api`            | ASP.NET Core        | Core REST API (modular monolith)      |
 | `HalalChain.Platform.Tests`          | xUnit               | API, persistence, vendor isolation    |
-| `HalalChain.Marketplace`             | ASP.NET Core MVC    | Vendor marketplace UI                 |
+| `HalalChain.Marketplace`             | ASP.NET Core web app | Vendor marketplace UI (Razor Pages + Blazor Server + SignalR) |
 | `HalalChain.Web`                     | Blazor Server       | Customer-facing UI (Radzen)           |
 | `HalalChain.Mcp`                     | .NET console host   | Model-Context-Protocol server (runnable; not a deployable compose service) |
 | `HalalChain.Mcp.Tests`               | xUnit               | MCP server tests                      |
+| `HalalChain.Architecture.Tests`      | xUnit               | Architecture guard tests              |
 
 `Radzen.Blazor.Api.Generator.csproj` sits alongside the main API in
 `HalalChain.Platform.Api/` and is invoked by the main API project only when
@@ -69,10 +71,10 @@ dotnet test HalalChain.Platform.sln -c Release --no-build
 ## Run locally
 
 `docker compose up --build` brings up the full stack (see `docker-compose.yml`).
-The `platform-api` listens on `http://localhost:5001`, `halalchain` (Blazor) on
-`5200`, `marketplace` on `5201`, `ai-inference` on `7071`, `tawheed` on `8000`,
-and infra (Postgres, Redis, Neo4j, Qdrant) on the ports documented in
-`service-manifest.yaml`.
+The `platform-api` listens on `http://localhost:5001`, `halalchain` (Blazor Server)
+on `5200`, `marketplace` (Razor Pages + Blazor Server + SignalR) on `5201`,
+`ai-inference` on `7071`, `tawheed` on `8000`, and infra (Postgres, Redis,
+Neo4j, Qdrant) on the ports documented in `service-manifest.yaml`.
 
 To add IPFS / a local Polygon-fork chain (Anvil) for contract testing, layer
 the development overlay:
@@ -137,7 +139,7 @@ This is enforced in:
 - AI gateway Python service: `.halalchain/ai-inference/`.
 - Tawheed evidence + Policy Engine: `.halalchain/tawheed/`.
 - Customer UI: `HalalChain.Web/`.
-- Vendor UI: `HalalChain.Marketplace/`.
+- Vendor UI: `HalalChain.Marketplace/` (Razor Pages + Blazor Server + SignalR).
 - MCP server: `HalalChain.Mcp/`.
 - Documentation: `docs/`.
 - Operational runbooks: `docs/runbooks/`.
