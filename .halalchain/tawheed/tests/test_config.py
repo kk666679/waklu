@@ -15,6 +15,7 @@ def _clean_env(monkeypatch):
     for k in (
         "JWT_SECRET", "NEO4J_PASSWORD", "ENVIRONMENT", "TAWHEED_ENV",
         "DEMO_MODE", "POSTGRES_URL", "REDIS_URL", "NEO4J_URI", "NEO4J_USER",
+        "IOT_ENABLED", "IOT_DEVICE_KEYS_JSON", "IOT_MAX_CLOCK_SKEW_SECONDS",
     ):
         monkeypatch.delenv(k, raising=False)
     yield
@@ -73,3 +74,42 @@ def test_production_rejects_default_neo4j_password(monkeypatch):
             JWT_SECRET="x" * 64,
             NEO4J_PASSWORD="tawheed123",
         )
+
+
+def test_production_allows_iot_to_be_disabled(monkeypatch):
+    settings = _make_settings(
+        monkeypatch,
+        ENVIRONMENT="production",
+        JWT_SECRET="x" * 64,
+        NEO4J_PASSWORD="also-a-real-password-not-tawheed123",
+        IOT_ENABLED="false",
+        IOT_DEVICE_KEYS_JSON="{}",
+    )
+    assert settings.iot_enabled is False
+    assert settings.iot_device_keys == {}
+
+
+def test_production_rejects_empty_iot_device_keys_when_enabled(monkeypatch):
+    with pytest.raises(RuntimeError, match="IOT_DEVICE_KEYS_JSON"):
+        settings = _make_settings(
+            monkeypatch,
+            ENVIRONMENT="production",
+            JWT_SECRET="x" * 64,
+            NEO4J_PASSWORD="also-a-real-password-not-tawheed123",
+            IOT_ENABLED="true",
+            IOT_DEVICE_KEYS_JSON="{}",
+        )
+        settings.iot_device_keys
+
+
+def test_production_rejects_short_iot_device_key(monkeypatch):
+    with pytest.raises(RuntimeError, match="32 characters"):
+        settings = _make_settings(
+            monkeypatch,
+            ENVIRONMENT="production",
+            JWT_SECRET="x" * 64,
+            NEO4J_PASSWORD="also-a-real-password-not-tawheed123",
+            IOT_ENABLED="true",
+            IOT_DEVICE_KEYS_JSON='{"device-1":"short"}',
+        )
+        settings.iot_device_keys

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import json
 from functools import lru_cache
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -112,6 +113,29 @@ class Settings(BaseSettings):
 
     risk_threshold_manual_review: float = 0.65
     risk_threshold_hold: float = 0.85
+
+    # JSON map of device ID to HMAC key. Keep this in a secret manager in production.
+    iot_enabled: bool = False
+    iot_device_keys_json: str = "{}"
+    iot_max_clock_skew_seconds: int = 300
+    iot_observation_store_path: str = ""
+
+    @property
+    def iot_device_keys(self) -> dict[str, str]:
+        try:
+            keys = json.loads(self.iot_device_keys_json)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("IOT_DEVICE_KEYS_JSON must be valid JSON") from exc
+        if not isinstance(keys, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in keys.items()
+        ):
+            raise RuntimeError("IOT_DEVICE_KEYS_JSON must map string device IDs to string keys")
+        if self.iot_enabled and not _is_dev_environment():
+            if not keys:
+                raise RuntimeError("IOT_DEVICE_KEYS_JSON must contain at least one device in non-development environments")
+            if any(len(value) < 32 for value in keys.values()):
+                raise RuntimeError("IoT device keys must be at least 32 characters in non-development environments")
+        return keys
 
 
 @lru_cache
