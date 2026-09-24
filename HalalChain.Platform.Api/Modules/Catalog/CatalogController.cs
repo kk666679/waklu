@@ -1,4 +1,5 @@
-﻿using HalalChain.Platform.Api.Persistence;
+﻿using HalalChain.Application.Policies;
+using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Api.Modules.Events;
 using HalalChain.Platform.Contracts.Api.Errors;
 using HalalChain.Platform.Contracts.Auth;
@@ -13,7 +14,6 @@ namespace HalalChain.Platform.Api.Modules.Catalog;
 
 [ApiController]
 [Route("api/v1/catalog")]
-[Authorize]
 [ApiVersion("1.0")]
 public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus, ICurrentUser user) : ControllerBase
 {
@@ -110,7 +110,7 @@ public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus
     }
 
     [HttpPost("products")]
-    [Authorize(Roles = AuthConstants.RoleVendor)]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] CreateProductRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest(new ErrorResponse("INVALID_TITLE", "Title is required."));
@@ -133,7 +133,7 @@ public sealed class CatalogController(HalalChainDbContext db, IEventBus eventBus
     }
 
     [HttpPatch("products/{id:guid}")]
-    [Authorize(Roles = $"{AuthConstants.RoleVendor},{AuthConstants.RoleAdmin}")]
+    [Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
     public async Task<ActionResult<ProductDto>> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request, CancellationToken ct)
     {
         var product = await db.Products.FindAsync([id], ct);

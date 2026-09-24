@@ -1,3 +1,4 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Contracts.Commerce.Dto;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,7 @@ namespace HalalChain.Platform.Api.Controllers;
 public sealed class CustomersController(HalalChainDbContext db) : ControllerBase
 {
     [HttpGet("customers")]
-    [Authorize(Roles = "admin,verification-officer")]
+    [Authorize(Policy = CatalogPolicies.AdminOrVerificationOfficer)]
     public async Task<ActionResult<CustomerDto[]>> GetCustomers(CancellationToken ct)
     {
         var customers = await db.Orders

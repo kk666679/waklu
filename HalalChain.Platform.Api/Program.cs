@@ -185,10 +185,17 @@ builder.Services.AddScoped<HalalChain.Application.Vendors.Interfaces.IVendorRepo
 
 // ── AI Gateway ────────────────────────────────────────────────────────────
 builder.Services.Configure<AiGatewayOptions>(builder.Configuration.GetSection(AiGatewayOptions.SectionName));
-builder.Services.AddHttpClient<IAiInferenceProvider, TransformersJsInferenceProvider>((sp, client) =>
+builder.Services.AddHttpClient<IAiInferenceProvider, ResilientAiInferenceProvider>((sp, client) =>
 {
     var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiGatewayOptions>>().Value;
     client.BaseAddress = new Uri(opts.BaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(2);
+});
+
+builder.Services.AddHttpClient("AiInferenceFallback", (sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiGatewayOptions>>().Value;
+    client.BaseAddress = new Uri(opts.FallbackBaseUrl ?? opts.BaseUrl);
     client.Timeout = TimeSpan.FromMinutes(2);
 });
 

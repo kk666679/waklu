@@ -1,3 +1,4 @@
+using HalalChain.Application.Policies;
 using HalalChain.Domain.Halal;
 using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Api.Modules.Events;
@@ -13,7 +14,6 @@ namespace HalalChain.Platform.Api.Modules.Halal;
 
 [ApiController]
 [Route("api/v1/halal")]
-[Authorize]
 [ApiVersion("1.0")]
 public sealed class HalalController(
     HalalChainDbContext db,
@@ -22,7 +22,7 @@ public sealed class HalalController(
     ICurrentUser user) : ControllerBase
 {
     [HttpPost("products/{productId:guid}/certificates")]
-    [Authorize(Roles = $"{AuthConstants.RoleVendor},{AuthConstants.RoleAdmin}")]
+    [Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
     public async Task<ActionResult<HalalCertificateDto>> SubmitCertificate(
         Guid productId, [FromBody] SubmitCertificateRequest request, CancellationToken ct)
     {
@@ -58,7 +58,7 @@ public sealed class HalalController(
     }
 
     [HttpPost("products/{productId:guid}/verify")]
-    [Authorize(Roles = AuthConstants.RoleVerificationOfficer)]
+    [Authorize(Policy = CatalogPolicies.VerificationOfficerOnly)]
     public async Task<ActionResult<VerificationDto>> TriggerVerification(
         Guid productId, [FromBody] TriggerVerificationRequest request, CancellationToken ct)
     {
@@ -193,7 +193,7 @@ public sealed class HalalController(
     }
 
     [HttpGet("products/{productId:guid}/audit")]
-    [Authorize(Roles = $"{AuthConstants.RoleAdmin},{AuthConstants.RoleVerificationOfficer}")]
+    [Authorize(Policy = CatalogPolicies.AdminOrVerificationOfficer)]
     public async Task<ActionResult<VerificationAuditDto[]>> GetAuditTrail(Guid productId, CancellationToken ct)
     {
         var audits = await db.VerificationAudits
@@ -205,7 +205,7 @@ public sealed class HalalController(
     }
 
     [HttpPost("products/{productId:guid}/verification/{verificationId:guid}/decision")]
-    [Authorize(Roles = AuthConstants.RoleVerificationOfficer)]
+    [Authorize(Policy = CatalogPolicies.VerificationOfficerOnly)]
     public async Task<ActionResult> RecordDecision(
         Guid productId, Guid verificationId,
         [FromBody] RecordVerificationDecisionRequest request, CancellationToken ct)

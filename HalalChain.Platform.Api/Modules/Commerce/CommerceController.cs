@@ -1,3 +1,4 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Api.Modules.Events;
 using HalalChain.Platform.Contracts.Api.Errors;
@@ -13,7 +14,7 @@ namespace HalalChain.Platform.Api.Modules.Commerce;
 
 [ApiController]
 [Route("api/v1/commerce")]
-[Authorize(Roles = AuthConstants.RoleMarketplaceUser)]
+[Authorize(Policy = CatalogPolicies.MarketplaceUserOnly)]
 [ApiVersion("1.0")]
 public sealed class CommerceController(HalalChainDbContext db, IEventBus eventBus, ICurrentUser user) : ControllerBase
 {

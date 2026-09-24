@@ -1,7 +1,7 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Api.Modules.Events;
 using HalalChain.Platform.Contracts.Api.Errors;
-using HalalChain.Platform.Contracts.Auth;
 using HalalChain.Platform.Contracts.Vendors.Dto;
 using HalalChain.Platform.Contracts.Vendors.Requests;
 using Microsoft.AspNetCore.Authorization;
@@ -12,12 +12,11 @@ namespace HalalChain.Platform.Api.Modules.Vendors;
 
 [ApiController]
 [Route("api/v1/vendors")]
-[Authorize]
 [ApiVersion("1.0")]
 public sealed class VendorsController(HalalChainDbContext db, IEventBus eventBus) : ControllerBase
 {
     [HttpPost]
-    [Authorize(Roles = AuthConstants.RoleAdmin)]
+    [Authorize(Policy = CatalogPolicies.AdminOnly)]
     public async Task<ActionResult<VendorDto>> RegisterVendor([FromBody] RegisterVendorRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -39,7 +38,7 @@ public sealed class VendorsController(HalalChainDbContext db, IEventBus eventBus
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = AuthConstants.RoleAdmin)]
+    [Authorize(Policy = CatalogPolicies.AdminOnly)]
     public async Task<ActionResult<VendorDto>> UpdateVendor(Guid id, [FromBody] UpdateVendorRequest request, CancellationToken ct)
     {
         var vendor = await db.Vendors.FindAsync([id], ct);
@@ -55,7 +54,7 @@ public sealed class VendorsController(HalalChainDbContext db, IEventBus eventBus
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = AuthConstants.RoleAdmin)]
+    [Authorize(Policy = CatalogPolicies.AdminOnly)]
     public async Task<ActionResult> DeleteVendor(Guid id, CancellationToken ct)
     {
         var vendor = await db.Vendors.FindAsync([id], ct);

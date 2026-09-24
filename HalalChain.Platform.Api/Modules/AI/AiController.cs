@@ -1,8 +1,8 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Api.AI;
 using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Contracts.AI.Requests;
 using HalalChain.Platform.Contracts.AI.Responses;
-using HalalChain.Platform.Contracts.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 namespace HalalChain.Platform.Api.Modules.AI;
 
 [ApiController]
-[Authorize]
 public sealed class AiController(IAiInferenceProvider provider, HalalChainDbContext db) : ControllerBase
 {
     // ── Infrastructure ────────────────────────────────────────────────────
@@ -21,28 +20,34 @@ public sealed class AiController(IAiInferenceProvider provider, HalalChainDbCont
         => provider.HealthAsync(request, ct);
 
     [HttpPost("/api/ai/embeddings")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public Task<EmbeddingsResponse> Embeddings([FromBody] EmbeddingsRequest request, CancellationToken ct)
         => provider.EmbedAsync(request, ct);
 
     [HttpPost("/api/ai/summarize")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public Task<SummarizeResponse> Summarize([FromBody] SummarizeRequest request, CancellationToken ct)
         => provider.SummarizeAsync(request, ct);
 
     [HttpPost("/api/ai/classify")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public Task<ClassifyResponse> Classify([FromBody] ClassifyRequest request, CancellationToken ct)
         => provider.ClassifyAsync(request, ct);
 
     [HttpPost("/api/ai/ingredient-parse")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public Task<IngredientParseResponse> IngredientParse([FromBody] IngredientParseRequest request, CancellationToken ct)
         => provider.IngredientParseAsync(request, ct);
 
     [HttpPost("/api/ai/certificate-extract")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public Task<CertificateExtractResponse> CertificateExtract([FromBody] CertificateExtractRequest request, CancellationToken ct)
         => provider.CertificateExtractAsync(request, ct);
 
     // ── Shopping AI — catalog-grounded ──────────────────────────────────
 
     [HttpPost("/api/ai/shopping/search")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public async Task<ActionResult<ShoppingSearchResponse>> ShoppingSearch(
         [FromBody] ShoppingSearchRequest request, CancellationToken ct)
     {
@@ -69,6 +74,7 @@ public sealed class AiController(IAiInferenceProvider provider, HalalChainDbCont
     }
 
     [HttpPost("/api/ai/shopping/recommend")]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public async Task<ActionResult<ShoppingRecommendResponse>> Recommend(
         [FromBody] ShoppingRecommendRequest request, CancellationToken ct)
     {
@@ -96,7 +102,7 @@ public sealed class AiController(IAiInferenceProvider provider, HalalChainDbCont
     // ── Catalog AI ────────────────────────────────────────────────────────
 
     [HttpPost("/api/ai/catalog/enrich")]
-    [Authorize(Roles = AuthConstants.RoleVendor)]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public async Task<ActionResult<CatalogEnrichResponse>> Enrich(
         [FromBody] CatalogEnrichRequest request, CancellationToken ct)
     {
@@ -122,7 +128,7 @@ public sealed class AiController(IAiInferenceProvider provider, HalalChainDbCont
     // ── Vendor Copilot ────────────────────────────────────────────────────
 
     [HttpPost("/api/ai/vendor/copilot")]
-    [Authorize(Roles = AuthConstants.RoleVendor)]
+    [Authorize(Policy = CatalogPolicies.VendorOnly)]
     public async Task<ActionResult<VendorCopilotResponse>> VendorCopilot(
         [FromBody] VendorCopilotRequest request, CancellationToken ct)
     {

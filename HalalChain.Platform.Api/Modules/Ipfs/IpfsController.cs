@@ -1,5 +1,5 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Contracts.Api.Errors;
-using HalalChain.Platform.Contracts.Auth;
 using HalalChain.Platform.Contracts.Storage.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +15,7 @@ namespace HalalChain.Platform.Api.Modules.Ipfs;
 /// </summary>
 [ApiController]
 [Route("api/v1/ipfs")]
-[Authorize(Roles = $"{AuthConstants.RoleVendor},{AuthConstants.RoleAdmin}")]
+[Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
 [ApiVersion("1.0")]
 public sealed class IpfsController(IStorageService storage, ILogger<IpfsController> logger) : ControllerBase
 {

@@ -1,4 +1,6 @@
+using HalalChain.Application.Policies;
 using HalalChain.Platform.Contracts.Catalog.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HalalChain.Platform.Api.Modules.Catalog;
@@ -16,6 +18,7 @@ public sealed class SearchController : ControllerBase
     /// Semantic product search using AI embeddings and cosine similarity.
     /// </summary>
     [HttpGet("semantic")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<SemanticSearchResult>>> SemanticSearch(
         [FromQuery] string q,
         [FromQuery] int topK = 10,
@@ -32,6 +35,7 @@ public sealed class SearchController : ControllerBase
     /// Generate embeddings for all products in the catalog.
     /// </summary>
     [HttpPost("embed-all")]
+    [Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
     public async Task<ActionResult> EmbedAll(CancellationToken ct)
     {
         var count = await _searchService.EmbedAllProductsAsync(ct);
@@ -42,6 +46,7 @@ public sealed class SearchController : ControllerBase
     /// Generate embedding for a specific product.
     /// </summary>
     [HttpPost("embed/{productId:guid}")]
+    [Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
     public async Task<ActionResult> EmbedProduct(Guid productId, [FromBody] EmbedProductRequest request, CancellationToken ct)
     {
         var result = await _searchService.EmbedProductAsync(productId, request.Text, ct);
@@ -53,6 +58,7 @@ public sealed class SearchController : ControllerBase
     /// Fuzzy keyword autocomplete for the marketplace search nav.
     /// </summary>
     [HttpGet("suggestions")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<SearchSuggestionDto>>> GetSuggestions(
         [FromQuery] string q,
         [FromQuery] int limit = 8,
