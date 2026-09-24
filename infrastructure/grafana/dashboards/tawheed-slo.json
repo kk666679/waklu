@@ -52,6 +52,39 @@
         "expr": "sum(rate(tawheed_evidence_errors_total[5m]))",
         "legendFormat": "errors/s"
       }]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "IoT Evidence Ingestion",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (metric) (rate(tawheed_iot_observations_accepted_total[5m]))",
+          "legendFormat": "accepted: {{ metric }}"
+        },
+        {
+          "expr": "sum by (reason) (rate(tawheed_iot_observations_rejected_total[5m]))",
+          "legendFormat": "rejected: {{ reason }}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "IoT Rejections (24h)",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(increase(tawheed_iot_observations_rejected_total[24h]))"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      }
     }
   ]
 }

@@ -2,6 +2,16 @@ groups:
   - name: halalchain-sli
     interval: 30s
     rules:
+      # Service coverage for SLO checks. Keep these explicit so platform and tawheed
+      # metrics remain discoverable in dashboards and alerting rules.
+      - record: platform:service:up
+        expr: |
+          up{service=~"platform.*"}
+
+      - record: tawheed:service:up
+        expr: |
+          up{service=~"tawheed.*"}
+
       # ---- Availability SLI ----
       - record: sli:http_requests:rate5m
         expr: |

@@ -161,8 +161,14 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in .env}
       DEFAULT_JURISDICTION: ${DEFAULT_JURISDICTION:-MY}
       DEFAULT_POLICY_VERSION: ${DEFAULT_POLICY_VERSION:-MY-v3}
+      IOT_ENABLED: ${IOT_ENABLED:-false}
+      IOT_DEVICE_KEYS_JSON: ${IOT_DEVICE_KEYS_JSON:-{}}
+      IOT_MAX_CLOCK_SKEW_SECONDS: ${IOT_MAX_CLOCK_SKEW_SECONDS:-300}
+      IOT_OBSERVATION_STORE_PATH: ${IOT_OBSERVATION_STORE_PATH:-/var/lib/tawheed/evidence/observations.jsonl}
     ports:
       - "8000:8000"
+    volumes:
+      - tawheed_evidence:/var/lib/tawheed/evidence
     depends_on:
       postgres:
         condition: service_healthy
@@ -249,3 +255,4 @@ volumes:
   neo4j_data:
   qdrant_data:
   ai_inference_documents:
+  tawheed_evidence:
