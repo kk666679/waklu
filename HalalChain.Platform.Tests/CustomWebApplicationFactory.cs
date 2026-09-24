@@ -168,6 +168,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 {
     private const string RolesHeader = "X-Test-Roles";
     private const string NameHeader = "X-Test-Name";
+    private const string DefaultSubjectId = "00000000-0000-0000-0000-000000000001";
 
     public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger, UrlEncoder encoder)
@@ -177,7 +178,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
     {
         var name = Request.Headers.TryGetValue(NameHeader, out var nameHeader) && !string.IsNullOrWhiteSpace(nameHeader.ToString())
             ? nameHeader.ToString()
-            : "test-user";
+            : DefaultSubjectId;
 
         var claims = new List<Claim>
         {

@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HalalChain.Application\HalalChain.Application.csproj" />
     <ProjectReference Include="..\HalalChain.Domain\HalalChain.Domain.csproj" />
     <ProjectReference Include="..\HalalChain.Platform.Api\HalalChain.Platform.Api.csproj" />
   </ItemGroup>
