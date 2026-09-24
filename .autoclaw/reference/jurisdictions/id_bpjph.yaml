@@ -1,0 +1,19 @@
+id: id-bpjph
+jurisdiction: ID
+authority: BPJPH
+system: SJPH / HAS (Halal Assurance System)
+mandatory: true
+mandatory_since: 2026-10-17
+scope_phase_in:
+  - Food & beverage
+  - Cosmetics
+  - Traditional medicine
+  - Supplements
+requirements:
+  - Halal certification for all circulating products
+  - Raw material traceability
+  - Halal supervisor
+  - SJPH documentation
+notes: |
+  Indonesia mandatory halal certification takes effect October 2026.
+  Raw material traceability is critical for cosmetics and supplements.

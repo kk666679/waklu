@@ -1,51 +1,24 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — Jurisdiction-Specific Halal Standards
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Country-specific halal standards and requirements
-
+version: "2026.08"
 jurisdictions:
   MY:
-    country: Malaysia
-    authority: JAKIM
     standard: MS 1500:2019
-    requirements:
-      - Halal certificate from JAKIM
-      - Compliance with MS 1500:2019
-      - Regular audits
-    notes: Most stringent standards
-    
+    authority: JAKIM
+    mandatory: false
   ID:
-    country: Indonesia
-    authority: MUI/BPJPH
-    standard: HAS 23000
-    requirements:
-      - Halal certificate from BPJPH
-      - Compliance with HAS 23000
-    notes: New mandatory halal certification law
-    
+    standard: SJPH/HAS
+    authority: BPJPH
+    mandatory: true
+    mandatory_since: 2026-10-17
   SG:
-    country: Singapore
+    standard: MUIS-HC-S001
     authority: MUIS
-    standard: MUIS Halal Certification
-    requirements:
-      - Halal certificate from MUIS
-    notes: Well-established system
-    
-  AE:
-    country: UAE
-    authority: ESMA
-    standard: UAE.S 2055-1
-    requirements:
-      - Halal certificate from ESMA
-    notes: National halal scheme
-    
+    mandatory: false
+  TR:
+    standard: HAK
+    authority: HAK
+    mandatory: true
+    mandatory_since: 2026-01-01
   SA:
-    country: Saudi Arabia
+    standard: SFDA / Global Halal Mark
     authority: SFDA
-    standard: SASO 2187
-    requirements:
-      - Halal certificate from SFDA
-    notes: Strict import requirements
+    mandatory: false

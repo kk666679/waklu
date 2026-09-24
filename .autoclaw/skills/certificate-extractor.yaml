@@ -1,0 +1,15 @@
+id: certificate-extractor
+name: Certificate Extractor
+runtime: python
+module: skills.implementations.certificate_extractor:CertificateExtractor
+description: Extracts structured certificate fields from OCR text.
+inputs:
+  text: string
+outputs:
+  certificateNumber: string
+  issuer: string
+  validFrom: string
+  validTo: string
+  scope: list
+eval:
+  suite: eval/skills/certificate-extractor.eval.yaml

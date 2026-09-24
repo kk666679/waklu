@@ -1,0 +1,8 @@
+id: certificate-validator-eval
+skill: certificate-validator
+dataset: eval/datasets/supplier_verification/certificates.jsonl
+metrics:
+  - name: validation_accuracy
+    threshold: 0.98
+  - name: issuer_recognition
+    threshold: 0.99

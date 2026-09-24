@@ -1,0 +1,28 @@
+id: e-codes
+title: Halal E-Codes Reference
+version: "2026.08"
+entries:
+  - code: E120
+    name: Cochineal / Carmine
+    status: questionable
+    reason: Insect-derived; some schools prohibit.
+  - code: E441
+    name: Gelatin
+    status: haram_unless_certified
+    reason: Animal-derived; must be halal-certified.
+  - code: E542
+    name: Bone Phosphate
+    status: haram_unless_certified
+    reason: Animal bone-derived.
+  - code: E631
+    name: Disodium Inosinate
+    status: questionable
+    reason: May be animal-derived.
+  - code: E471
+    name: Mono- and Diglycerides
+    status: questionable
+    reason: May be animal- or plant-derived.
+  - code: E322
+    name: Lecithin
+    status: generally_halal
+    reason: Usually soy-derived; check source.

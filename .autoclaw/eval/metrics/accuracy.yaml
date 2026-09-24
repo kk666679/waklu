@@ -1,0 +1,14 @@
+version: 1
+metrics:
+  accuracy:
+    description: Overall correctness
+    threshold: 0.95
+  precision:
+    description: True positives / (TP + FP)
+    threshold: 0.95
+  recall:
+    description: True positives / (TP + FN)
+    threshold: 0.95
+  f1:
+    description: Harmonic mean of precision and recall
+    threshold: 0.95

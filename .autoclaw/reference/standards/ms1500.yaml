@@ -1,0 +1,23 @@
+id: ms1500-2019
+title: Malaysian Standard MS 1500:2019
+jurisdiction: MY
+authority: JAKIM
+version: "2019"
+effective: "2019-01-01"
+review_cycle_years: 5
+next_review: 2024-01-01   # JAKIM 5-year upgrade cycle
+summary: |
+  Halal food — General guidelines. Covers sourcing, slaughter,
+  processing, storage, transport, and labelling.
+requirements:
+  - id: R001
+    text: Animals must be slaughtered by a Muslim according to Shariah.
+  - id: R002
+    text: No cross-contamination with non-halal materials.
+  - id: R003
+    text: Ingredients must be halal-certified or declared halal.
+  - id: R004
+    text: Halal executive required at each premises.
+  - id: R005
+    text: Traceability from farm to fork.
+tags: [halal, food, Malaysia, MS1500]

@@ -1,0 +1,64 @@
+version: "3.9"
+services:
+  dotnet-api:
+    build: ../../src/HalalChain.Platform
+    ports: ["5000:8080"]
+    env_file: .env
+
+  python-ai:
+    build: ../../services/ai
+    ports: ["8000:8000"]
+    env_file: .env
+
+  customer-web:
+    build: ../../apps/customer-web
+    ports: ["3000:3000"]
+
+  marketplace-web:
+    build: ../../apps/marketplace-web
+    ports: ["3001:3001"]
+
+  vendor-portal:
+    build: ../../apps/vendor-portal
+    ports: ["3002:3002"]
+
+  admin-console:
+    build: ../../apps/admin-console
+    ports: ["3003:3003"]
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: halalchain
+      POSTGRES_USER: halalchain
+      POSTGRES_PASSWORD: halalchain
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  qdrant:
+    image: qdrant/qdrant
+    ports: ["6333:6333"]
+
+  neo4j:
+    image: neo4j:5
+    ports: ["7474:7474", "7687:7687"]
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports: ["9000:9000", "9001:9001"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["5672:5672", "15672:15672"]
+
+  anvil:
+    image: foundry/anvil
+    ports: ["8545:8545"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector
+    ports: ["4317:4317", "4318:4318"]

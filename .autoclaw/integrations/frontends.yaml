@@ -1,0 +1,4 @@
+customer_web: ${CUSTOMER_WEB_URL}
+marketplace_web: ${MARKETPLACE_WEB_URL}
+vendor_portal: ${VENDOR_PORTAL_URL}
+admin_console: ${ADMIN_CONSOLE_URL}

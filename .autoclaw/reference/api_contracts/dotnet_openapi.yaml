@@ -1,0 +1,31 @@
+openapi: "3.1.0"
+info:
+  title: HalalChain .NET Platform API
+  version: "1.0.0"
+  description: Modular .NET platform for suppliers, vendors, marketplace, evidence, policies, certificates.
+servers:
+  - url: ${DOTNET_API_URL}
+paths:
+  /api/suppliers:
+    get:
+      summary: List suppliers
+    post:
+      summary: Create supplier
+  /api/suppliers/{supplierId}:
+    get:
+      summary: Get supplier
+  /api/vendors:
+    get:
+      summary: List vendors
+  /api/evidence:
+    post:
+      summary: Create evidence package
+  /api/policies/evaluate:
+    post:
+      summary: Evaluate policy
+  /api/certificates:
+    get:
+      summary: List certificates
+  /api/marketplace:
+    get:
+      summary: Marketplace listings

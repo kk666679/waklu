@@ -1,0 +1,16 @@
+provider: keycloak
+realm: halalchain
+roles:
+  - supplier
+  - vendor
+  - compliance-auditor
+  - admin
+  - marketplace-operator
+scopes:
+  - suppliers.read
+  - suppliers.write
+  - evidence.read
+  - evidence.write
+  - policies.evaluate
+  - certificates.read
+  - marketplace.write

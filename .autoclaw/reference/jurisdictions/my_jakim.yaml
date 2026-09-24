@@ -1,0 +1,18 @@
+id: my-jakim
+jurisdiction: MY
+authority: JAKIM
+system: MyeHALAL 2.0 (AI-assisted, 2026)
+mandatory: false
+recognised_foreign_bodies: true
+requirements:
+  - Halal executive at each premises
+  - Employee training records
+  - Raw material traceability
+  - Shariah audit
+  - Lab analysis for critical ingredients
+ai_initiatives:
+  - MyeHALAL 2.0 uses AI to review applications against MyHALALINGREDIENTS database.
+  - Whitelist for high-compliance companies enables approval within one week.
+notes: |
+  JAKIM periodically evaluates standards (5-year cycle) to stay
+  relevant as new food technologies (cultured meat, biotech) emerge.

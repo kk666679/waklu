@@ -1,0 +1,28 @@
+version: 1
+updated: 2026-08-31
+defaults:
+  dataset_root: eval/datasets
+  report_root: eval/reports
+  thresholds:
+    agent_success_rate: 0.95
+    policy_accuracy: 0.98
+    extraction_f1: 0.92
+    rag_hit_rate: 0.90
+    hallucination_rate: 0.02
+    p95_latency_ms: 4000
+gates:
+  - name: supplier-verification-agent
+    path: eval/agents/supplier-verification.eval.yaml
+    required: true
+  - name: evidence-collector-skill
+    path: eval/skills/evidence-collector.eval.yaml
+    required: true
+  - name: policy-evaluator
+    path: eval/skills/policy-evaluator.eval.yaml
+    required: true
+  - name: certificate-rag
+    path: eval/rag/certificate_retrieval.eval.yaml
+    required: true
+  - name: supplier-verification-workflow
+    path: eval/workflows/supplier-verification.eval.yaml
+    required: true

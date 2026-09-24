@@ -1,0 +1,23 @@
+object_store:
+  provider: minio
+  endpoint: ${MINIO_ENDPOINT}
+  bucket: halalchain-evidence
+  encryption: AES-256
+vector:
+  provider: qdrant
+  endpoint: ${QDRANT_URL}
+  collections:
+    - certificates
+    - ingredients
+    - policies
+    - evidence
+    - suppliers
+graph:
+  provider: neo4j
+  uri: ${NEO4J_URL}
+relational:
+  provider: postgres
+  url: ${POSTGRES_URL}
+cache:
+  provider: redis
+  url: ${REDIS_URL}

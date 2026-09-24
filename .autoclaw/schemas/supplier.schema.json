@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halalchain/schemas/supplier.schema.json",
+  "title": "Supplier",
+  "type": "object",
+  "required": ["id", "name", "country", "certificates"],
+  "properties": {
+    "id": {"type": "string", "format": "uuid"},
+    "name": {"type": "string"},
+    "country": {"type": "string", "pattern": "^[A-Z]{2}$"},
+    "certificates": {"type": "array", "items": {"$ref": "certificate.schema.json"}},
+    "jurisdiction": {"type": "string"},
+    "risk_score": {"type": "number", "minimum": 0, "maximum": 1},
+    "blockchain_anchor": {"type": "string"}
+  }
+}

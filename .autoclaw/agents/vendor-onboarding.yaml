@@ -1,0 +1,18 @@
+id: vendor-onboarding
+name: Vendor Onboarding Agent
+version: 2.0.0
+updated: 2026-08-31
+description: Guides vendors through KYB, halal certificate upload, product categories, payouts.
+model:
+  provider: openai
+  name: gpt-4.1
+  temperature: 0.2
+skills:
+  - vendor-onboarding
+  - certificate-validator
+  - alert-dispatcher
+reference:
+  - reference/evidence_templates/
+  - reference/policies/marketplace_rules.yaml
+eval:
+  suite: eval/agents/vendor-onboarding.eval.yaml

@@ -1,0 +1,11 @@
+id: tr-hak
+jurisdiction: TR
+authority: HAK (Helal Akreditasyon Kurumu)
+mandatory: true
+mandatory_since: 2026-01-01
+requirements:
+  - All imported halal-claim products must be registered and audited.
+  - Certificate must be issued by HAK or a body with mutual recognition.
+notes: |
+  Turkey requires halal-claim imports to be certified by HAK or
+  an HAK-recognised body since January 2026.

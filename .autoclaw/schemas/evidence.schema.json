@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halalchain/schemas/evidence.schema.json",
+  "title": "EvidencePackage",
+  "type": "object",
+  "required": ["id", "supplierId", "documents", "packageHash"],
+  "properties": {
+    "id": {"type": "string", "format": "uuid"},
+    "supplierId": {"type": "string", "format": "uuid"},
+    "documents": {"type": "array", "items": {"$ref": "document.schema.json"}},
+    "packageHash": {"type": "string", "pattern": "^0x[a-f0-9]{64}$"},
+    "missingItems": {"type": "array", "items": {"type": "string"}},
+    "blockchainTx": {"type": "string"}
+  }
+}

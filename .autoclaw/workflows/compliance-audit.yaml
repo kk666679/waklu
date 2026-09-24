@@ -1,0 +1,16 @@
+id: compliance-audit-workflow
+version: 2.0.0
+trigger:
+  type: schedule
+  cron: "0 2 * * 1"
+steps:
+  - id: scan_expiring_certificates
+    agent: alert-monitor
+  - id: scan_missing_evidence
+    agent: alert-monitor
+  - id: scan_policy_changes
+    agent: alert-monitor
+  - id: report
+    skill: alert-dispatcher
+eval:
+  suite: eval/workflows/compliance-audit.eval.yaml

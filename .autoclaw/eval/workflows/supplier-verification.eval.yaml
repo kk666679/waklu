@@ -1,0 +1,17 @@
+id: supplier-verification-workflow-eval
+workflow: supplier-verification-workflow
+scenarios:
+  - name: approved_supplier
+    input: eval/datasets/supplier_verification/approved.json
+    expect:
+      final_status: approved
+      blockchain_anchor: true
+      human_review: false
+  - name: high_risk_supplier
+    input: eval/datasets/supplier_verification/high_risk.json
+    expect:
+      final_status: pending_review
+      human_review: true
+      alert_sent: true
+thresholds:
+  scenario_pass_rate: 0.98

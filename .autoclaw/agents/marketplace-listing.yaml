@@ -1,0 +1,16 @@
+id: marketplace-listing
+name: Marketplace Listing Agent
+version: 2.0.0
+updated: 2026-08-31
+description: Validates product listings against halal, jurisdiction, and marketplace rules.
+skills:
+  - marketplace-listing
+  - e-code-lookup
+  - jurisdiction-mapper
+  - policy-evaluator
+reference:
+  - reference/ingredients/e_codes.yaml
+  - reference/jurisdictions/
+  - reference/policies/marketplace_rules.yaml
+eval:
+  suite: eval/agents/marketplace-listing.eval.yaml

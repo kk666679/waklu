@@ -1,102 +1,13 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Alert Dispatcher Skill
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-name: alert-dispatcher
-version: 2.0.0
-description: Dispatches alerts for compliance events
-type: async
-timeout: 10s
-
-input:
-  schema:
-    type: object
-    properties:
-      alert_type:
-        type: string
-        enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO]
-        required: true
-      message:
-        type: string
-        required: true
-      subject:
-        type: string
-        required: false
-      priority:
-        type: integer
-        minimum: 1
-        maximum: 5
-        default: 3
-      channels:
-        type: array
-        description: Channels to send to
-        items:
-          type: string
-          enum: [email, slack, teams, sms, webhook]
-        default: [email, slack]
-      recipients:
-        type: array
-        items:
-          type: string
-      metadata:
-        type: object
-        description: Additional metadata
-        required: false
-      link:
-        type: string
-        description: Link to more information
-        required: false
-
-output:
-  schema:
-    type: object
-    properties:
-      alert_id:
-        type: string
-      status:
-        type: string
-        enum: [SENT, PARTIAL, FAILED]
-      sent_channels:
-        type: array
-        items:
-          type: string
-      failed_channels:
-        type: array
-        items:
-          type: string
-      timestamp:
-        type: string
-        format: date-time
-      errors:
-        type: array
-        items:
-          type: string
-
-execution:
-  provider: python
-  source: skills/implementations/alert_dispatcher.py
-  entrypoint: dispatch_alert
-  
-  dependencies:
-    - requests
-    - smtplib
-    - slack_sdk
-    - pymsteams
-
-security:
-  required_permissions: [alert:send]
-  data_classification: level_2
-  input_sanitization: true
-  output_sanitization: true
-
-config:
-  smtp:
-    server: ${SMTP_SERVER}
-    port: ${SMTP_PORT}
-    username: ${SMTP_USERNAME}
-    password: ${SMTP_PASSWORD}
-  slack:
-    webhook_url: ${SLACK_WEBHOOK}
-  teams:
-    webhook_url: ${TEAMS_WEBHOOK}
+id: alert-dispatcher
+name: Alert Dispatcher
+runtime: python
+module: skills.implementations.alert_dispatcher:AlertDispatcher
+description: Dispatches alerts to vendor, compliance, and admin channels.
+inputs:
+  channel: string
+  template: string
+  payload: object
+outputs:
+  delivered: boolean
+eval:
+  suite: eval/skills/alert-dispatcher.eval.yaml

@@ -1,92 +1,10 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — Access Control Configuration
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Role-based access control configuration
-
-roles:
-  admin:
-    description: System administrator
-    permissions:
-      - agent:create
-      - agent:read
-      - agent:update
-      - agent:delete
-      - agent:configure
-      - orchestrator:create
-      - orchestrator:read
-      - orchestrator:update
-      - orchestrator:delete
-      - orchestrator:execute
-      - kg:create
-      - kg:read
-      - kg:update
-      - kg:delete
-      - security:configure
-      - audit:read
-      - audit:delete
-    
-  compliance_officer:
-    description: Compliance officer
-    permissions:
-      - agent:read
-      - orchestrator:read
-      - orchestrator:execute
-      - kg:read
-      - audit:read
-      - report:create
-    
-  vendor:
-    description: Vendor
-    permissions:
-      - product:submit
-      - product:read_own
-      - product:verify_own
-      - certificate:submit
-      - certificate:read_own
-    
-  auditor:
-    description: External auditor
-    permissions:
-      - audit:read
-      - report:read
-      - report:export
-    
-  viewer:
-    description: Read-only access
-    permissions:
-      - agent:read
-      - orchestrator:read
-      - kg:read
-      - report:read
-
-access_policies:
-  - name: Agent Access
-    description: Control access to agents
-    rules:
-      - role: admin
-        allow: all
-      - role: compliance_officer
-        allow: [read, execute]
-      - role: vendor
-        allow: [read_own]
-      - role: auditor
-        allow: [read]
-      - role: viewer
-        allow: [read]
-  
-  - name: Orchestrator Access
-    description: Control access to orchestrators
-    rules:
-      - role: admin
-        allow: all
-      - role: compliance_officer
-        allow: [read, execute]
-      - role: vendor
-        allow: [read]
-      - role: auditor
-        allow: [read]
-      - role: viewer
-        allow: [read]
+version: 1
+provider: keycloak
+realm: halalchain
+clients:
+  - id: halalchain-dotnet
+    roles: [supplier, vendor, compliance-auditor, admin]
+  - id: halalchain-python-ai
+    roles: [service-account]
+  - id: halalchain-frontends
+    roles: [supplier, vendor, marketplace-operator]

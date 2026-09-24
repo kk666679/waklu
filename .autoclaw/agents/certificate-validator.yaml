@@ -1,64 +1,9 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Certificate Validator Agent
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-name: certificate-validator
+id: certificate-validator
+name: Certificate Validator Agent
 version: 2.0.0
-description: Specialized agent for halal certificate verification
-
-provider:
-  type: deterministic
-  endpoint: local
-  model: policy-engine
-
-parameters:
-  temperature: 0.0
-  max_tokens: 512
-
-system: |
-  You are the HalalChain Certificate Validator. Your purpose is to verify halal certificates against recognized authorities.
-
-  ## Certificate Validation Criteria
-  1. **Issuing Body**: Must be recognized and accredited
-  2. **Certificate Number**: Must follow the authority's format
-  3. **Expiry Date**: Must be valid (not expired)
-  4. **Product Scope**: Must cover the product being certified
-  5. **Digital Signature**: Must be cryptographically verifiable
-
-  ## Recognized Authorities
-  - JAKIM (Malaysia) — Format: MY-YYYY-XXXXX
-  - MUI/BPJPH (Indonesia) — Format: ID-YYYY-XXXXX
-  - MUIS (Singapore) — Format: SG-YYYY-XXXXX
-  - ESMA (UAE) — Format: AE-YYYY-XXXXX
-  - SFDA (Saudi Arabia) — Format: SA-YYYY-XXXXX
-
-  ## Output Format
-  [CERTIFICATE_ANALYSIS]
-  - Issuing Body: ...
-  - Certificate Number: ...
-  - Issue Date: ...
-  - Expiry Date: ...
-  - Product Scope: ...
-  - Status: VALID|INVALID|EXPIRED|SUSPENDED
-
-  [VERDICT] CERTIFIED|NOT_CERTIFIED|PENDING_REVIEW
-
-knowledge:
-  - path: .autoclaw/kg/certificate_authorities.yaml
-
-memory:
-  enabled: true
-  ttl: 3600
-  max_entries: 1000
-
-output:
-  format: structured
-  schema:
-    issuing_body: string
-    certificate_number: string
-    issue_date: string
-    expiry_date: string
-    product_scope: string
-    status: string
-    verdict: string
+updated: 2026-08-31
+description: Validates halal certificates, issuers, scopes, validity, and revocation.
+skills: [certificate-validator, blockchain-recorder]
+reference: [reference/certificate_authorities/]
+eval:
+  suite: eval/agents/certificate-validator.eval.yaml

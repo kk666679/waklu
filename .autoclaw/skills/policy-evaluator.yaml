@@ -1,0 +1,18 @@
+id: policy-evaluator
+name: Policy Evaluator
+runtime: python
+module: skills.implementations.policy_evaluator:PolicyEvaluator
+description: Evaluates entity against jurisdiction and proprietary policy rules.
+inputs:
+  entityType: string
+  entityId: string
+  jurisdiction: string
+outputs:
+  decision: string
+  risk: string
+  citations: list
+reference:
+  - reference/policies/
+  - reference/jurisdictions/
+eval:
+  suite: eval/skills/policy-evaluator.eval.yaml

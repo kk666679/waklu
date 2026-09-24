@@ -1,0 +1,8 @@
+id: policy-evaluator-eval
+skill: policy-evaluator
+dataset: eval/datasets/policy_evaluation/golden.jsonl
+metrics:
+  - name: decision_accuracy
+    threshold: 0.98
+  - name: citation_accuracy
+    threshold: 0.95

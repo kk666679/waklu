@@ -1,0 +1,8 @@
+id: policy-rag-eval
+collection: policies
+mode: agentic
+dataset: eval/datasets/rag_certificates/policies.jsonl
+metrics:
+  hit_rate: 0.90
+  mrr: 0.80
+  faithfulness: 0.95

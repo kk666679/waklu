@@ -1,65 +1,8 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Verification Events
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Verification event definitions
-
+version: 1
 events:
-  VerificationRecorded:
-    description: Emitted when a verification is recorded
+  - name: SupplierVerified
     contract: HalalVerification
-    parameters:
-      - name: verificationId
-        type: bytes32
-        indexed: true
-      - name: productId
-        type: bytes32
-        indexed: true
-      - name: verdict
-        type: uint8
-        indexed: false
-      - name: verifier
-        type: address
-        indexed: false
-      - name: timestamp
-        type: uint256
-        indexed: false
-    handlers:
-      - blockchain-orchestrator
-      - alert-monitor
-
-  VerificationVerified:
-    description: Emitted when a verification is verified
+    fields: [supplierId, verifier, result, evidenceHash]
+  - name: PolicyEvaluated
     contract: HalalVerification
-    parameters:
-      - name: verificationId
-        type: bytes32
-        indexed: true
-      - name: productId
-        type: bytes32
-        indexed: true
-      - name: verifier
-        type: address
-        indexed: false
-    handlers:
-      - verification-verifier
-      - compliance-reporter
-
-  VerificationStatusChanged:
-    description: Emitted when verification status changes
-    contract: HalalVerification
-    parameters:
-      - name: verificationId
-        type: bytes32
-        indexed: true
-      - name: status
-        type: uint8
-        indexed: false
-      - name: updatedBy
-        type: address
-        indexed: false
-    handlers:
-      - alert-monitor
-      - compliance-auditor
+    fields: [entityId, decision, risk]

@@ -1,0 +1,11 @@
+version: 1
+events:
+  - name: EvidenceAnchored
+    contract: EvidenceRegistry
+    fields: [evidencePackageId, packageHash, timestamp]
+  - name: EvidenceUpdated
+    contract: EvidenceRegistry
+    fields: [evidencePackageId, newHash, reason]
+  - name: SensorObservationAnchored
+    contract: EvidenceRegistry
+    fields: [observationId, productId, deviceId, observedAt, metric, readingHash]

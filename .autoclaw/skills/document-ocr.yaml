@@ -1,0 +1,12 @@
+id: document-ocr
+name: Document OCR
+runtime: python
+module: skills.implementations.document_ocr:DocumentOCR
+description: Extracts text and structure from supplier documents.
+inputs:
+  documentUrl: string
+outputs:
+  text: string
+  pages: list
+eval:
+  suite: eval/skills/document-ocr.eval.yaml

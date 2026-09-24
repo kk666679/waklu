@@ -1,0 +1,21 @@
+version: 1
+service:
+  name: halalchain-autoclaw
+  namespace: halalchain
+traces:
+  exporter: otlp
+  endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+  sampling: 0.1
+metrics:
+  exporter: otlp
+  endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+logs:
+  exporter: otlp
+  endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+attributes:
+  - service.name
+  - agent.id
+  - workflow.id
+  - supplier.id
+  - jurisdiction
+  - blockchain.tx
