@@ -1,0 +1,78 @@
+name: HalalChain Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push platform-api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/supporthalal/halalchain-platform-api:${{ github.sha }}
+            ghcr.io/supporthalal/halalchain-platform-api:latest
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./HalalChain.Web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/supporthalal/halalchain-web:${{ github.sha }}
+            ghcr.io/supporthalal/halalchain-web:latest
+
+      - name: Build and push marketplace image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./HalalChain.Marketplace/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/supporthalal/halalchain-marketplace:${{ github.sha }}
+            ghcr.io/supporthalal/halalchain-marketplace:latest
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign published images
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign --yes ghcr.io/supporthalal/halalchain-platform-api@$(docker buildx imagetools inspect ghcr.io/supporthalal/halalchain-platform-api:${{ github.sha }} --format '{{json .Manifest.Digest}}' | tr -d '"')
+          cosign sign --yes ghcr.io/supporthalal/halalchain-web@$(docker buildx imagetools inspect ghcr.io/supporthalal/halalchain-web:${{ github.sha }} --format '{{json .Manifest.Digest}}' | tr -d '"')
+          cosign sign --yes ghcr.io/supporthalal/halalchain-marketplace@$(docker buildx imagetools inspect ghcr.io/supporthalal/halalchain-marketplace:${{ github.sha }} --format '{{json .Manifest.Digest}}' | tr -d '"')
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint ./deploy/helm/halalchain
+
+      - name: Helm package
+        run: helm package ./deploy/helm/halalchain --destination ./dist
