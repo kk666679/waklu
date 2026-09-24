@@ -25,6 +25,8 @@ COPY tawheed/src ./src
 # as root, so we explicitly create the user here.
 RUN groupadd --system --gid 1001 halalchain \
     && useradd  --system --uid 1001 --gid 1001 --no-create-home halalchain \
+    && mkdir -p /var/lib/tawheed/evidence \
+    && chown -R halalchain:halalchain /var/lib/tawheed \
     && chown -R halalchain:halalchain /app
 USER halalchain
 

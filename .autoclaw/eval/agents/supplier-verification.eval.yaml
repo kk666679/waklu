@@ -1,0 +1,15 @@
+id: supplier-verification-agent-eval
+agent: supplier-verification
+dataset: eval/datasets/supplier_verification/golden.jsonl
+metrics:
+  - name: success_rate
+    threshold: 0.95
+  - name: policy_accuracy
+    threshold: 0.98
+  - name: evidence_completeness
+    threshold: 0.95
+  - name: hallucination_rate
+    threshold: 0.02
+    direction: lower_is_better
+scoring:
+  pass_if_all: true

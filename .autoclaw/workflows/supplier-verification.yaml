@@ -1,0 +1,33 @@
+id: supplier-verification-workflow
+version: 2.0.0
+updated: 2026-08-31
+trigger:
+  type: api
+  path: /workflows/supplier-verification
+steps:
+  - id: intake
+    agent: supplier-verification
+    action: load_supplier
+  - id: collect_evidence
+    skill: evidence-collector
+    input:
+      supplierId: ${input.supplierId}
+  - id: validate_certificates
+    skill: certificate-validator
+  - id: evaluate_policy
+    skill: policy-evaluator
+  - id: human_review
+    when: ${steps.evaluate_policy.risk} == "high"
+    type: approval
+    assigneeRole: compliance-auditor
+  - id: anchor
+    skill: blockchain-recorder
+    input:
+      evidenceHash: ${steps.collect_evidence.packageHash}
+  - id: notify
+    skill: alert-dispatcher
+    input:
+      channel: vendor
+      template: supplier_verification_result
+eval:
+  suite: eval/workflows/supplier-verification.eval.yaml

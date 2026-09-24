@@ -40,7 +40,7 @@ services:
         required: true
 
   marketplace:
-    description: MVC frontend — vendor marketplace UI
+    description: Razor Pages + Blazor Server + SignalR frontend — vendor marketplace UI
     type: web
     runtime: dotnet
     version: net10.0

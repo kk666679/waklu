@@ -1,15 +1,27 @@
 from __future__ import annotations
-from fastapi import APIRouter
-from src.api.schemas import VerifyProductRequest, VerifyProductResponse
+from fastapi import APIRouter, HTTPException, status
+from src.api.schemas import (
+    SensorObservationRequest,
+    SensorObservationResponse,
+    VerifyProductRequest,
+    VerifyProductResponse,
+)
+from src.adapters.iot import ObservationRejected, ObservationStore, ObservationVerifier
 from src.core.models import EvidenceSignals, RiskSignals
 from src.core.config import get_settings
 from src.policy import engine
 from src.agents.orchestrator import AgentOrchestrator
+from src.observability import iot_observations_accepted_total, iot_observations_rejected_total
 
 router = APIRouter(prefix="/v1")
 
 # Singleton orchestrator
 _orchestrator = AgentOrchestrator()
+_settings = get_settings()
+_observation_store = ObservationStore(
+    ObservationVerifier(_settings.iot_device_keys, _settings.iot_max_clock_skew_seconds),
+    _settings.iot_observation_store_path,
+)
 
 
 @router.post("/products/{product_id}/verify", response_model=VerifyProductResponse)
@@ -64,3 +76,28 @@ async def agent_health() -> dict:
 @router.get("/policies")
 async def list_policies() -> dict:
     return {"policies": list(engine.POLICY_VERSIONS.keys())}
+
+
+@router.post(
+    "/evidence/sensor-observations",
+    response_model=SensorObservationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def ingest_sensor_observation(
+    observation: SensorObservationRequest,
+) -> SensorObservationResponse:
+    """Accept signed device telemetry as evidence; never evaluate a verdict here."""
+    if not _settings.iot_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="IoT evidence ingestion is disabled",
+        )
+    try:
+        _observation_store.accept(observation)
+    except ObservationRejected as exc:
+        reason = str(exc)
+        iot_observations_rejected_total.labels(reason=reason).inc()
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=reason) from exc
+
+    iot_observations_accepted_total.labels(metric=observation.metric).inc()
+    return SensorObservationResponse(observation_id=str(observation.id))

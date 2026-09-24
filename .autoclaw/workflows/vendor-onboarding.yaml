@@ -1,0 +1,19 @@
+id: vendor-onboarding-workflow
+version: 2.0.0
+trigger:
+  type: api
+  path: /workflows/vendor-onboarding
+steps:
+  - id: kyb
+    agent: vendor-onboarding
+  - id: certificate_upload
+    skill: certificate-validator
+  - id: product_categories
+    skill: jurisdiction-mapper
+  - id: payout_setup
+    agent: vendor-onboarding
+  - id: approval
+    type: approval
+    assigneeRole: marketplace-operator
+eval:
+  suite: eval/workflows/vendor-onboarding.eval.yaml

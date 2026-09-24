@@ -46,6 +46,18 @@ tawheed_determinism_violation_total = Counter(
     ["subject"],
 )
 
+iot_observations_accepted_total = Counter(
+    "tawheed_iot_observations_accepted_total",
+    "Accepted signed device observations",
+    ["metric"],
+)
+
+iot_observations_rejected_total = Counter(
+    "tawheed_iot_observations_rejected_total",
+    "Rejected device observations",
+    ["reason"],
+)
+
 # ── OpenTelemetry Tracing ───────────────────────────────────────────────────
 
 def init_tracing(service_name: str = "tawheed", endpoint: str = "http://localhost:4317") -> None:
@@ -96,7 +108,7 @@ def measure_verdict(verdict: str):
         yield
     finally:
         ms = (time.perf_counter() - start) * 1000
-        tawheed_verdict_latency_ms.record(ms, {"verdict": verdict})
+        tawheed_verdict_latency_ms.labels(verdict=verdict).observe(ms)
 
 
 # ── Determinism Invariant ───────────────────────────────────────────────────

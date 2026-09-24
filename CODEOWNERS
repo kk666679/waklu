@@ -1,0 +1,35 @@
+# Repository ownership
+# Keep service ownership explicit to avoid documentation drift and enable
+# faster incident routing.
+
+# Default ownership for the whole repo.
+* @supportHalal/platform
+
+# Platform API and core contracts
+/HalalChain.Platform.Api/ @supportHalal/platform
+/HalalChain.Platform.Contracts/ @supportHalal/platform
+/HalalChain.Platform.Http/ @supportHalal/platform
+/HalalChain.Platform.Tests/ @supportHalal/platform
+/HalalChain.Domain/ @supportHalal/platform
+/HalalChain.Application/ @supportHalal/platform
+
+# Frontend and UX ownership
+/HalalChain.Web/ @supportHalal/frontend
+/HalalChain.Marketplace/ @supportHalal/frontend
+
+# AI and evidence services
+/.halalchain/ai-inference/ @supportHalal/ai-systems
+/.halalchain/tawheed/ @supportHalal/ai-systems
+/.halalchain/_shared/ @supportHalal/ai-systems
+
+# Infra and operations
+/docker-compose.yml @supportHalal/infra
+/service-manifest.yaml @supportHalal/infra
+/infrastructure/ @supportHalal/infra
+/.github/ @supportHalal/infra
+/docs/ @supportHalal/platform
+/scripts/ @supportHalal/platform
+
+# Operational tooling
+/HalalChain-Cli/ @supportHalal/platform
+/HalalChain.Mcp/ @supportHalal/platform

@@ -1,0 +1,11 @@
+id: certificate-rag-eval
+collection: certificates
+mode: agentic
+graph_enhanced: true
+dataset: eval/datasets/rag_certificates/golden.jsonl
+metrics:
+  hit_rate: 0.90
+  mrr: 0.80
+  faithfulness: 0.95
+  answer_relevance: 0.90
+  citation_accuracy: 0.95

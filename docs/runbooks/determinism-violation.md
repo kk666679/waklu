@@ -1,5 +1,54 @@
 # Runbook: Tawheed Determinism Violation (P0)
 
+## Symptoms
+
+- The Policy Engine produced different verdicts for the same evidence + policy version.
+- The platform emits a determinism alert, and the evidence bundle cannot be reproduced reliably.
+
+## Triage
+
+1. Confirm the alert payload (`subject_id`, policy version, evidence bundle hash).
+2. Identify whether the issue is upstream in the evidence collector or in the policy rules themselves.
+3. Check whether the same evidence bundle is being evaluated multiple times with a different result.
+
+## Mitigation
+
+1. **Stop the bleeding**: disable the verification endpoint
+   ```bash
+   kubectl patch deployment platform-api -n prod --patch \
+     '{"spec":{"template":{"spec":{"containers":[{"name":"platform-api","env":[{"name":"Halal__VerificationEnabled","value":"false"}]}]}}}}'
+   ```
+2. **Capture state** for forensics:
+   ```bash
+   # Find the subject_id from the alert
+   kubectl logs -n prod -l app=tawheed --since=1h | grep "DETERMINISM VIOLATION"
+   ```
+3. **Notify**: #incident-p0, tag the platform lead, CTO, and compliance officer.
+
+## What this means
+The Policy Engine produced **different verdicts for the same evidence + policy version**. This violates the core architectural principle:
+
+> AI agents collect evidence. The deterministic Policy Engine decides compliance.
+
+A violation means either:
+1. A code path bypasses `PolicyEngine.evaluate` and calls something else
+2. Evidence collection is non-deterministic (e.g., time-dependent, network-dependent)
+3. Policy rules are non-deterministic (should be pure functions)
+4. The fingerprint cache has a bug
+
+## Immediate actions (first 5 minutes)
+1. **Stop the bleeding**: disable the verification endpoint
+   ```bash
+   kubectl patch deployment platform-api -n prod --patch \
+     '{"spec":{"template":{"spec":{"containers":[{"name":"platform-api","env":[{"name":"Halal__VerificationEnabled","value":"false"}]}]}}}}'
+   ```
+2. **Capture state** for forensics:
+   ```bash
+   # Find the subject_id from the alert
+   kubectl logs -n prod -l app=tawheed --since=1h | grep "DETERMINISM VIOLATION"
+   ```
+3. **Notify**: #incident-p0, tag the platform lead, CTO, and compliance officer.
+
 **Alert:** `Tawheed_DeterminismViolation`
 **Severity:** P0 - treated like a data integrity incident
 **Page:** Yes (PagerDuty P0 + #incident-p0)

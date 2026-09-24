@@ -1,0 +1,58 @@
+id: supplier-verification
+name: Supplier Verification Agent
+version: 2.0.0
+updated: 2026-08-31
+description: |
+  Verifies halal suppliers, certificates, sanctions, and evidence.
+  Uses agentic RAG with GraphRAG and MCP tool connectivity.
+model:
+  provider: openai
+  name: gpt-4.1
+  temperature: 0.1
+  fallback:
+    provider: anthropic
+    name: claude-sonnet-4-2026
+instructions: |
+  You are HalalChain's supplier verification agent.
+  Verify supplier identity, halal certificates, jurisdiction compliance,
+  ingredient risks, sanctions, and evidence completeness.
+  Never approve without traceable evidence and a policy decision.
+  Always cite reference IDs from the reference layer.
+skills:
+  - certificate-validator
+  - evidence-collector
+  - e-code-lookup
+  - jurisdiction-mapper
+  - policy-evaluator
+  - blockchain-recorder
+  - alert-dispatcher
+reference:
+  - reference/reference_index.yaml
+  - reference/jurisdictions/my_jakim.yaml
+  - reference/jurisdictions/id_bpjph.yaml
+  - reference/standards/ms1500.yaml
+  - reference/ingredients/e_codes.yaml
+  - reference/certificate_authorities/
+  - reference/policies/
+eval:
+  suite: eval/agents/supplier-verification.eval.yaml
+  required: true
+  metrics:
+    - success_rate
+    - policy_accuracy
+    - evidence_completeness
+    - hallucination_rate
+  datasets:
+    - eval/datasets/supplier_verification/golden.jsonl
+    - eval/datasets/supplier_verification/adversarial.jsonl
+mcp:
+  enabled: true
+  tools:
+    - dotnet.suppliers.get
+    - python.evidence.extract
+    - blockchain.anchor
+    - qdrant.search
+rag:
+  mode: agentic
+  graph_enhanced: true
+  collections: [certificates, ingredients, policies, evidence]

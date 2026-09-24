@@ -1,0 +1,7 @@
+id: jurisdiction-rules-eval
+dataset: eval/datasets/policy_evaluation/jurisdictions.jsonl
+metrics:
+  - name: rule_accuracy
+    threshold: 0.98
+  - name: conflict_detection
+    threshold: 0.95

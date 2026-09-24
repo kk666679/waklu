@@ -1,0 +1,19 @@
+id: evidence-collector
+name: Evidence Collector
+runtime: python
+module: skills.implementations.evidence_collector:EvidenceCollector
+description: Collects, extracts, hashes, stores, and anchors supplier evidence.
+inputs:
+  supplierId: string
+  requestedDocuments: list
+outputs:
+  evidencePackageId: string
+  packageHash: string
+  documents: list
+  missingItems: list
+integrations:
+  storage: integrations/storage.yaml
+  blockchain: integrations/blockchain.yaml
+  dotnet: integrations/dotnet.yaml
+eval:
+  suite: eval/skills/evidence-collector.eval.yaml

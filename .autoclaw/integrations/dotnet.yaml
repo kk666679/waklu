@@ -1,0 +1,23 @@
+base_url: ${DOTNET_API_URL}
+auth:
+  type: oauth2
+  scopes:
+    - suppliers.read
+    - suppliers.write
+    - evidence.write
+    - policies.evaluate
+    - certificates.read
+    - marketplace.read
+endpoints:
+  suppliers: /api/suppliers
+  vendors: /api/vendors
+  evidence: /api/evidence
+  policies: /api/policies/evaluate
+  certificates: /api/certificates
+  marketplace: /api/marketplace
+  identity: /api/identity
+  audit: /api/audit
+mcp:
+  enabled: true
+  server: ${DOTNET_MCP_SERVER_URL}
+  protocol_version: "2026-05"

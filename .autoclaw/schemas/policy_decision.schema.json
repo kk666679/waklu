@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halalchain/schemas/policy_decision.schema.json",
+  "title": "PolicyDecision",
+  "type": "object",
+  "required": ["decision", "risk", "citations"],
+  "properties": {
+    "decision": {"enum": ["approved", "rejected", "pending_review"]},
+    "risk": {"enum": ["low", "medium", "high"]},
+    "citations": {"type": "array", "items": {"type": "string"}},
+    "jurisdiction_conflicts": {"type": "array", "items": {"type": "string"}}
+  }
+}

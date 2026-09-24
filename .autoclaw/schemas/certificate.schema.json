@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halalchain/schemas/certificate.schema.json",
+  "title": "Certificate",
+  "type": "object",
+  "required": ["id", "issuer", "validFrom", "validTo", "scope"],
+  "properties": {
+    "id": {"type": "string"},
+    "issuer": {"type": "string"},
+    "validFrom": {"type": "string", "format": "date"},
+    "validTo": {"type": "string", "format": "date"},
+    "scope": {"type": "array", "items": {"type": "string"}},
+    "revoked": {"type": "boolean", "default": false}
+  }
+}

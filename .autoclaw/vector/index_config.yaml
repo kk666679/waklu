@@ -1,32 +1,23 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — Vector Index Configuration
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Configuration for vector search index
-
-index:
-  type: hnsw
-  dimensions: 768
-  distance_metric: cosine
-  
-  parameters:
-    hnsw:
-      m: 16
-      ef_construction: 200
-      ef_search: 100
-
-embedding:
-  model: sentence-transformers/all-MiniLM-L6-v2
-  batch_size: 32
-  max_tokens: 512
-
-storage:
-  path: .autoclaw/vector/embeddings.db
-  auto_save: true
-  save_interval: 60
-
-search:
-  default_limit: 10
-  min_score: 0.7
+version: "2026.08"
+provider: qdrant
+collections:
+  - name: certificates
+    vector_size: 1536
+    distance: cosine
+  - name: ingredients
+    vector_size: 1536
+    distance: cosine
+  - name: policies
+    vector_size: 1536
+    distance: cosine
+  - name: evidence
+    vector_size: 1536
+    distance: cosine
+  - name: suppliers
+    vector_size: 1536
+    distance: cosine
+rag:
+  mode: agentic
+  graph_enhanced: true
+  hybrid_search: true
+  reranker: cross-encoder

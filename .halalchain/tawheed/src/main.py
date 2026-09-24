@@ -67,6 +67,7 @@ async def health() -> dict:
         "status": "ok",
         "service": "tawheed",
         "demo_mode": settings.demo_mode,
+        "iot_enabled": settings.iot_enabled,
         "policy_version": settings.default_policy_version,
         "jurisdiction": settings.default_jurisdiction,
     }

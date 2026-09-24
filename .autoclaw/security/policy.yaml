@@ -1,91 +1,24 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Security Policy
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Security policy for AutoClaw agents and data
-
-encryption:
-  at_rest: AES-256-GCM
-  in_transit: TLS 1.3
-  key_management: HSM-backed (FIPS 140-2 Level 3)
-  key_rotation: 90 days
-  
-authentication:
-  mfa_required: true
-  methods:
-    - TOTP (RFC 6238)
-    - FIDO2 (WebAuthn)
-    - Hardware tokens
-  session_timeout: 15 minutes
-  concurrent_sessions: 1
-  ip_restriction: true
-  rate_limiting:
-    max_attempts: 5
-    lockout_duration: 30 minutes
-
-authorization:
-  roles:
-    admin:
-      permissions: [create, read, update, delete, configure, audit]
-    compliance_officer:
-      permissions: [read, verify, audit, review]
-    vendor:
-      permissions: [submit, read_own, verify_own]
-    auditor:
-      permissions: [read, audit, report]
-    viewer:
-      permissions: [read]
-
-logging:
-  audit_level: detailed
-  retention: 7 years
-  integrity: cryptographic verification
-  categories:
-    - authentication_events
-    - access_events
-    - verification_operations
-    - configuration_changes
-    - security_events
-    - errors_and_exceptions
-
-data_protection:
-  classification:
-    - level: 4 - Proprietary AI Models
-      controls: [encryption, access_control, audit_logging, no_export, no_sharing]
-      examples: [model_weights, training_data, proprietary_algorithms]
-    
-    - level: 3 - Verification Results
-      controls: [encryption, access_control, audit_logging, limited_retention]
-      examples: [product_verdicts, compliance_status, certificate_data]
-    
-    - level: 2 - Business Data
-      controls: [encryption, access_control, audit_logging]
-      examples: [vendor_information, product_details, commercial_data]
-    
-    - level: 1 - Public Data
-      controls: [optional_encryption, access_control]
-      examples: [halal_standards, public_regulations, published_e-codes]
-
-incident_response:
-  notification_time: 24 hours
-  escalation_path:
-    - Level 1: Security Operations Center
-    - Level 2: Chief Information Security Officer
-    - Level 3: Board of Directors
-  containment_time: 2 hours
-  remediation_time: 48 hours
-
-compliance:
-  standards:
-    - ISO 27001:2022
-    - ISO 27701:2019
-    - SOC 2 Type II
-    - NIST Cybersecurity Framework
-    - GDPR
-    - CCPA
-    - PDPA (Malaysia)
-    - PDPA (Singapore)
-    - MyDIGITAL Malaysia
-    - MS 1500:2019
+version: 1
+engine: opa
+roles:
+  supplier:
+    - suppliers.read
+    - evidence.write
+  vendor:
+    - suppliers.read
+    - evidence.read
+    - marketplace.write
+  compliance-auditor:
+    - suppliers.read
+    - evidence.read
+    - policies.evaluate
+    - certificates.read
+    - audit.read
+  admin:
+    - "*"
+  marketplace-operator:
+    - marketplace.write
+    - certificates.read
+mcp:
+  require_approval_for_write: true
+  audit_all_tool_calls: true

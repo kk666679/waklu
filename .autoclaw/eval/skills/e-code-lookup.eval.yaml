@@ -1,0 +1,6 @@
+id: e-code-lookup-eval
+skill: e-code-lookup
+dataset: eval/datasets/evidence_extraction/e_codes.jsonl
+metrics:
+  - name: lookup_accuracy
+    threshold: 0.99

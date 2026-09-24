@@ -1,0 +1,6 @@
+apiVersion: v2
+name: halalchain
+description: HalalChain deployment chart for a production-friendly Kubernetes environment
+version: 0.1.0
+appVersion: "1.0.0"
+type: application

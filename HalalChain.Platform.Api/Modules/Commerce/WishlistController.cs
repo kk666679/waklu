@@ -1,7 +1,7 @@
-using HalalChain.Platform.Api.Persistence;
 using HalalChain.Application.Common.Abstractions;
+using HalalChain.Application.Policies;
+using HalalChain.Platform.Api.Persistence;
 using HalalChain.Platform.Contracts.Api.Errors;
-using HalalChain.Platform.Contracts.Auth;
 using HalalChain.Platform.Contracts.Catalog.Dto;
 using HalalChain.Platform.Contracts.Commerce.Dto;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +17,7 @@ namespace HalalChain.Platform.Api.Modules.Commerce;
 /// </summary>
 [ApiController]
 [Route("api/v1/wishlist")]
-[Authorize(Roles = AuthConstants.RoleMarketplaceUser)]
+[Authorize(Policy = CatalogPolicies.MarketplaceUserOnly)]
 [ApiVersion("1.0")]
 public sealed class WishlistController(HalalChainDbContext db, ICurrentUser user) : ControllerBase
 {

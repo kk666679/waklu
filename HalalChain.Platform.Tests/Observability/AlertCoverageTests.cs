@@ -58,13 +58,28 @@ public class AlertCoverageTests
         var sloYaml = System.IO.File.ReadAllText(FindRepoFile("docs/slo.yaml"));
         var recordingRules = System.IO.File.ReadAllText(FindRepoFile("infrastructure/prometheus/recording-rules.yml"));
         var dashboardsDir = FindRepoFile("infrastructure/grafana/dashboards");
+        var dashboards = string.Join(
+            "\n",
+            System.IO.Directory.EnumerateFiles(dashboardsDir, "*.json")
+                .Select(System.IO.File.ReadAllText));
 
         var sloNames = Regex.Matches(sloYaml, @"^\s*-\s*name:\s*([\w\-]+)", RegexOptions.Multiline)
             .Select(m => m.Groups[1].Value).ToList();
 
         foreach (var slo in sloNames)
         {
-            Assert.Contains(slo.Split('-')[0], recordingRules,
+            var service = slo.Split('-')[0];
+            Assert.Contains(service, recordingRules,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(service, dashboards,
+                StringComparison.OrdinalIgnoreCase);
+
+            var concern = slo.Contains("latency", StringComparison.OrdinalIgnoreCase)
+                ? "latency"
+                : slo.Contains("determinism", StringComparison.OrdinalIgnoreCase)
+                    ? "determinism"
+                    : "error";
+            Assert.Contains(concern, dashboards,
                 StringComparison.OrdinalIgnoreCase);
         }
     }

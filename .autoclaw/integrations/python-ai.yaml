@@ -1,0 +1,17 @@
+base_url: ${PYTHON_AI_URL}
+endpoints:
+  ocr: /ocr
+  extract: /evidence/extract
+  ingredient_analyze: /ingredients/analyze
+  policy_evaluate: /policies/evaluate
+  embed: /vector/embed
+  rag_query: /rag/query
+  agentic_rag: /rag/agentic
+mcp:
+  enabled: true
+  server: ${PYTHON_MCP_SERVER_URL}
+  protocol_version: "2026-05"
+rag:
+  mode: agentic          # agentic RAG (2026 trend)
+  graph_enhanced: true   # GraphRAG
+  hybrid_search: true

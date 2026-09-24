@@ -4,6 +4,7 @@ public sealed class AiGatewayOptions
 {
     public const string SectionName = "AiGateway";
     public string BaseUrl { get; set; } = "http://localhost:7071";
+    public string? FallbackBaseUrl { get; set; }
     public string? ApiKey { get; set; }
 }
 

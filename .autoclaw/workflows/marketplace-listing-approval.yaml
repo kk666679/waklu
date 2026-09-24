@@ -1,0 +1,17 @@
+id: marketplace-listing-approval
+version: 2.0.0
+trigger:
+  type: api
+  path: /workflows/marketplace-listing-approval
+steps:
+  - id: ingredient_check
+    skill: e-code-lookup
+  - id: jurisdiction_check
+    skill: jurisdiction-mapper
+  - id: policy_eval
+    skill: policy-evaluator
+  - id: approval
+    type: approval
+    assigneeRole: marketplace-operator
+eval:
+  suite: eval/workflows/marketplace-listing-approval.eval.yaml

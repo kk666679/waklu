@@ -1,0 +1,5 @@
+version: 1
+metrics:
+  cost_per_verification_usd: 0.15
+  cost_per_evidence_package_usd: 0.05
+  monthly_budget_usd: 5000

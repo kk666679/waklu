@@ -1,0 +1,26 @@
+openapi: "3.1.0"
+info:
+  title: HalalChain Python AI Service
+  version: "1.0.0"
+  description: OCR, evidence extraction, ingredient analysis, policy evaluation, vector embedding.
+servers:
+  - url: ${PYTHON_AI_URL}
+paths:
+  /ocr:
+    post:
+      summary: OCR document
+  /evidence/extract:
+    post:
+      summary: Extract structured evidence
+  /ingredients/analyze:
+    post:
+      summary: Analyze ingredients
+  /policies/evaluate:
+    post:
+      summary: Evaluate policy rules
+  /vector/embed:
+    post:
+      summary: Generate embeddings
+  /rag/query:
+    post:
+      summary: Agentic RAG query (2026)

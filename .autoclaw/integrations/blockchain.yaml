@@ -1,0 +1,16 @@
+provider: ${WEB3_PROVIDER}
+chain_id: 31337
+contracts:
+  CertificateRegistry: ${CERTIFICATE_REGISTRY_ADDRESS}
+  HalalVerification: ${HALAL_VERIFICATION_ADDRESS}
+  SupplyChainTracker: ${SUPPLY_CHAIN_TRACKER_ADDRESS}
+  EvidenceRegistry: ${EVIDENCE_REGISTRY_ADDRESS}
+events:
+  certificate: blockchain/events/certificate_events.yaml
+  supply_chain: blockchain/events/supply_chain_events.yaml
+  verification: blockchain/events/verification_events.yaml
+  evidence: blockchain/events/evidence_events.yaml
+indexer:
+  enabled: true
+  start_block: 0
+  confirmations: 1

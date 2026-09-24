@@ -1,0 +1,21 @@
+version: 1
+enabled: ${IOT_ENABLED:-false}
+provider: ${IOT_PROVIDER:-none}
+transport: ${IOT_TRANSPORT:-https}
+observation_schema: schemas/sensor_observation.schema.json
+accepted_metrics:
+  - temperature
+  - humidity
+  - location
+integrity:
+  require_device_signature: true
+  hash_algorithm: sha256
+  reject_replayed_observations: true
+  max_clock_skew_seconds: 300
+routing:
+  evidence_event: blockchain/events/evidence_events.yaml
+  policy_input_only: true
+persistence:
+  path: ${IOT_OBSERVATION_STORE_PATH:-/var/lib/tawheed/evidence/observations.jsonl}
+  format: jsonl
+  append_only: true

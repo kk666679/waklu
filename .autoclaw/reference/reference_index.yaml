@@ -1,0 +1,98 @@
+version: 1
+last_updated: 2026-08-31
+references:
+  # Standards
+  - id: ms1500-2019
+    title: Malaysian Standard MS 1500:2019 (Halal Food)
+    jurisdiction: MY
+    type: standard
+    path: reference/standards/ms1500.yaml
+    tags: [halal, food, Malaysia, JAKIM]
+    checksum: sha256:PENDING
+
+  - id: bpjph-has
+    title: Indonesia Halal Assurance System (SJPH/HAS)
+    jurisdiction: ID
+    type: standard
+    path: reference/jurisdictions/id_bpjph.yaml
+    tags: [halal, Indonesia, BPJPH, mandatory-2026]
+    checksum: sha256:PENDING
+
+  - id: muis-hc-s001
+    title: MUIS Halal Certification Standard (Singapore)
+    jurisdiction: SG
+    type: standard
+    path: reference/jurisdictions/sg_muis.yaml
+    tags: [halal, Singapore, MUIS]
+    checksum: sha256:PENDING
+
+  - id: gso-2055
+    title: GSO 2055 Halal Food Requirements (GCC)
+    jurisdiction: GCC
+    type: standard
+    path: reference/standards/gso.yaml
+    tags: [halal, GCC, GSO]
+    checksum: sha256:PENDING
+
+  # Jurisdictions
+  - id: my-jakim
+    title: JAKIM Halal Certification Requirements (Malaysia)
+    jurisdiction: MY
+    type: jurisdiction
+    path: reference/jurisdictions/my_jakim.yaml
+    tags: [halal, Malaysia, JAKIM, MyeHALAL]
+    checksum: sha256:PENDING
+
+  - id: id-bpjph
+    title: BPJPH Mandatory Halal (Indonesia, Oct 2026)
+    jurisdiction: ID
+    type: jurisdiction
+    path: reference/jurisdictions/id_bpjph.yaml
+    tags: [halal, Indonesia, mandatory, BPJPH]
+    checksum: sha256:PENDING
+
+  - id: tr-hak
+    title: Turkey HAK Halal Certification (mandatory import Jan 2026)
+    jurisdiction: TR
+    type: jurisdiction
+    path: reference/jurisdictions/tr_hak.yaml
+    tags: [halal, Turkey, HAK, import]
+    checksum: sha256:PENDING
+
+  - id: sa-sfda
+    title: Saudi SFDA / Global Halal Mark
+    jurisdiction: SA
+    type: jurisdiction
+    path: reference/jurisdictions/sa_sfda.yaml
+    tags: [halal, Saudi, SFDA, Global-Halal-Mark]
+    checksum: sha256:PENDING
+
+  # Ingredients
+  - id: e-codes
+    title: Halal E-Codes Reference
+    type: ingredient_reference
+    path: reference/ingredients/e_codes.yaml
+    tags: [ingredients, additives, E-codes]
+    checksum: sha256:PENDING
+
+  - id: animal-derived
+    title: Animal-Derived Ingredients
+    type: ingredient_reference
+    path: reference/ingredients/animal_derived.yaml
+    tags: [ingredients, animal-derived, gelatin, enzymes]
+    checksum: sha256:PENDING
+
+  # API contracts
+  - id: dotnet-supplier-api
+    title: HalalChain .NET Supplier API (OpenAPI 3.1)
+    type: api_contract
+    path: reference/api_contracts/dotnet_openapi.yaml
+    tags: [dotnet, suppliers, api]
+    checksum: sha256:PENDING
+
+  - id: python-ai-api
+    title: HalalChain Python AI Service API (OpenAPI 3.1)
+    type: api_contract
+    path: reference/api_contracts/python_ai_openapi.yaml
+    tags: [python, ai, evidence, ocr]
+    checksum: sha256:PENDING

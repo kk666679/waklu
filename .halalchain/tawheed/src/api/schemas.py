@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pydantic import BaseModel
 from src.core.models import VerificationResult
+from src.adapters.iot import SensorObservation
 
 
 class VerifyProductRequest(BaseModel):
@@ -30,3 +31,12 @@ class HealthResponse(BaseModel):
     service: str
     demo_mode: bool
     policy_version: str
+
+
+class SensorObservationResponse(BaseModel):
+    observation_id: str
+    accepted: bool = True
+    evidence_only: bool = True
+
+
+SensorObservationRequest = SensorObservation

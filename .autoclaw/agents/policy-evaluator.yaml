@@ -1,0 +1,23 @@
+id: policy-evaluator
+name: Policy Evaluator Agent
+version: 2.0.0
+updated: 2026-08-31
+description: Evaluates supplier/vendor/product against jurisdiction and proprietary rules.
+model:
+  provider: openai
+  name: gpt-4.1
+  temperature: 0.0
+instructions: |
+  Evaluate compliance against reference policies. Produce a decision with
+  traceable rule citations. Flag conflicts between jurisdictions.
+skills:
+  - policy-evaluator
+  - jurisdiction-mapper
+  - compliance-checker
+reference:
+  - reference/jurisdictions/
+  - reference/policies/
+  - reference/standards/
+eval:
+  suite: eval/agents/policy-evaluator.eval.yaml
+  metrics: [policy_accuracy, false_approval_rate, conflict_detection]

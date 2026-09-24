@@ -1,0 +1,11 @@
+id: policy-evaluator-agent-eval
+agent: policy-evaluator
+dataset: eval/datasets/policy_evaluation/golden.jsonl
+metrics:
+  - name: policy_accuracy
+    threshold: 0.98
+  - name: false_approval_rate
+    threshold: 0.01
+    direction: lower_is_better
+  - name: conflict_detection
+    threshold: 0.95

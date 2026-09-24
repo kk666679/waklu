@@ -1,0 +1,19 @@
+id: evidence-collection-workflow
+version: 2.0.0
+trigger:
+  type: api
+  path: /workflows/evidence-collection
+steps:
+  - id: request_documents
+    skill: evidence-collector
+  - id: ocr
+    skill: document-ocr
+  - id: extract
+    skill: certificate-extractor
+  - id: hash
+    skill: evidence-collector
+    action: hash
+  - id: anchor
+    skill: blockchain-recorder
+eval:
+  suite: eval/workflows/evidence-collection.eval.yaml

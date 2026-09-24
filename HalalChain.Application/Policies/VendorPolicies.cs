@@ -1,3 +1,4 @@
+using HalalChain.Platform.Contracts.Auth;
 using Microsoft.AspNetCore.Authorization;
 
 namespace HalalChain.Application.Policies;
@@ -10,7 +11,7 @@ public static class VendorPolicies
     {
         options.AddPolicy(AdminOnly, policy =>
         {
-            policy.RequireRole("admin");
+            policy.RequireRole(AuthConstants.RoleAdmin);
         });
     }
 }

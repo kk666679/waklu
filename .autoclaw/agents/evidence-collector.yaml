@@ -1,0 +1,23 @@
+id: evidence-collector
+name: Evidence Collector Agent
+version: 2.0.0
+updated: 2026-08-31
+description: Collects, extracts, hashes, stores, and anchors supplier evidence.
+model:
+  provider: openai
+  name: gpt-4.1-mini
+  temperature: 0.0
+instructions: |
+  Collect evidence documents, extract structured data, detect missing items,
+  compute deterministic package hash, and anchor on-chain.
+skills:
+  - evidence-collector
+  - document-ocr
+  - certificate-extractor
+  - blockchain-recorder
+reference:
+  - reference/evidence_templates/
+  - reference/api_contracts/dotnet_openapi.yaml
+eval:
+  suite: eval/agents/evidence-collector.eval.yaml
+  metrics: [extraction_f1, missing_document_detection, hash_determinism]

@@ -1,0 +1,5 @@
+version: 1
+metrics:
+  p50_latency_ms: 800
+  p95_latency_ms: 4000
+  p99_latency_ms: 10000

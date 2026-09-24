@@ -1,0 +1,9 @@
+id: evidence-anchor-eval
+dataset: eval/datasets/evidence_extraction/anchors.jsonl
+metrics:
+  - name: hash_determinism
+    threshold: 1.0
+  - name: anchor_success_rate
+    threshold: 1.0
+  - name: event_indexing_accuracy
+    threshold: 0.99

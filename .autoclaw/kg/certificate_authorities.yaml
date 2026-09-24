@@ -1,108 +1,26 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — Halal Certificate Authority Database
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
-version: 2.0.0
-description: Recognized halal certification bodies worldwide
-
+version: "2026.08"
 authorities:
-  JAKIM:
-    country: Malaysia
-    full_name: Jabatan Kemajuan Islam Malaysia
-    priority: 10
-    standard: MS 1500:2019
-    recognized: true
-    valid_for: 2 years
-    notes: Primary authority for Malaysia; internationally recognized
-    website: https://www.halal.gov.my
-    
-  MUI:
-    country: Indonesia
-    full_name: Majelis Ulama Indonesia
-    priority: 9
-    standard: HAS 23000
-    recognized: true
-    valid_for: 2 years
-    notes: Official Islamic authority of Indonesia
-    website: https://www.halal-mui.org
-  
-  BPJPH:
-    country: Indonesia
-    full_name: Badan Penyelenggara Jaminan Produk Halal
-    priority: 9
-    standard: HAS 23000
-    recognized: true
-    valid_for: 2 years
-    notes: Government body for halal product assurance
-    website: https://www.bpjph.halal.go.id
-
-  MUIS:
-    country: Singapore
-    full_name: Islamic Religious Council of Singapore
-    priority: 8
-    standard: MUIS Halal Certification
-    recognized: true
-    valid_for: 2 years
-    notes: Official halal certifier for Singapore
-    website: https://www.muis.gov.sg
-
-  ESMA:
-    country: UAE
-    full_name: Emirates Authority for Standardization and Metrology
-    priority: 7
-    standard: UAE.S 2055-1
-    recognized: true
-    valid_for: 1 year
-    notes: UAE's national halal authority
-    website: https://www.esma.gov.ae
-
-  SFDA:
-    country: Saudi Arabia
-    full_name: Saudi Food and Drug Authority
-    priority: 7
-    standard: SASO 2187
-    recognized: true
-    valid_for: 1 year
-    notes: Saudi Arabia's halal certification authority
-    website: https://www.sfda.gov.sa
-
-  IFANCA:
-    country: International
-    full_name: Islamic Food and Nutrition Council of America
-    priority: 6
-    standard: IFANCA Halal Standard
-    recognized: true
-    valid_for: 2 years
-    notes: Widely recognized international certification
-    website: https://www.ifanca.org
-  
-  HFCE:
-    country: UK
-    full_name: Halal Food Certification Europe
-    priority: 6
-    standard: HFCE Halal Standard
-    recognized: true
-    valid_for: 2 years
-    notes: UK-based halal certification
-    website: https://www.hfce.eu
-  
-  HMC:
-    country: UK
-    full_name: Halal Monitoring Committee
-    priority: 6
-    standard: HMC Halal Standard
-    recognized: true
-    valid_for: 2 years
-    notes: UK's leading halal certification
-    website: https://www.halalhmc.org
-
-  GACC:
-    country: China
-    full_name: General Administration of Customs of China
-    priority: 5
-    standard: Chinese Halal Standards
-    recognized: true
-    valid_for: 2 years
-    notes: For imported halal goods into China
-    website: https://www.customs.gov.cn
+  - id: jakim
+    name: JAKIM
+    country: MY
+    recognised_scopes: [food, cosmetics, pharmaceuticals, logistics]
+  - id: bpjph
+    name: BPJPH
+    country: ID
+    recognised_scopes: [food, cosmetics, supplements]
+  - id: muis
+    name: MUIS
+    country: SG
+    recognised_scopes: [food, food service]
+  - id: esma
+    name: ESMA
+    country: AE
+    recognised_scopes: [food, cosmetics]
+  - id: sfda
+    name: SFDA
+    country: SA
+    recognised_scopes: [food, cosmetics]
+  - id: hak
+    name: HAK
+    country: TR
+    recognised_scopes: [food, imports]
