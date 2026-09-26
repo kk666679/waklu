@@ -55,7 +55,7 @@ contract SupplierRegistry is ISupplierRegistry, ReentrancyGuard {
     error ZeroBytes32();
 
     modifier onlyOperator() {
-        access._checkRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
+        access.requireRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
         _;
     }
 

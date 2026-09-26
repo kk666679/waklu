@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {HalalAccessControl} from "./HalalAccessControl.sol";
-import {SupplierRegistry} from "./SupplierRegistry.sol";
+import {SupplierRegistry, ISupplierRegistry} from "./SupplierRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
@@ -64,7 +64,7 @@ contract HalalProductRegistry is IHalalProductRegistry, ReentrancyGuard {
     error NotCertificationRegistry(address caller, address expected);
 
     modifier onlyOperator() {
-        access._checkRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
+        access.requireRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
         _;
     }
 
@@ -85,7 +85,7 @@ contract HalalProductRegistry is IHalalProductRegistry, ReentrancyGuard {
     /// @notice One-time, post-deploy: the deployer (DEFAULT_ADMIN) registers
     ///         the CertificationRegistry so it can call setCurrentCertificate.
     function setCertificationRegistry(address certifier_) external {
-        access._checkRole(access.DEFAULT_ADMIN_ROLE(), msg.sender);
+        access.requireRole(access.DEFAULT_ADMIN_ROLE(), msg.sender);
         if (certifier_ == address(0)) revert ZeroAddress();
         certifier = certifier_;
     }
@@ -104,8 +104,8 @@ contract HalalProductRegistry is IHalalProductRegistry, ReentrancyGuard {
         if (_metadataHashes[metadataHash]) revert DuplicateMetadataHash(metadataHash);
 
         // Verify the supplier is active
-        SupplierRegistry.SupplierStatus status = suppliers.getSupplier(supplierId).status;
-        if (status != SupplierRegistry.SupplierStatus.Active) revert SupplierNotActive(supplierId);
+        ISupplierRegistry.SupplierStatus status = suppliers.getSupplier(supplierId).status;
+        if (status != ISupplierRegistry.SupplierStatus.Active) revert SupplierNotActive(supplierId);
 
         registeredAt = uint64(block.timestamp);
         _products[productId] = Product({

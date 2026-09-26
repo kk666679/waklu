@@ -59,12 +59,12 @@ contract HalalCertificationRegistry is IHalalCertificationRegistry, ReentrancyGu
     error ZeroAddress();
 
     modifier onlyCertifier() {
-        access._checkRole(access.CERTIFIER_ROLE(), msg.sender);
+        access.requireRole(access.CERTIFIER_ROLE(), msg.sender);
         _;
     }
 
     modifier onlyOperator() {
-        access._checkRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
+        access.requireRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
         _;
     }
 
@@ -126,7 +126,7 @@ contract HalalCertificationRegistry is IHalalCertificationRegistry, ReentrancyGu
             return;
         }
         if (msg.sender != c.certifier) {
-            access._checkRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
+            access.requireRole(access.PLATFORM_OPERATOR_ROLE(), msg.sender);
         }
         c.status = CertificateStatus.Revoked;
         emit CertificateRevoked(certId, reasonCid, uint64(block.timestamp));

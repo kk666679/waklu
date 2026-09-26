@@ -3,10 +3,10 @@ pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {HalalAccessControl} from "../src/HalalAccessControl.sol";
-import {SupplierRegistry} from "../src/SupplierRegistry.sol";
-import {HalalProductRegistry} from "../src/HalalProductRegistry.sol";
+import {SupplierRegistry, ISupplierRegistry} from "../src/SupplierRegistry.sol";
+import {HalalProductRegistry, IHalalProductRegistry} from "../src/HalalProductRegistry.sol";
 import {HalalCertificationRegistry, IHalalCertificationRegistry} from "../src/HalalCertificationRegistry.sol";
-import {TraceabilityEventLog} from "../src/TraceabilityEventLog.sol";
+import {TraceabilityEventLog, ITraceabilityEventLog} from "../src/TraceabilityEventLog.sol";
 import {Deploy} from "../script/Deploy.s.sol";
 
 /**
@@ -33,10 +33,10 @@ contract RegressionAndSecurityTest is Test {
     TraceabilityEventLog      internal events;
 
     address internal admin        = address(0xAD);
-    address internal operator     = address(0xOP);
+    address internal operator     = address(0x0eee);
     address internal certifier1   = address(0xC1);
-    address internal inspector    = address(0xIN);
-    address internal supplier1    = address(0xS1);
+    address internal inspector    = address(0x1ee1);
+    address internal supplier1    = address(0x5111);
     address internal attacker     = address(0xBAD);
 
     bytes32 internal SID1 = keccak256("SUP-MY-000001");
@@ -190,9 +190,9 @@ contract RegressionAndSecurityTest is Test {
         products.registerProduct(PID1, SID1, keccak256("h"), "ipfs://p", "MY");
         bytes32 EID = keccak256("event-1");
         vm.startPrank(operator);
-        events.recordEvent(EID, PID1, keccak256("batch"), TraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
+        events.recordEvent(EID, PID1, keccak256("batch"), ITraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
         vm.expectRevert(abi.encodeWithSignature("EventAlreadyExists(bytes32)", EID));
-        events.recordEvent(EID, PID1, keccak256("batch"), TraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
+        events.recordEvent(EID, PID1, keccak256("batch"), ITraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
         vm.stopPrank();
     }
 

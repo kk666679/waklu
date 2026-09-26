@@ -63,7 +63,7 @@ contract HalalAccessControl is AccessControl, Pausable, ReentrancyGuard {
     mapping(bytes32 => PendingGrant) public pendingGrants;
     bytes32[] public pendingGrantKeys;
 
-    // ── Certification registry rotation (governance-only) ─────────────
+    // -- Certification registry rotation (governance-only) -------------
     address public certificationRegistry;
 
     event RoleGrantPending(bytes32 indexed key, address indexed account, bytes32 indexed role, uint64 effectiveAt);
@@ -82,7 +82,7 @@ contract HalalAccessControl is AccessControl, Pausable, ReentrancyGuard {
         if (admin == address(0)) revert ZeroAddress();
         TIMELOCK_SECONDS = timelockSeconds;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(PAUSER_ROLE, admin); // admin can self-grant pauser; recommended: revoke and grant a separate multisig
+        _grantRole(PAUSER_ROLE, admin);
     }
 
     /// @notice Propose a role grant; effective after `TIMELOCK_SECONDS`.
@@ -115,9 +115,7 @@ contract HalalAccessControl is AccessControl, Pausable, ReentrancyGuard {
         emit RoleGrantCancelled(key);
     }
 
-    /// @notice Rotate the recorded certification registry address. Only
-    ///         ``DEFAULT_ADMIN_ROLE`` may rotate it. The change emits an
-    ///         explicit event so off-chain indexers can detect the swap.
+    /// @notice Rotate the recorded certification registry address.
     function rotateCertificationRegistry(address newCertifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newCertifier == address(0)) revert ZeroAddress();
         address previous = certificationRegistry;
@@ -125,10 +123,6 @@ contract HalalAccessControl is AccessControl, Pausable, ReentrancyGuard {
         emit CertificationRegistryRotated(previous, newCertifier, msg.sender);
     }
 
-    /// @notice Compact the ``pendingGrantKeys`` array by removing any
-    ///         keys that have already been resolved (executed or
-    ///         cancelled). The array is bounded by the number of
-    ///         outstanding pending grants at any time.
     function _compactPendingGrants() internal {
         uint256 write = 0;
         uint256 read = 0;
@@ -141,25 +135,28 @@ contract HalalAccessControl is AccessControl, Pausable, ReentrancyGuard {
             }
             unchecked { read += 1; }
         }
-        // Pop the tail
         while (pendingGrantKeys.length > write) {
             pendingGrantKeys.pop();
         }
     }
 
-    /// @notice External maintenance entry-point so the admin can
-    ///         trigger compaction of an unexpectedly-large pending list
-    ///         (e.g. if many grants were cancelled off-chain).
     function compactPendingGrants() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _compactPendingGrants();
     }
 
-    // ── Pause controls ─────────────────────────────────────────────
+    // -- Pause controls ---------------------------------------------
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
+    }
+
+    // -- Cross-contract role enforcement ----------------------------
+    /// @notice Reverts if `account` does not hold `role`.
+    ///         Wraps the internal _checkRole so sibling contracts can call it.
+    function requireRole(bytes32 role, address account) external view {
+        _checkRole(role, account);
     }
 }

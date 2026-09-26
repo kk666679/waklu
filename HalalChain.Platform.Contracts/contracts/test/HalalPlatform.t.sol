@@ -3,10 +3,10 @@ pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {HalalAccessControl} from "../src/HalalAccessControl.sol";
-import {SupplierRegistry} from "../src/SupplierRegistry.sol";
-import {HalalProductRegistry} from "../src/HalalProductRegistry.sol";
+import {SupplierRegistry, ISupplierRegistry} from "../src/SupplierRegistry.sol";
+import {HalalProductRegistry, IHalalProductRegistry} from "../src/HalalProductRegistry.sol";
 import {HalalCertificationRegistry, IHalalCertificationRegistry} from "../src/HalalCertificationRegistry.sol";
-import {TraceabilityEventLog} from "../src/TraceabilityEventLog.sol";
+import {TraceabilityEventLog, ITraceabilityEventLog} from "../src/TraceabilityEventLog.sol";
 
 /**
  * @title HalalPlatformTest
@@ -23,12 +23,12 @@ contract HalalPlatformTest is Test {
     TraceabilityEventLog      internal events;
 
     address internal admin        = address(0xAD);
-    address internal operator     = address(0xOP);
+    address internal operator     = address(0x0eee);
     address internal certifier1   = address(0xC1); // JAKIM-style
     address internal certifier2   = address(0xC2); // MUI-style
-    address internal inspector    = address(0xIN);
-    address internal supplier1    = address(0xS1);
-    address internal supplier2    = address(0xS2);
+    address internal inspector    = address(0x1ee1);
+    address internal supplier1    = address(0x5111);
+    address internal supplier2    = address(0x5222);
     address internal attacker     = address(0xBAD);
 
     bytes32 internal SID1 = keccak256("SUP-MY-000001");
@@ -103,7 +103,7 @@ contract HalalPlatformTest is Test {
         SupplierRegistry.Supplier memory s = suppliers.getSupplier(SID1);
         assertTrue(s.exists);
         assertEq(s.wallet, supplier1);
-        assertEq(uint(s.status), uint(SupplierRegistry.SupplierStatus.Active));
+        assertEq(uint(s.status), uint(ISupplierRegistry.SupplierStatus.Active));
         assertEq(s.jurisdiction, "MY");
     }
 
@@ -134,21 +134,21 @@ contract HalalPlatformTest is Test {
         suppliers.registerSupplier(SID1, supplier1, "ipfs://supplier1", "MY");
 
         vm.prank(operator);
-        suppliers.setStatus(SID1, SupplierRegistry.SupplierStatus.Suspended);
-        assertEq(uint(suppliers.getSupplier(SID1).status), uint(SupplierRegistry.SupplierStatus.Suspended));
+        suppliers.setStatus(SID1, ISupplierRegistry.SupplierStatus.Suspended);
+        assertEq(uint(suppliers.getSupplier(SID1).status), uint(ISupplierRegistry.SupplierStatus.Suspended));
 
         vm.prank(operator);
-        suppliers.setStatus(SID1, SupplierRegistry.SupplierStatus.Active);
+        suppliers.setStatus(SID1, ISupplierRegistry.SupplierStatus.Active);
 
         vm.prank(operator);
-        suppliers.setStatus(SID1, SupplierRegistry.SupplierStatus.Revoked);
-        assertEq(uint(suppliers.getSupplier(SID1).status), uint(SupplierRegistry.SupplierStatus.Revoked));
+        suppliers.setStatus(SID1, ISupplierRegistry.SupplierStatus.Revoked);
+        assertEq(uint(suppliers.getSupplier(SID1).status), uint(ISupplierRegistry.SupplierStatus.Revoked));
         // Revoked frees the wallet
         assertEq(suppliers.getSupplierIdByWallet(supplier1), bytes32(0));
     }
 
     function test_Supplier_WalletRotation_TwoStep() public {
-        address newWallet = address(0xNEW);
+        address newWallet = address(0x9e99);
         vm.prank(operator);
         suppliers.registerSupplier(SID1, supplier1, "ipfs://supplier1", "MY");
 
@@ -196,17 +196,17 @@ contract HalalPlatformTest is Test {
         vm.prank(operator);
         products.registerProduct(PID1, SID1, metadataHash, "ipfs://product1", "MY");
 
-        HalalProductRegistry.Product memory p = products.getProduct(PID1);
+        IHalalProductRegistry.Product memory p = products.getProduct(PID1);
         assertTrue(p.exists);
         assertEq(p.supplierId, SID1);
         assertEq(p.metadataHash, metadataHash);
-        assertEq(uint(p.status), uint(HalalProductRegistry.ProductStatus.Pending));
+        assertEq(uint(p.status), uint(IHalalProductRegistry.ProductStatus.Pending));
     }
 
     function test_Product_Register_RevertsIfSupplierSuspended() public {
         _registerSupplier(SID1, supplier1);
         vm.prank(operator);
-        suppliers.setStatus(SID1, SupplierRegistry.SupplierStatus.Suspended);
+        suppliers.setStatus(SID1, ISupplierRegistry.SupplierStatus.Suspended);
 
         vm.prank(operator);
         vm.expectRevert(abi.encodeWithSignature("SupplierNotActive(bytes32)", SID1));
@@ -238,7 +238,7 @@ contract HalalPlatformTest is Test {
 
         vm.prank(operator);
         products.recall(PID1, "ipfs://reason");
-        assertEq(uint(products.getProduct(PID1).status), uint(HalalProductRegistry.ProductStatus.Recalled));
+        assertEq(uint(products.getProduct(PID1).status), uint(IHalalProductRegistry.ProductStatus.Recalled));
         assertEq(products.getProduct(PID1).currentCertId, bytes32(0));
     }
 
@@ -265,7 +265,7 @@ contract HalalPlatformTest is Test {
 
         // Cross-call: product promoted to Verified
         assertEq(products.getProduct(PID1).currentCertId, CID1);
-        assertEq(uint(products.getProduct(PID1).status), uint(HalalProductRegistry.ProductStatus.Verified));
+        assertEq(uint(products.getProduct(PID1).status), uint(IHalalProductRegistry.ProductStatus.Verified));
     }
 
     function test_Cert_Issue_RevertsIfNotCertifier() public {
@@ -293,7 +293,7 @@ contract HalalPlatformTest is Test {
         certs.revokeCertificate(CID1, "ipfs://reason");
         assertEq(uint(certs.getCertificate(CID1).status), uint(IHalalCertificationRegistry.CertificateStatus.Revoked));
         assertEq(products.getProduct(PID1).currentCertId, bytes32(0));
-        assertEq(uint(products.getProduct(PID1).status), uint(HalalProductRegistry.ProductStatus.Pending));
+        assertEq(uint(products.getProduct(PID1).status), uint(IHalalProductRegistry.ProductStatus.Pending));
     }
 
     function test_Cert_Revoke_ByOperator_Emergency() public {
@@ -388,7 +388,7 @@ contract HalalPlatformTest is Test {
         _registerProduct(PID1, SID1);
         bytes32 EID = keccak256("event-1");
         vm.prank(operator);
-        events.recordEvent(EID, PID1, BID1, TraceabilityEventLog.EventType.Manufactured, "ipfs://loc", "ipfs://ev", "ipfs://notes");
+        events.recordEvent(EID, PID1, BID1, ITraceabilityEventLog.EventType.Manufactured, "ipfs://loc", "ipfs://ev", "ipfs://notes");
         assertTrue(events.getEvent(EID).exists);
         assertEq(events.totalEvents(), 1);
     }
@@ -397,7 +397,7 @@ contract HalalPlatformTest is Test {
         _registerProduct(PID1, SID1);
         bytes32 EID = keccak256("event-inspect");
         vm.prank(inspector);
-        events.recordEvent(EID, PID1, BID1, TraceabilityEventLog.EventType.Inspected, "ipfs://loc", "ipfs://ev", "");
+        events.recordEvent(EID, PID1, BID1, ITraceabilityEventLog.EventType.Inspected, "ipfs://loc", "ipfs://ev", "");
         assertTrue(events.getEvent(EID).exists);
     }
 
@@ -405,13 +405,13 @@ contract HalalPlatformTest is Test {
         _registerProduct(PID1, SID1);
         vm.prank(attacker);
         vm.expectRevert();
-        events.recordEvent(keccak256("e"), PID1, BID1, TraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
+        events.recordEvent(keccak256("e"), PID1, BID1, ITraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
     }
 
     function test_Event_RecordForUnknownProduct_Reverts() public {
         vm.prank(operator);
         vm.expectRevert(abi.encodeWithSignature("ProductNotFound(bytes32)", PID1));
-        events.recordEvent(keccak256("e"), PID1, BID1, TraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
+        events.recordEvent(keccak256("e"), PID1, BID1, ITraceabilityEventLog.EventType.Manufactured, "x", "y", "z");
     }
 
     // ════════════════════════════════════════════════════════════════
