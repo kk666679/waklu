@@ -27,6 +27,8 @@ public sealed class PlatformOverviewTool : ITool
         required = Array.Empty<string>()
     };
 
+    public ToolAnnotations Annotations => ToolAnnotations.LocalReadOnly("HalalChain platform overview");
+
     public Task<string> ExecuteAsync(JsonElement arguments, CancellationToken ct = default)
     {
         var projectName = arguments.ValueKind == JsonValueKind.Object &&

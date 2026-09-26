@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HalalChain.Mcp.Abstractions;
+using HalalChain.Mcp.Models;
 
 namespace HalalChain.Mcp.Tools;
 
@@ -25,6 +26,8 @@ public sealed class ListComponentsTool : ITool
         },
         required = Array.Empty<string>()
     };
+
+    public ToolAnnotations Annotations => ToolAnnotations.LocalReadOnly("List Blazor components");
 
     public Task<string> ExecuteAsync(JsonElement arguments, CancellationToken ct = default)
     {

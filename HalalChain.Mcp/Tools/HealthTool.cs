@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HalalChain.Mcp.Abstractions;
+using HalalChain.Mcp.Models;
 
 namespace HalalChain.Mcp.Tools;
 
@@ -22,6 +23,8 @@ public sealed class HealthTool : ITool
         properties = new { },
         required = Array.Empty<string>()
     };
+
+    public ToolAnnotations Annotations => ToolAnnotations.NetworkReadOnly("HalalChain service health");
 
     public async Task<string> ExecuteAsync(JsonElement arguments, CancellationToken ct = default)
     {

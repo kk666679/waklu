@@ -57,9 +57,37 @@ internal sealed partial class PlatformDataService : IPlatformDataService
 
     public string GetSolutionRoot() => _solutionRoot;
 
+    /// <summary>
+    /// False when the configured root is not a directory. Every enumeration
+    /// method degrades to an empty result rather than throwing, so a wrong
+    /// <c>HALALCHAIN_SOLUTION_ROOT</c> produces a clear empty answer instead of
+    /// a JSON-RPC internal error on every call.
+    /// </summary>
+    private bool RootExists
+    {
+        get
+        {
+            var exists = Directory.Exists(_solutionRoot);
+            if (!exists)
+            {
+                _logger.LogWarning(
+                    "Solution root does not exist: {Root}. Set {EnvVar} to the repository root.",
+                    _solutionRoot,
+                    HalalChainOptions.GetSolutionRootEnvVar());
+            }
+
+            return exists;
+        }
+    }
+
     public IReadOnlyList<ProjectInfo> GetProjects()
     {
         var projects = new List<ProjectInfo>();
+
+        if (!RootExists)
+        {
+            return projects;
+        }
 
         foreach (var csproj in Directory.GetFiles(_solutionRoot, "*.csproj", SearchOption.AllDirectories))
         {
@@ -256,8 +284,11 @@ internal sealed partial class PlatformDataService : IPlatformDataService
         var controllers = GetControllers();
         var views = GetViews();
 
-        var solutionName = Path.GetFileNameWithoutExtension(
-            Directory.GetFiles(_solutionRoot, "*.sln").FirstOrDefault() ?? "HalalChain.Platform.sln");
+        var solutionFile = RootExists
+            ? Directory.GetFiles(_solutionRoot, "*.sln").FirstOrDefault()
+            : null;
+
+        var solutionName = Path.GetFileNameWithoutExtension(solutionFile ?? "HalalChain.Platform.sln");
 
         return new PlatformOverviewMc
         {
@@ -280,6 +311,17 @@ internal sealed partial class PlatformDataService : IPlatformDataService
 
     public string GetArchitecture()
     {
+        if (!RootExists)
+        {
+            return $"""
+                # Solution root unavailable
+
+                `{_solutionRoot}` is not a directory, so nothing could be discovered.
+                Set {HalalChainOptions.GetSolutionRootEnvVar()} to the repository root
+                and restart the server.
+                """;
+        }
+
         var projects = GetProjects();
         var projectKinds = projects.GroupBy(p => p.ProjectKind)
             .Select(g => $"{g.Key}: {string.Join(", ", g.Select(p => p.Name))}")
@@ -307,6 +349,11 @@ internal sealed partial class PlatformDataService : IPlatformDataService
 
     private List<string> GetProjectDirectories(string? projectName)
     {
+        if (!RootExists)
+        {
+            return [];
+        }
+
         if (string.IsNullOrEmpty(projectName))
         {
             return Directory.GetFiles(_solutionRoot, "*.csproj", SearchOption.AllDirectories)
