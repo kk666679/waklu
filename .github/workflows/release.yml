@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
+  deployments: write
 
 jobs:
   build-and-publish:
@@ -76,3 +78,72 @@ jobs:
 
       - name: Helm package
         run: helm package ./deploy/helm/halalchain --destination ./dist
+
+  deploy-staging:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install halalchain ./deploy/helm/halalchain \
+            --namespace halalchain-staging --create-namespace \
+            --set platformApi.image.tag=${{ github.sha }} \
+            --set web.image.tag=${{ github.sha }} \
+            --set marketplace.image.tag=${{ github.sha }} \
+            --set aiInference.image.tag=${{ github.sha }} \
+            --set tawheed.image.tag=${{ github.sha }} \
+            --wait --timeout 5m
+
+  smoke-gate:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health checks
+        run: |
+          check_endpoint() {
+            local url=$1
+            local attempts=5
+            local interval=6
+            for i in $(seq 1 $attempts); do
+              if curl -fsS --max-time 30 "$url" > /dev/null 2>&1; then
+                echo "PASS: $url"
+                return 0
+              fi
+              echo "Attempt $i/$attempts failed for $url, retrying in ${interval}s..."
+              sleep $interval
+            done
+            echo "FAIL: $url"
+            return 1
+          }
+
+          STAGING_BASE="${{ vars.STAGING_BASE_URL }}"
+          check_endpoint "${STAGING_BASE}:5001/health/ready" || exit 1
+          check_endpoint "${STAGING_BASE}:5200/health/live" || exit 1
+          check_endpoint "${STAGING_BASE}:5201/health/live" || exit 1
+
+  deploy-production:
+    needs: smoke-gate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Deploy to production
+        run: |
+          helm upgrade --install halalchain ./deploy/helm/halalchain \
+            --namespace halalchain-production --create-namespace \
+            --set platformApi.image.tag=${{ github.sha }} \
+            --set web.image.tag=${{ github.sha }} \
+            --set marketplace.image.tag=${{ github.sha }} \
+            --set aiInference.image.tag=${{ github.sha }} \
+            --set tawheed.image.tag=${{ github.sha }} \
+            --wait --timeout 5m
+      - name: Record deployment metadata
+        run: |
+          REVISION=$(helm history halalchain -n halalchain-production --max 1 -o json | jq '.[0].revision')
+          echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Helm revision:** ${REVISION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
