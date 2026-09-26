@@ -142,4 +142,5 @@ This is enforced in:
 - Vendor UI: `HalalChain.Marketplace/` (Razor Pages + Blazor Server + SignalR).
 - MCP server: `HalalChain.Mcp/`.
 - Documentation: `docs/`.
+- Tech debt register (current findings, severities, verified evidence): `docs/architecture/tech-debt.md`.
 - Operational runbooks: `docs/runbooks/`.

@@ -1,115 +1,22 @@
-# HalalChain Platform — Service Manifest
-# This file describes the CURRENT repository reality.
+# Frozen image tags. Populated by ENT-001 D6. Every tag must be explicit —
+# no :latest, no bare major.
+version: 1
+frozen: 2026-09-26
 
-services:
+images:
+  platform-api: "ghcr.io/halalchain/platform-api:1.0.0"
+  tawheed: "ghcr.io/halalchain/tawheed:1.0.0"
+  agents: "ghcr.io/halalchain/agents:1.0.0"
+  ai-inference: "ghcr.io/halalchain/ai-inference:1.0.0"
+  indexer: "ghcr.io/halalchain/indexer:1.0.0"
 
-  # ── Application Services ──────────────────────────────────────────────
+third_party:
+  postgres: "postgres:16.4"
+  redis: "redis:7.4.0"
+  qdrant: "qdrant/qdrant:v1.11.3"
+  minio: "minio/minio:RELEASE.2024-08-17T01-24-54Z"
 
-  platform-api:
-    description: Core REST API — modular monolith
-    type: api
-    runtime: dotnet
-    version: net10.0
-    port: 5001
-    public: true
-    health:
-      liveness: /health/live
-      readiness: /health/ready
-    dependencies:
-      - service: postgres
-        required: true
-      - service: redis
-        required: false  # falls back to in-memory cache
-      - service: ai-inference
-        required: false  # non-critical, degrades gracefully
-      - service: tawheed
-        required: false  # non-critical, degrades gracefully
-
-  halalchain:
-    description: Blazor Server frontend — customer-facing UI
-    type: web
-    runtime: dotnet
-    version: net10.0
-    port: 5200
-    public: true
-    health:
-      liveness: /health/live
-      readiness: /health/ready
-    dependencies:
-      - service: platform-api
-        required: true
-
-  marketplace:
-    description: Razor Pages + Blazor Server + SignalR frontend — vendor marketplace UI
-    type: web
-    runtime: dotnet
-    version: net10.0
-    port: 5201
-    public: true
-    health:
-      liveness: /health/live
-      readiness: /health/ready
-    dependencies:
-      - service: platform-api
-        required: true
-
-  ai-inference:
-    description: AI inference gateway — embeddings, classify, rerank
-    type: api
-    runtime: python/node
-    port: 7071
-    public: false
-    health:
-      liveness: /health/live
-      readiness: /health/ready
-    dependencies:
-      - service: redis
-        required: false
-      - service: qdrant
-        required: false
-
-  tawheed:
-    description: Evidence-driven multi-agent halal verification service
-    type: api
-    runtime: python
-    port: 8000
-    public: false
-    health:
-      liveness: /health
-      readiness: /health
-    dependencies:
-      - service: postgres
-        required: false  # demo mode works without DB
-      - service: redis
-        required: false
-
-  # ── Infrastructure ────────────────────────────────────────────────────
-
-  postgres:
-    description: Primary relational database
-    type: database
-    image: postgres:17-alpine
-    port: 5432
-    public: false
-
-  redis:
-    description: Cache, session store, distributed locks
-    type: cache
-    image: redis:7-alpine
-    port: 6379
-    public: false
-
-  neo4j:
-    description: Graph database — planned for supply-chain relationships
-    type: graph
-    image: neo4j:5-community
-    port: 7687
-    public: false
-    note: Config defined in tawheed; no adapter code yet
-
-  qdrant:
-    description: Vector database for embeddings
-    type: vector
-    image: qdrant/qdrant:v1.19.0
-    port: 6333
-    public: false
+policy:
+  forbid_latest: true
+  forbid_bare_major: true
+  require_digest_in_production: false

@@ -1,0 +1,28 @@
+# Gates configuration for HalalChain phases
+
+gates:
+  - id: gate-001-002
+    status: "planned"
+    description: "ENT-001 specification and planning gate"
+    phase: "ENT-001"
+    approver: "Enterprise Steering Committee"
+  - id: gate-002-003
+    status: "planned"
+    description: "ENT-002 build and implementation gate"
+    phase: "ENT-002"
+    approver: "Platform Architecture"
+  - id: gate-003-004
+    status: "planned"
+    description: "ENT-003 certification and compliance gate"
+    phase: "ENT-003"
+    approver: "CISO + External Auditor"
+  - id: gate-004-005
+    status: "planned"
+    description: "ENT-004 release and operations gate"
+    phase: "ENT-004"
+    approver: "Change Advisory Board"
+  - id: gate-005-006
+    status: "planned"
+    description: "ENT-005 scale-out and optimization gate"
+    phase: "ENT-005"
+    approver: "Steering Committee"
