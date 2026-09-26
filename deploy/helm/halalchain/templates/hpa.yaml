@@ -1,0 +1,139 @@
+{{/*
+hpa.yaml — HorizontalPodAutoscaler for each service that opts in via
+           <service>.autoscaling.enabled=true in values.yaml.
+
+Each HPA:
+  • uses autoscaling/v2 (stable since Kubernetes 1.23)
+  • targets the matching Deployment by name
+  • sources minReplicas, maxReplicas, and targetCPUUtilizationPercentage
+    exclusively from values.yaml — no hard-coded values
+*/}}
+
+{{/* ─── platform-api ──────────────────────────────────────────────────────────── */}}
+{{- if .Values.platformApi.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-platform-api
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: platform-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-platform-api
+  minReplicas: {{ .Values.platformApi.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.platformApi.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.platformApi.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+
+{{/* ─── web (halalchain) ──────────────────────────────────────────────────────── */}}
+{{- if .Values.web.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-web
+  minReplicas: {{ .Values.web.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.web.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.web.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+
+{{/* ─── marketplace ────────────────────────────────────────────────────────────── */}}
+{{- if .Values.marketplace.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-marketplace
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: marketplace
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-marketplace
+  minReplicas: {{ .Values.marketplace.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.marketplace.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.marketplace.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+
+{{/* ─── ai-inference ──────────────────────────────────────────────────────────── */}}
+{{- if .Values.aiInference.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-ai-inference
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: ai-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-ai-inference
+  minReplicas: {{ .Values.aiInference.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.aiInference.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.aiInference.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+
+{{/* ─── tawheed ────────────────────────────────────────────────────────────────── */}}
+{{- if .Values.tawheed.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-tawheed
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: tawheed
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-tawheed
+  minReplicas: {{ .Values.tawheed.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.tawheed.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.tawheed.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

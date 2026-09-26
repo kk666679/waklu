@@ -1,35 +1,105 @@
 replicaCount: 2
 
 image:
-  repository: ghcr.io/supporthalal/halalchain
-  tag: "latest"
   pullPolicy: IfNotPresent
 
-service:
-  type: ClusterIP
-  port: 80
-
+# platform-api (canary release)
 platformApi:
   image:
     repository: ghcr.io/supporthalal/halalchain-platform-api
-    tag: "latest"
+    tag: "dev"
+  replicaCount: 2
   port: 8080
   env:
     ASPNETCORE_ENVIRONMENT: Production
     ASPNETCORE_URLS: http://+:8080
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  ingress:
+    host: ""
 
+# halalchain web UI (blue/green release)
 web:
   image:
     repository: ghcr.io/supporthalal/halalchain-web
-    tag: "latest"
+    tag: "dev"
+  replicaCount: 2
   port: 8080
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  ingress:
+    host: ""
 
+# marketplace (blue/green release)
 marketplace:
   image:
     repository: ghcr.io/supporthalal/halalchain-marketplace
-    tag: "latest"
+    tag: "dev"
+  replicaCount: 2
   port: 8080
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  ingress:
+    host: ""
 
+# ai-inference (standard deploy)
+aiInference:
+  image:
+    repository: ghcr.io/supporthalal/halalchain-ai-inference
+    tag: "dev"
+  replicaCount: 1
+  port: 7071
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 80
+  ingress:
+    host: ""
+
+# tawheed policy engine (standard deploy)
+tawheed:
+  image:
+    repository: ghcr.io/supporthalal/halalchain-tawheed
+    tag: "dev"
+  replicaCount: 1
+  port: 8000
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 80
+  ingress:
+    host: ""
+
+# Global ingress
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+
+# Blue/green (halalchain + marketplace only)
+blueGreen:
+  enabled: false
+  activeSlot: blue
+  previewTag: "dev"
+
+# Canary (platform-api only)
+canary:
+  enabled: false
+  replicaCount: 1
+  imageTag: "dev"
+
+# Global resource defaults
 resources:
   limits:
     cpu: 500m
@@ -37,14 +107,3 @@ resources:
   requests:
     cpu: 250m
     memory: 256Mi
-
-ingress:
-  enabled: false
-  className: nginx
-  hosts: []
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPUUtilizationPercentage: 80

@@ -1,0 +1,61 @@
+{{/*
+ingress.yaml — Conditional Ingress resources for all five application services.
+
+An Ingress is rendered for a service only when BOTH conditions hold:
+  1. .Values.ingress.enabled is true  (global toggle)
+  2. <service>.ingress.host is a non-empty string
+
+The ingressClassName and annotations are sourced from the top-level
+.Values.ingress block so they are consistent across every resource.
+
+Backend service names follow the same pattern used in service.yaml:
+  {{ .Release.Name }}-<service-name>
+*/}}
+
+{{- $root := . -}}
+
+{{/*
+Build a list of service descriptors.  Each entry carries:
+  name      — Kubernetes resource suffix and Service name fragment
+  host      — the per-service ingress host value
+  port      — the container / Service port number
+*/}}
+{{- $services := list
+    (dict "name" "platform-api" "host" $root.Values.platformApi.ingress.host "port" $root.Values.platformApi.port)
+    (dict "name" "web"          "host" $root.Values.web.ingress.host          "port" $root.Values.web.port)
+    (dict "name" "marketplace"  "host" $root.Values.marketplace.ingress.host  "port" $root.Values.marketplace.port)
+    (dict "name" "ai-inference" "host" $root.Values.aiInference.ingress.host  "port" $root.Values.aiInference.port)
+    (dict "name" "tawheed"      "host" $root.Values.tawheed.ingress.host      "port" $root.Values.tawheed.port)
+-}}
+
+{{- if .Values.ingress.enabled -}}
+{{- range $svc := $services -}}
+{{- if ne $svc.host "" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $root.Release.Name }}-{{ $svc.name }}
+  labels:
+    {{- include "halalchain.labels" $root | nindent 4 }}
+    app: {{ $svc.name }}
+  {{- with $root.Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ $root.Values.ingress.className }}
+  rules:
+    - host: {{ $svc.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $root.Release.Name }}-{{ $svc.name }}
+                port:
+                  number: {{ $svc.port }}
+{{- end -}}
+{{- end -}}
+{{- end }}

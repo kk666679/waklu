@@ -1,16 +1,35 @@
+{{/*
+deployment.yaml — Standard (non-blue/green) Deployments for all five application services.
+
+  • platform-api  — always rendered; carries track: stable for canary coexistence
+  • web           — rendered only when blueGreen.enabled is false
+  • marketplace   — rendered only when blueGreen.enabled is false
+  • ai-inference  — always rendered
+  • tawheed       — always rendered
+
+When blueGreen.enabled=true, web and marketplace are handled by deployment-bluegreen.yaml.
+*/}}
+
+{{/* ─── platform-api ──────────────────────────────────────────────────────────── */}}
+{{- include "halalchain.validateImageTag" .Values.platformApi.image.tag }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-platform-api
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: platform-api
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.platformApi.replicaCount | default .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-platform-api
+      app: platform-api
+      track: stable
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-platform-api
+        app: platform-api
+        track: stable
     spec:
       containers:
         - name: platform-api
@@ -42,16 +61,191 @@ spec:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
+
+{{/* ─── web (halalchain) — skipped when blueGreen handles it ────────────────── */}}
+{{- if not .Values.blueGreen.enabled }}
 ---
-apiVersion: v1
-kind: Service
+{{- include "halalchain.validateImageTag" .Values.web.image.tag }}
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-platform-api
+  name: {{ .Release.Name }}-web
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: web
 spec:
+  replicas: {{ .Values.web.replicaCount | default .Values.replicaCount }}
   selector:
-    app: {{ .Release.Name }}-platform-api
-  ports:
-    - protocol: TCP
-      port: {{ .Values.service.port }}
-      targetPort: {{ .Values.platformApi.port }}
-  type: {{ .Values.service.type }}
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.web.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.web.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.web.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+{{- end }}
+
+{{/* ─── marketplace — skipped when blueGreen handles it ────────────────────── */}}
+{{- if not .Values.blueGreen.enabled }}
+---
+{{- include "halalchain.validateImageTag" .Values.marketplace.image.tag }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-marketplace
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: marketplace
+spec:
+  replicas: {{ .Values.marketplace.replicaCount | default .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: marketplace
+  template:
+    metadata:
+      labels:
+        app: marketplace
+    spec:
+      containers:
+        - name: marketplace
+          image: "{{ .Values.marketplace.image.repository }}:{{ .Values.marketplace.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.marketplace.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.marketplace.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.marketplace.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+{{- end }}
+
+{{/* ─── ai-inference ──────────────────────────────────────────────────────────── */}}
+---
+{{- include "halalchain.validateImageTag" .Values.aiInference.image.tag }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ai-inference
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: ai-inference
+spec:
+  replicas: {{ .Values.aiInference.replicaCount | default .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ai-inference
+  template:
+    metadata:
+      labels:
+        app: ai-inference
+    spec:
+      containers:
+        - name: ai-inference
+          image: "{{ .Values.aiInference.image.repository }}:{{ .Values.aiInference.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.aiInference.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.aiInference.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.aiInference.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+
+{{/* ─── tawheed ────────────────────────────────────────────────────────────────── */}}
+---
+{{- include "halalchain.validateImageTag" .Values.tawheed.image.tag }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-tawheed
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: tawheed
+spec:
+  replicas: {{ .Values.tawheed.replicaCount | default .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: tawheed
+  template:
+    metadata:
+      labels:
+        app: tawheed
+    spec:
+      containers:
+        - name: tawheed
+          image: "{{ .Values.tawheed.image.repository }}:{{ .Values.tawheed.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.tawheed.port }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.tawheed.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.tawheed.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}

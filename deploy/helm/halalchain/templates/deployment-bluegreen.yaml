@@ -1,0 +1,127 @@
+{{/*
+deployment-bluegreen.yaml — Blue/green Deployments for web (halalchain) and marketplace.
+
+Rendered ONLY when blueGreen.enabled=true.  Produces four Deployments total:
+  <release>-web-blue, <release>-web-green,
+  <release>-marketplace-blue, <release>-marketplace-green
+
+Active slot:   uses <service>.image.tag
+Preview slot:  uses blueGreen.previewTag
+
+Both tags are validated via halalchain.validateImageTag before the image reference
+is emitted, so a "latest" tag aborts template rendering with an actionable error.
+
+When blueGreen.enabled=false, deployment.yaml renders a single Deployment per
+service (no slot label).  The two files never both render for the same service.
+*/}}
+
+{{- if .Values.blueGreen.enabled }}
+
+{{- /* Validate both tags up-front so any "latest" error surfaces immediately. */}}
+{{- include "halalchain.validateImageTag" .Values.web.image.tag -}}
+{{- include "halalchain.validateImageTag" .Values.blueGreen.previewTag -}}
+{{- include "halalchain.validateImageTag" .Values.marketplace.image.tag -}}
+
+{{- /* ─── web (halalchain) ─────────────────────────────────────────────────── */}}
+{{- range $slot := list "blue" "green" }}
+{{- $webTag := ternary $.Values.web.image.tag $.Values.blueGreen.previewTag (eq $slot $.Values.blueGreen.activeSlot) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-web-{{ $slot }}
+  labels:
+    {{- include "halalchain.labels" $ | nindent 4 }}
+    app: web
+    slot: {{ $slot }}
+spec:
+  replicas: {{ $.Values.web.replicaCount | default $.Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: web
+      slot: {{ $slot }}
+  template:
+    metadata:
+      labels:
+        app: web
+        slot: {{ $slot }}
+    spec:
+      containers:
+        - name: web
+          image: "{{ $.Values.web.image.repository }}:{{ $webTag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $.Values.web.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ $.Values.web.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ $.Values.web.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ $.Values.resources.limits.cpu }}
+              memory: {{ $.Values.resources.limits.memory }}
+            requests:
+              cpu: {{ $.Values.resources.requests.cpu }}
+              memory: {{ $.Values.resources.requests.memory }}
+{{- end }}
+
+{{- /* ─── marketplace ──────────────────────────────────────────────────────── */}}
+{{- range $slot := list "blue" "green" }}
+{{- $mktTag := ternary $.Values.marketplace.image.tag $.Values.blueGreen.previewTag (eq $slot $.Values.blueGreen.activeSlot) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-marketplace-{{ $slot }}
+  labels:
+    {{- include "halalchain.labels" $ | nindent 4 }}
+    app: marketplace
+    slot: {{ $slot }}
+spec:
+  replicas: {{ $.Values.marketplace.replicaCount | default $.Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: marketplace
+      slot: {{ $slot }}
+  template:
+    metadata:
+      labels:
+        app: marketplace
+        slot: {{ $slot }}
+    spec:
+      containers:
+        - name: marketplace
+          image: "{{ $.Values.marketplace.image.repository }}:{{ $mktTag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $.Values.marketplace.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ $.Values.marketplace.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ $.Values.marketplace.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ $.Values.resources.limits.cpu }}
+              memory: {{ $.Values.resources.limits.memory }}
+            requests:
+              cpu: {{ $.Values.resources.requests.cpu }}
+              memory: {{ $.Values.resources.requests.memory }}
+{{- end }}
+
+{{- end }}{{/* blueGreen.enabled */}}

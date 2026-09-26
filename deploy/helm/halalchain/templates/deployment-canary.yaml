@@ -1,0 +1,69 @@
+{{/*
+deployment-canary.yaml — Canary Deployment for platform-api.
+
+Rendered only when canary.enabled=true. The canary pod carries:
+  app: platform-api   — shared with the stable Deployment so the ClusterIP
+                        Service routes traffic to both pod sets
+  track: canary       — differentiates it from track: stable for any
+                        fine-grained selector or PodDisruptionBudget use
+
+Traffic weight is controlled entirely by replica ratio:
+  stable replicas / (stable replicas + canary.replicaCount)
+
+Promotion: set canary.enabled=false and update platformApi.image.tag to the
+canary image tag (via `make canary-promote` or helm upgrade --reuse-values).
+*/}}
+
+{{- if .Values.canary.enabled }}
+{{- include "halalchain.validateImageTag" .Values.canary.imageTag -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-platform-api-canary
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: platform-api
+    track: canary
+spec:
+  replicas: {{ .Values.canary.replicaCount }}
+  selector:
+    matchLabels:
+      app: platform-api
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: platform-api
+        track: canary
+    spec:
+      containers:
+        - name: platform-api
+          image: "{{ .Values.platformApi.image.repository }}:{{ .Values.canary.imageTag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.platformApi.port }}
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.platformApi.env.ASPNETCORE_ENVIRONMENT | quote }}
+            - name: ASPNETCORE_URLS
+              value: {{ .Values.platformApi.env.ASPNETCORE_URLS | quote }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.platformApi.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.platformApi.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+{{- end }}

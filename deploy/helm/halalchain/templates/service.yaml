@@ -1,0 +1,105 @@
+{{/*
+service.yaml — ClusterIP Services for all five application services.
+
+Selector logic:
+  • web and marketplace: when blueGreen.enabled=true the selector adds
+    slot: <activeSlot> so that traffic is pinned to the live deployment slot.
+    When blueGreen.enabled=false only the app label is used.
+  • All other services: selector uses only app: <name>.
+*/}}
+
+{{/* ─── platform-api ──────────────────────────────────────────────────────────── */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-platform-api
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: platform-api
+spec:
+  type: ClusterIP
+  selector:
+    app: platform-api
+  ports:
+    - name: http
+      port: {{ .Values.platformApi.port }}
+      targetPort: {{ .Values.platformApi.port }}
+      protocol: TCP
+---
+{{/* ─── web (halalchain) ──────────────────────────────────────────────────────── */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: web
+spec:
+  type: ClusterIP
+  selector:
+    app: web
+    {{- if .Values.blueGreen.enabled }}
+    slot: {{ .Values.blueGreen.activeSlot }}
+    {{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.web.port }}
+      targetPort: {{ .Values.web.port }}
+      protocol: TCP
+---
+{{/* ─── marketplace ────────────────────────────────────────────────────────────── */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-marketplace
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: marketplace
+spec:
+  type: ClusterIP
+  selector:
+    app: marketplace
+    {{- if .Values.blueGreen.enabled }}
+    slot: {{ .Values.blueGreen.activeSlot }}
+    {{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.marketplace.port }}
+      targetPort: {{ .Values.marketplace.port }}
+      protocol: TCP
+---
+{{/* ─── ai-inference ──────────────────────────────────────────────────────────── */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-ai-inference
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: ai-inference
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-inference
+  ports:
+    - name: http
+      port: {{ .Values.aiInference.port }}
+      targetPort: {{ .Values.aiInference.port }}
+      protocol: TCP
+---
+{{/* ─── tawheed ─────────────────────────────────────────────────────────────────── */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-tawheed
+  labels:
+    {{- include "halalchain.labels" . | nindent 4 }}
+    app: tawheed
+spec:
+  type: ClusterIP
+  selector:
+    app: tawheed
+  ports:
+    - name: http
+      port: {{ .Values.tawheed.port }}
+      targetPort: {{ .Values.tawheed.port }}
+      protocol: TCP
