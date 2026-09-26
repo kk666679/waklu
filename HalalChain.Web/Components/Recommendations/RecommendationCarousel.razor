@@ -1,0 +1,606 @@
+@using HalalChain.Services
+@using HalalChain.Models
+@inject IAdvancedRecommendationService RecommendationService
+@inject NavigationManager Navigation
+
+<div class="recommendation-carousel">
+    <div class="carousel-header">
+        <div>
+            <h3 class="carousel-title">
+                @if (string.IsNullOrEmpty(RecommendationReason))
+                {
+                    <span>@Title</span>
+                }
+                else
+                {
+                    <span>@Title</span>
+                    <span class="carousel-subtitle">@RecommendationReason</span>
+                }
+            </h3>
+            <p class="carousel-description">@Description</p>
+        </div>
+        <div class="carousel-controls">
+            <button class="btn btn-sm btn-ghost" @onclick="ScrollLeft" aria-label="Scroll left">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="btn btn-sm btn-ghost" @onclick="ScrollRight" aria-label="Scroll right">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="carousel-container" @ref="CarouselElement">
+        <div class="carousel-track">
+            @if (IsLoading)
+            {
+                @for (int i = 0; i < 5; i++)
+                {
+                    <div class="carousel-item skeleton-item">
+                        <div class="skeleton" style="height: 200px; border-radius: 8px;"></div>
+                        <div class="skeleton" style="height: 16px; margin-top: 12px; border-radius: 4px; width: 80%;"></div>
+                        <div class="skeleton" style="height: 14px; margin-top: 8px; border-radius: 4px; width: 60%;"></div>
+                    </div>
+                }
+            }
+            else if (Recommendations.Any())
+            {
+                @foreach (var rec in Recommendations)
+                {
+                    <div class="carousel-item">
+                        <div class="product-card-compact">
+                            <!-- Image -->
+                            <div class="product-image-container" @onclick="() => NavigateToProduct(rec.Product.Id)">
+                                <img src="@(rec.Product.ImageUrl ?? "/images/placeholder-product.svg")"
+                                     alt="@rec.Product.Name"
+                                     class="product-image"
+                                     loading="lazy" />
+                                
+                                @if (rec.Product.Tags.Contains("New Arrival"))
+                                {
+                                    <span class="badge badge-new">New</span>
+                                }
+                                @if (rec.Product.Tags.Contains("Trending"))
+                                {
+                                    <span class="badge badge-trending">🔥 Trending</span>
+                                }
+                                @if (rec.Product.IsOutOfStock)
+                                {
+                                    <div class="out-of-stock-overlay">
+                                        <span>Out of Stock</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn-quick-add" @onclick:stopPropagation @onclick="() => OnQuickAdd(rec.Product)">
+                                        <i class="fas fa-cart-plus"></i> Add
+                                    </button>
+                                }
+                            </div>
+
+                            <!-- Info -->
+                            <div class="product-info">
+                                <h4 class="product-name" @onclick="() => NavigateToProduct(rec.Product.Id)">
+                                    @rec.Product.Name
+                                </h4>
+
+                                <!-- Rating -->
+                                @if (rec.Product.AverageRating > 0)
+                                {
+                                    <div class="product-rating">
+                                        @for (int i = 0; i < 5; i++)
+                                        {
+                                            <i class="fas fa-star" style="color: i < (int)rec.Product.AverageRating ? '#fbbf24' : '#e5e7eb'"></i>
+                                        }
+                                        <span class="rating-count">(@rec.Product.ReviewCount)</span>
+                                    </div>
+                                }
+
+                                <!-- Price -->
+                                <div class="product-pricing">
+                                    <span class="price">@rec.Product.Price.ToString("C2")</span>
+                                    @if (rec.Product.CompareAtPrice.HasValue && rec.Product.CompareAtPrice > rec.Product.Price)
+                                    {
+                                        <span class="compare-at-price">@rec.Product.CompareAtPrice.Value.ToString("C2")</span>
+                                        <span class="discount-badge">
+                                            @{
+                                                var discount = ((rec.Product.CompareAtPrice.Value - rec.Product.Price) / rec.Product.CompareAtPrice.Value * 100);
+                                                @($"-{discount:F0}%")
+                                            }
+                                        </span>
+                                    }
+                                </div>
+
+                                <!-- Halal Badge -->
+                                @if (rec.Product.IsHalal)
+                                {
+                                    <div class="halal-badge">
+                                        <i class="fas fa-check-circle"></i> Halal Certified
+                                    </div>
+                                }
+
+                                <!-- Recommendation Reason -->
+                                @if (!string.IsNullOrEmpty(rec.Reason))
+                                {
+                                    <div class="recommendation-reason">
+                                        <i class="fas fa-lightbulb"></i> @rec.Reason
+                                    </div>
+                                }
+
+                                <!-- Wishlist Button -->
+                                <button class="btn-wishlist" @onclick:stopPropagation @onclick="() => OnWishlistToggle(rec.Product)">
+                                    <i class="fas @(IsInWishlist(rec.Product.Id) ? "fa-heart" : "fa-heart") fa-regular"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="carousel-empty">
+                    <p>No recommendations available at the moment.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Dots/Pagination -->
+    @if (Recommendations.Count > ItemsPerView)
+    {
+        <div class="carousel-dots">
+            @for (int i = 0; i < Math.Ceiling(Recommendations.Count / (decimal)ItemsPerView); i++)
+            {
+                var pageIndex = i;
+                <button class="dot @(CurrentPage == pageIndex ? "active" : "")"
+                        @onclick="() => GoToPage(pageIndex)"
+                        aria-label="Go to page @(i + 1)">
+                </button>
+            }
+        </div>
+    }
+</div>
+
+<style>
+.recommendation-carousel {
+    margin: 32px 0;
+}
+
+.carousel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.carousel-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-neutral-900);
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carousel-subtitle {
+    font-size: 12px;
+    color: var(--color-primary-600);
+    background: var(--color-primary-50);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.carousel-description {
+    font-size: 13px;
+    color: var(--color-neutral-600);
+    margin: 0;
+}
+
+.carousel-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.carousel-controls .btn {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.carousel-controls .btn:hover {
+    opacity: 1;
+}
+
+.carousel-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    padding: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.carousel-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.carousel-container::-webkit-scrollbar-track {
+    background: var(--color-neutral-100);
+}
+
+.carousel-container::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-300);
+    border-radius: 2px;
+}
+
+.carousel-track {
+    display: flex;
+    gap: 16px;
+    padding-bottom: 8px;
+}
+
+.carousel-item {
+    flex-shrink: 0;
+    width: calc(25% - 12px);
+    min-width: 200px;
+}
+
+@media (max-width: 1024px) {
+    .carousel-item {
+        width: calc(33.333% - 11px);
+    }
+}
+
+@media (max-width: 640px) {
+    .carousel-item {
+        width: calc(50% - 8px);
+    }
+}
+
+.skeleton-item {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--color-neutral-100);
+}
+
+.product-card-compact {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.product-card-compact:hover {
+    border-color: var(--color-primary-300);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+}
+
+.product-image-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%; /* 1:1 aspect ratio */
+    overflow: hidden;
+    background: var(--color-neutral-100);
+    cursor: pointer;
+}
+
+.product-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-new {
+    background: var(--color-primary-500);
+    color: white;
+}
+
+.badge-trending {
+    background: var(--color-orange-500);
+    color: white;
+}
+
+.out-of-stock-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+}
+
+.btn-quick-add {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 8px 12px;
+    background: var(--color-primary-500);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.product-card-compact:hover .btn-quick-add {
+    opacity: 1;
+}
+
+.btn-quick-add:hover {
+    background: var(--color-primary-600);
+}
+
+.product-info {
+    padding: 12px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-neutral-900);
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+    cursor: pointer;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-name:hover {
+    color: var(--color-primary-600);
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    margin-bottom: 6px;
+}
+
+.product-rating i {
+    font-size: 10px;
+}
+
+.rating-count {
+    color: var(--color-neutral-500);
+    margin-left: 4px;
+}
+
+.product-pricing {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.price {
+    font-weight: 600;
+    color: var(--color-neutral-900);
+}
+
+.compare-at-price {
+    text-decoration: line-through;
+    color: var(--color-neutral-400);
+    font-size: 11px;
+}
+
+.discount-badge {
+    background: var(--color-red-100);
+    color: var(--color-red-700);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.halal-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--color-green-700);
+    background: var(--color-green-50);
+    padding: 4px 6px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.recommendation-reason {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--color-primary-700);
+    background: var(--color-primary-50);
+    padding: 4px 6px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.btn-wishlist {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-neutral-400);
+    transition: color 0.2s ease;
+    margin-top: auto;
+    text-align: left;
+}
+
+.btn-wishlist:hover {
+    color: var(--color-red-500);
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--color-neutral-300);
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dot.active {
+    background: var(--color-primary-500);
+    border-color: var(--color-primary-500);
+}
+
+.carousel-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--color-neutral-500);
+}
+</style>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Recommended For You";
+
+    [Parameter]
+    public string Description { get; set; } = "Based on your browsing history and preferences";
+
+    [Parameter]
+    public string? UserId { get; set; }
+
+    [Parameter]
+    public string? RecommendationType { get; set; } = "personalized"; // personalized, trending, similar, together
+
+    [Parameter]
+    public int? ProductId { get; set; }
+
+    [Parameter]
+    public EventCallback<Product> OnAddToCart { get; set; }
+
+    [Parameter]
+    public EventCallback<Product> OnWishlistToggle { get; set; }
+
+    private List<RecommendationResult> Recommendations = new();
+    private List<int> Wishlist = new();
+    private bool IsLoading = true;
+    private int CurrentPage = 0;
+    private int ItemsPerView = 4;
+    private string RecommendationReason = "";
+
+    private ElementReference CarouselElement;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecommendations();
+    }
+
+    private async Task LoadRecommendations()
+    {
+        try
+        {
+            IsLoading = true;
+
+            Recommendations = RecommendationType?.ToLowerInvariant() switch
+            {
+                "trending" => await RecommendationService.GetTrendingWithReasonAsync(20),
+                "similar" when ProductId.HasValue => await RecommendationService.GetSimilarProductsAsync(ProductId.Value, 10),
+                "together" when ProductId.HasValue => await RecommendationService.GetFrequentlyBoughtTogetherAsync(ProductId.Value, 10),
+                _ => await RecommendationService.GetPersonalizedRecommendationsAsync(UserId ?? "guest", 20)
+            };
+
+            if (Recommendations.Any())
+            {
+                RecommendationReason = Recommendations.First().Reason;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ScrollLeft()
+    {
+        if (CarouselElement.Context != null)
+        {
+            // Scroll left logic
+            var scrollAmount = 300;
+            // Would call JS interop to scroll
+        }
+    }
+
+    private async Task ScrollRight()
+    {
+        if (CarouselElement.Context != null)
+        {
+            // Scroll right logic
+            var scrollAmount = 300;
+            // Would call JS interop to scroll
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        CurrentPage = page;
+        // Scroll to page
+    }
+
+    private void NavigateToProduct(int productId)
+    {
+        Navigation.NavigateTo($"/products/{productId}");
+    }
+
+    private async Task OnQuickAdd(Product product)
+    {
+        await OnAddToCart.InvokeAsync(product);
+    }
+
+    private bool IsInWishlist(int productId)
+    {
+        return Wishlist.Contains(productId);
+    }
+
+    private async Task OnWishlistToggle(Product product)
+    {
+        if (Wishlist.Contains(product.Id))
+            Wishlist.Remove(product.Id);
+        else
+            Wishlist.Add(product.Id);
+
+        await OnWishlistToggle.InvokeAsync(product);
+    }
+}

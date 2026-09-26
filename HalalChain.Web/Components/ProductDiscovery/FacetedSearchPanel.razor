@@ -1,0 +1,435 @@
+@using HalalChain.Services
+@using HalalChain.Models
+@inject IProductSearchService SearchService
+
+<div class="faceted-search-panel">
+    <div class="facet-section">
+        <h3 class="facet-title">
+            <i class="fas fa-filter"></i> Filters
+            @if (HasActiveFilters)
+            {
+                <button class="btn btn-sm btn-ghost ml-2" @onclick="ClearAllFilters">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            }
+        </h3>
+
+        <!-- Search Input with Autocomplete -->
+        <div class="form-group mb-4">
+            <div style="position: relative">
+                <input type="text"
+                       class="form-control"
+                       placeholder="Search products..."
+                       @oninput="OnSearchInput"
+                       @onfocus="ShowAutocompleteSuggestions"
+                       @onblur="HideAutocompleteSuggestions" />
+                <i class="fas fa-search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--color-neutral-400)"></i>
+
+                @if (ShowAutocomplete && AutocompleteSuggestions.Any())
+                {
+                    <div class="autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--color-neutral-200); border-radius: 6px; max-height: 300px; overflow-y: auto; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1)">
+                        @foreach (var suggestion in AutocompleteSuggestions.Take(10))
+                        {
+                            <div class="autocomplete-item p-2 cursor-pointer hover:bg-neutral-50" @onclick="() => SelectAutocompleteSuggestion(suggestion)">
+                                <span style="margin-right: 8px">@suggestion.Icon</span>
+                                <strong>@suggestion.Text</strong>
+                                <span class="text-xs text-neutral-500" style="margin-left: 8px">@suggestion.Type</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Category Facet -->
+        @if (Facets.Categories.Any())
+        {
+            <div class="facet mb-4">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(\"categories\")">
+                    <i class="fas @(ExpandedFacets.Contains("categories") ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                    Categories
+                </h4>
+                @if (ExpandedFacets.Contains("categories"))
+                {
+                    <div class="facet-options">
+                        @foreach (var option in Facets.Categories)
+                        {
+                            <label class="checkbox-label">
+                                <input type="checkbox"
+                                       @onchange="(ChangeEventArgs e) => OnCategoryChange(option.Value, (bool)e.Value)"
+                                       checked="@SelectedCategories.Contains(option.Value)" />
+                                <span>@option.Name</span>
+                                <span class="facet-count">(@option.Count)</span>
+                            </label>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Price Range Facet -->
+        @if (Facets.PriceRanges.Any())
+        {
+            <div class="facet mb-4">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(\"price\")">
+                    <i class="fas @(ExpandedFacets.Contains("price") ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                    Price
+                </h4>
+                @if (ExpandedFacets.Contains("price"))
+                {
+                    <div class="facet-options">
+                        @foreach (var option in Facets.PriceRanges)
+                        {
+                            <label class="checkbox-label">
+                                <input type="checkbox"
+                                       @onchange="(ChangeEventArgs e) => OnPriceRangeChange(option.Value, (bool)e.Value)"
+                                       checked="@SelectedPriceRanges.Contains(option.Value)" />
+                                <span>@option.Name</span>
+                                <span class="facet-count">(@option.Count)</span>
+                            </label>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Rating Facet -->
+        @if (Facets.Ratings.Any())
+        {
+            <div class="facet mb-4">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(\"rating\")">
+                    <i class="fas @(ExpandedFacets.Contains("rating") ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                    Rating
+                </h4>
+                @if (ExpandedFacets.Contains("rating"))
+                {
+                    <div class="facet-options">
+                        @foreach (var option in Facets.Ratings)
+                        {
+                            <label class="checkbox-label">
+                                <input type="checkbox"
+                                       @onchange="(ChangeEventArgs e) => OnRatingChange(option.Value, (bool)e.Value)"
+                                       checked="@SelectedRatings.Contains(option.Value)" />
+                                <span>
+                                    @for (int i = 0; i < 5; i++)
+                                    {
+                                        <i class="fas fa-star" style="color: i < int.Parse(option.Name.Split('.')[0]) ? \"#fbbf24\" : \"#e5e7eb\""></i>
+                                    }
+                                </span>
+                                <span class="facet-count">(@option.Count)</span>
+                            </label>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Halal Status Facet -->
+        @if (Facets.HalalStatus.Any())
+        {
+            <div class="facet mb-4">
+                <h4 class="facet-header">
+                    <i class="fas fa-check-circle"></i> Halal Status
+                </h4>
+                <div class="facet-options">
+                    @foreach (var option in Facets.HalalStatus)
+                    {
+                        <label class="checkbox-label">
+                            <input type="checkbox"
+                                   @onchange="(ChangeEventArgs e) => OnHalalStatusChange((bool)e.Value)"
+                                   checked="@ShowOnlyHalal" />
+                            <span>@option.Name</span>
+                            <span class="facet-count">(@option.Count)</span>
+                        </label>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Tag Facet -->
+        @if (Facets.Tags.Any())
+        {
+            <div class="facet mb-4">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(\"tags\")">
+                    <i class="fas @(ExpandedFacets.Contains("tags") ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                    Tags
+                </h4>
+                @if (ExpandedFacets.Contains("tags"))
+                {
+                    <div class="facet-tags">
+                        @foreach (var tag in Facets.Tags.Take(8))
+                        {
+                            <button class="tag @(SelectedTags.Contains(tag.Value) ? "tag-active" : "")"
+                                    @onclick="() => OnTagChange(tag.Value)">
+                                @tag.Name <span class="tag-count">@tag.Count</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- In Stock Only -->
+        <div class="facet mb-4">
+            <label class="checkbox-label">
+                <input type="checkbox" @onchange="OnInStockOnlyChange" />
+                <span><i class="fas fa-box-open"></i> In Stock Only</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<style>
+.faceted-search-panel {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--color-neutral-200);
+}
+
+.facet-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.facet {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.facet-header {
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-neutral-700);
+    margin: 0 0 12px 0;
+    transition: color 0.2s ease;
+}
+
+.facet-header:hover {
+    color: var(--color-neutral-900);
+}
+
+.facet-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-neutral-700);
+}
+
+.checkbox-label input {
+    cursor: pointer;
+}
+
+.facet-count {
+    color: var(--color-neutral-500);
+    font-size: 12px;
+    margin-left: auto;
+}
+
+.facet-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    padding: 6px 12px;
+    border: 1px solid var(--color-neutral-300);
+    border-radius: 16px;
+    background: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    border-color: var(--color-primary-400);
+    color: var(--color-primary-600);
+}
+
+.tag-active {
+    background: var(--color-primary-50);
+    border-color: var(--color-primary-500);
+    color: var(--color-primary-700);
+}
+
+.tag-count {
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.autocomplete-dropdown {
+    border-top: none;
+}
+
+.autocomplete-item {
+    border-bottom: 1px solid var(--color-neutral-100);
+    transition: background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+</style>
+
+@code {
+    [Parameter]
+    public EventCallback<FacetedFilters> OnFiltersChanged { get; set; }
+
+    [Parameter]
+    public string? InitialQuery { get; set; }
+
+    private FacetedFilters Facets = new();
+    private List<string> SelectedCategories = new();
+    private List<string> SelectedPriceRanges = new();
+    private List<string> SelectedRatings = new();
+    private List<string> SelectedTags = new();
+    private bool ShowOnlyHalal = false;
+    private bool ShowInStockOnly = false;
+
+    private HashSet<string> ExpandedFacets = new() { "categories", "price", "rating", "tags" };
+    private List<AutocompleteSuggestion> AutocompleteSuggestions = new();
+    private bool ShowAutocomplete = false;
+
+    private bool HasActiveFilters =>
+        SelectedCategories.Any() ||
+        SelectedPriceRanges.Any() ||
+        SelectedRatings.Any() ||
+        SelectedTags.Any() ||
+        ShowOnlyHalal ||
+        ShowInStockOnly;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var query = new SearchQuery { Query = InitialQuery };
+        Facets = await SearchService.GetFacetsAsync(query);
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        var query = e.Value?.ToString() ?? "";
+        if (query.Length >= 2)
+        {
+            AutocompleteSuggestions = await SearchService.GetAutocompleteSuggestionsAsync(query, 10);
+            ShowAutocomplete = true;
+        }
+        else
+        {
+            AutocompleteSuggestions.Clear();
+        }
+    }
+
+    private void ShowAutocompleteSuggestions()
+    {
+        if (AutocompleteSuggestions.Any())
+            ShowAutocomplete = true;
+    }
+
+    private void HideAutocompleteSuggestions()
+    {
+        // Delay to allow click to register
+        Task.Delay(200).ContinueWith(_ => InvokeAsync(() => ShowAutocomplete = false));
+    }
+
+    private void SelectAutocompleteSuggestion(AutocompleteSuggestion suggestion)
+    {
+        // Handle suggestion selection
+        ShowAutocomplete = false;
+    }
+
+    private void ToggleFacet(string facetName)
+    {
+        if (ExpandedFacets.Contains(facetName))
+            ExpandedFacets.Remove(facetName);
+        else
+            ExpandedFacets.Add(facetName);
+    }
+
+    private async Task OnCategoryChange(string categoryId, bool isChecked)
+    {
+        if (isChecked)
+            SelectedCategories.Add(categoryId);
+        else
+            SelectedCategories.Remove(categoryId);
+
+        await NotifyFiltersChanged();
+    }
+
+    private async Task OnPriceRangeChange(string priceRange, bool isChecked)
+    {
+        if (isChecked)
+            SelectedPriceRanges.Add(priceRange);
+        else
+            SelectedPriceRanges.Remove(priceRange);
+
+        await NotifyFiltersChanged();
+    }
+
+    private async Task OnRatingChange(string rating, bool isChecked)
+    {
+        if (isChecked)
+            SelectedRatings.Add(rating);
+        else
+            SelectedRatings.Remove(rating);
+
+        await NotifyFiltersChanged();
+    }
+
+    private async Task OnTagChange(string tag)
+    {
+        if (SelectedTags.Contains(tag))
+            SelectedTags.Remove(tag);
+        else
+            SelectedTags.Add(tag);
+
+        await NotifyFiltersChanged();
+    }
+
+    private async Task OnHalalStatusChange(bool isChecked)
+    {
+        ShowOnlyHalal = isChecked;
+        await NotifyFiltersChanged();
+    }
+
+    private async Task OnInStockOnlyChange(ChangeEventArgs e)
+    {
+        ShowInStockOnly = (bool)e.Value;
+        await NotifyFiltersChanged();
+    }
+
+    private async Task ClearAllFilters()
+    {
+        SelectedCategories.Clear();
+        SelectedPriceRanges.Clear();
+        SelectedRatings.Clear();
+        SelectedTags.Clear();
+        ShowOnlyHalal = false;
+        ShowInStockOnly = false;
+
+        await NotifyFiltersChanged();
+    }
+
+    private async Task NotifyFiltersChanged()
+    {
+        await OnFiltersChanged.InvokeAsync(Facets);
+    }
+}
