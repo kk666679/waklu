@@ -1,0 +1,365 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Replace `values.yaml` with the full per-service schema from the design": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327279748
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327293889
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327372537
+      }
+    ],
+    "2.1 Create `deploy/helm/halalchain/templates/_helpers.tpl`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327279981
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327294155
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327373064
+      }
+    ],
+    "3.1 Rewrite `deploy/helm/halalchain/templates/deployment.yaml` for all five services": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327280367
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327385200
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327539211
+      }
+    ],
+    "4.1 Create `deploy/helm/halalchain/templates/service.yaml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327280551
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327561537
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328032732
+      }
+    ],
+    "5.1 Create `deploy/helm/halalchain/templates/ingress.yaml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327280688
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327569475
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328033153
+      }
+    ],
+    "6.1 Create `deploy/helm/halalchain/templates/hpa.yaml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327280834
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327570122
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328033778
+      }
+    ],
+    "7. Checkpoint — Ensure `helm lint` passes before release-pattern templates": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327280971
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328041298
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328774687
+      }
+    ],
+    "8.1 Create `deploy/helm/halalchain/templates/deployment-bluegreen.yaml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327281087
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328041615
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328775098
+      }
+    ],
+    "9.1 Create `deploy/helm/halalchain/templates/deployment-canary.yaml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327281370
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328041819
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328776270
+      }
+    ],
+    "10. Checkpoint — Full `helm lint` and `helm template` sanity checks": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327281538
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328782772
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329502794
+      }
+    ],
+    "11.1 Add the `deploy-staging` job to `.github/workflows/release.yml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327281737
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328783885
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329503645
+      }
+    ],
+    "11.2 Add the `smoke-gate` job to `.github/workflows/release.yml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327282155
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328784432
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329503856
+      }
+    ],
+    "11.3 Add the `deploy-production` job to `.github/workflows/release.yml`": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327282296
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328785034
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329504274
+      }
+    ],
+    "12.1 Rewrite `Makefile` with the five functional targets from the design": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327282434
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328786706
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329505158
+      }
+    ],
+    "13. Final checkpoint — Ensure all tests pass": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327282582
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329511481
+      },
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790330989014
+      }
+    ],
+    "1. Rewrite `values.yaml` with the full per-service structure": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327372734
+      }
+    ],
+    "2. Create `_helpers.tpl` with validation and standard named templates": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327373213
+      }
+    ],
+    "3. Rewrite `deployment.yaml` to cover all five services with probes and resource limits": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790327540092
+      }
+    ],
+    "4. Create `service.yaml` for all five services with slot-aware selectors": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328032965
+      }
+    ],
+    "5. Create `ingress.yaml` conditional on per-service host": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328033427
+      }
+    ],
+    "6. Create `hpa.yaml` conditional on per-service autoscaling": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328033935
+      }
+    ],
+    "8. Create `deployment-bluegreen.yaml` for blue/green services": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328775239
+      }
+    ],
+    "9. Create `deployment-canary.yaml` for platform-api canary": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790328776619
+      }
+    ],
+    "11. Add `deploy-staging`, `smoke-gate`, and `deploy-production` jobs to the release workflow": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329504592
+      }
+    ],
+    "12. Replace stub Makefile targets with functional commands": [
+      {
+        "executionId": "1d38d29e-8848-4ea8-95ca-31b93e0db178",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790329505341
+      }
+    ],
+    "2.2 Write a shell-based property test for Property 10 (`\"latest\"` tag always fails)": [
+      {
+        "executionId": "26c093e5-7cb1-46dc-95fa-b9dec9a57e08",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790331073122
+      }
+    ],
+    "3.2 Write a shell-based property test for Property 1 (all five Deployments render)": [
+      {
+        "executionId": "26c093e5-7cb1-46dc-95fa-b9dec9a57e08",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790331073797
+      }
+    ],
+    "3.3 Write a shell-based property test for Property 2 (image references match values)": [
+      {
+        "executionId": "26c093e5-7cb1-46dc-95fa-b9dec9a57e08",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790331074137
+      }
+    ],
+    "4.2 Write shell-based property tests for Properties 6 (service selector targets active slot)": [
+      {
+        "executionId": "26c093e5-7cb1-46dc-95fa-b9dec9a57e08",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790331074703
+      }
+    ],
+    "5.2 Write a shell-based property test for Property 3 (Ingress count matches configured hosts)": [
+      {
+        "executionId": "26c093e5-7cb1-46dc-95fa-b9dec9a57e08",
+        "chatSessionId": "sess_940d9930-ab24-41c5-9ff8-fd709d008501",
+        "timestamp": 1790331075187
+      }
+    ]
+  }
+}
