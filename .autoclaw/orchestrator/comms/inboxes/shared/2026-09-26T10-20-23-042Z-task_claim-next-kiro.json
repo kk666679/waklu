@@ -1,14 +1,14 @@
 {
-  "id": "msg-claim-next-kiro-mui6cm8t",
+  "id": "msg-claim-next-kiro-mui8nw5e",
   "from": "orchestrator-loop",
   "to": "shared",
   "type": "task_claim",
-  "timestamp": "2026-09-26T09:15:37.757Z",
+  "timestamp": "2026-09-26T10:20:23.042Z",
   "task_id": "next-kiro",
   "payload": {
     "vendor": "kiro",
     "priority": "low"
   },
   "requires_response": true,
-  "expires_at": "2026-09-26T09:45:37.757Z"
+  "expires_at": "2026-09-26T10:50:23.042Z"
 }
