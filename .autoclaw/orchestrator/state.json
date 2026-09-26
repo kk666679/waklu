@@ -1,0 +1,102 @@
+{
+  "project": "waklu",
+  "current_sprint": null,
+  "total_sprints": 0,
+  "tasks_complete": 0,
+  "tasks_total": 13,
+  "agents": {},
+  "last_updated": "2026-09-25T11:14:41.880Z",
+  "tasks": [
+    {
+      "id": "1",
+      "depends_on": [],
+      "files": [],
+      "title": "Rewrite `values.yaml` with the full per-service structure",
+      "status": "done"
+    },
+    {
+      "id": "2",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `_helpers.tpl` with validation and standard named templates",
+      "status": "done"
+    },
+    {
+      "id": "3",
+      "depends_on": [],
+      "files": [],
+      "title": "Rewrite `deployment.yaml` to cover all five services with probes and resource limits",
+      "status": "done"
+    },
+    {
+      "id": "4",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `service.yaml` for all five services with slot-aware selectors",
+      "status": "done"
+    },
+    {
+      "id": "5",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `ingress.yaml` conditional on per-service host",
+      "status": "done"
+    },
+    {
+      "id": "6",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `hpa.yaml` conditional on per-service autoscaling",
+      "status": "done"
+    },
+    {
+      "id": "7",
+      "depends_on": [],
+      "files": [],
+      "title": "Checkpoint — Ensure `helm lint` passes before release-pattern templates",
+      "status": "done"
+    },
+    {
+      "id": "8",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `deployment-bluegreen.yaml` for blue/green services",
+      "status": "done"
+    },
+    {
+      "id": "9",
+      "depends_on": [],
+      "files": [],
+      "title": "Create `deployment-canary.yaml` for platform-api canary",
+      "status": "done"
+    },
+    {
+      "id": "10",
+      "depends_on": [],
+      "files": [],
+      "title": "Checkpoint — Full `helm lint` and `helm template` sanity checks",
+      "status": "done"
+    },
+    {
+      "id": "11",
+      "depends_on": [],
+      "files": [],
+      "title": "Add `deploy-staging`, `smoke-gate`, and `deploy-production` jobs to the release workflow",
+      "status": "done"
+    },
+    {
+      "id": "12",
+      "depends_on": [],
+      "files": [],
+      "title": "Replace stub Makefile targets with functional commands",
+      "status": "done"
+    },
+    {
+      "id": "13",
+      "depends_on": [],
+      "files": [],
+      "title": "Final checkpoint — Ensure all tests pass",
+      "status": "done"
+    }
+  ]
+}
