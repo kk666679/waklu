@@ -136,11 +136,27 @@ tmp_*/
 .halalchain/halalchain.db-shm
 .halalchain/halalchain.db-wal
 
-# Build output for generated SCSS/CSS
-wwwroot/css/*.scss.map
+# Build output for generated SCSS/CSS.
+# wwwroot/scss/ is the source of truth; wwwroot/css/ is produced by
+# `npm run scss:build` (and by the styles stage of the Web/Marketplace
+# Dockerfiles). Generated CSS is therefore not tracked — see
+# docs/architecture/tech-debt.md TD-02/TD-17.
+wwwroot/css/
+*.css.map
 tmp_test/scss-build.manifest.json
 /HalalChain.Platform.Api/obj/openapi/
 
 .cline_inbox/*
 scripts/*
 *.sh
+
+# ...but the build pipeline itself is source and must be tracked.
+!scripts/build-scss.mjs
+!scripts/build-scss.sh
+!scripts/watch-scss.mjs
+!scripts/check-docs.py
+
+# Agent worktrees (26 MB, includes full copies of Migrations).
+/.kilo/
+.kiro/*
+.kilo/*
