@@ -1,20 +1,19 @@
 # Frozen image tags. Populated by ENT-001 D6. Every tag must be explicit —
 # no :latest, no bare major.
 version: 1
-frozen: 2026-09-26
+frozen: 2026-09-27
 
 images:
   platform-api: "ghcr.io/halalchain/platform-api:1.0.0"
   tawheed: "ghcr.io/halalchain/tawheed:1.0.0"
-  agents: "ghcr.io/halalchain/agents:1.0.0"
   ai-inference: "ghcr.io/halalchain/ai-inference:1.0.0"
-  indexer: "ghcr.io/halalchain/indexer:1.0.0"
+  local-models: "ghcr.io/halalchain/local-models:1.0.0"
+  agents: "ghcr.io/halalchain/agents:1.0.0"
 
 third_party:
-  postgres: "postgres:16.4"
-  redis: "redis:7.4.0"
-  qdrant: "qdrant/qdrant:v1.11.3"
-  minio: "minio/minio:RELEASE.2024-08-17T01-24-54Z"
+  postgres: "postgres:17.4-alpine"
+  redis: "redis:7.4.2-alpine"
+  qdrant: "qdrant/qdrant:v1.19.0"
 
 policy:
   forbid_latest: true

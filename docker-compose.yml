@@ -25,6 +25,7 @@ services:
       ConnectionStrings__Postgres: ${POSTGRES_CONNECTION_STRING:?Set POSTGRES_CONNECTION_STRING in .env}
       ConnectionStrings__Redis: ${REDIS_CONNECTION_STRING:?Set REDIS_CONNECTION_STRING in .env}
       Tawheed__BaseUrl: http://tawheed:8000
+      LocalModels__BaseUrl: http://local-models:8080
     ports:
       - "5001:8080"
     depends_on:
@@ -33,6 +34,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      local-models:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
@@ -123,6 +126,9 @@ services:
       ENABLE_CACHE: "true"
       CACHE_STRATEGY: redis
       LOG_LEVEL: INFO
+      # Cross-service
+      LOCAL_MODELS_URL: http://local-models:8080
+      TAWHEED_URL: http://tawheed:8000
     ports:
       - "7071:7071"
     volumes:
@@ -131,6 +137,8 @@ services:
       redis:
         condition: service_healthy
       qdrant:
+        condition: service_healthy
+      local-models:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:7071/health/live", "||", "exit", "1"]
@@ -165,6 +173,9 @@ services:
       IOT_DEVICE_KEYS_JSON: ${IOT_DEVICE_KEYS_JSON:-{}}
       IOT_MAX_CLOCK_SKEW_SECONDS: ${IOT_MAX_CLOCK_SKEW_SECONDS:-300}
       IOT_OBSERVATION_STORE_PATH: ${IOT_OBSERVATION_STORE_PATH:-/var/lib/tawheed/evidence/observations.jsonl}
+      # Cross-service
+      LOCAL_MODELS_URL: http://local-models:8080
+      AI_INFERENCE_URL: http://ai-inference:7071
     ports:
       - "8000:8000"
     volumes:
@@ -181,6 +192,65 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 20s
+
+  local-models:
+    build:
+      context: .halalchain
+      dockerfile: local-models/Dockerfile
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PORT: 8080
+      AI_BACKEND: ${AI_BACKEND:-local}
+      # Model configuration
+      TRANSFORMERS_CACHE: /models
+      HF_HOME: /models
+      # Cross-service
+      REDIS_URL: redis://redis:6379/0
+      ENABLE_CACHE: "true"
+      CACHE_STRATEGY: redis
+    ports:
+      - "8080:8080"
+    volumes:
+      - local_models_cache:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  agents:
+    build:
+      context: .halalchain
+      dockerfile: agents/Dockerfile
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PORT: 8080
+      # Cross-service
+      REDIS_URL: redis://redis:6379/0
+      AI_INFERENCE_URL: http://ai-inference:7071
+      TAWHEED_URL: http://tawheed:8000
+      LOCAL_MODELS_URL: http://local-models:8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ai-inference:
+        condition: service_healthy
+      tawheed:
+        condition: service_healthy
+      local-models:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/live", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 20s
 
   # ── Infrastructure ─────────────────────────────────────────────────────
@@ -256,3 +326,4 @@ volumes:
   qdrant_data:
   ai_inference_documents:
   tawheed_evidence:
+  local_models_cache:
