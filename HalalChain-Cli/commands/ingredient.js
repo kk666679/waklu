@@ -6,31 +6,32 @@ import { APIClient } from "../lib/api-client.js";
 export class IngredientCommand {
   constructor(program, configManager) {
     this.api = new APIClient(configManager);
-    program.command("ingredient")
-      .description("Parse and analyze ingredients for halal compliance")
-      .option("-t, --text <text>", "Ingredient list text")
+    const cmd = program.command("ingredient").description("Ingredient parsing & analysis");
+    cmd.command("parse")
+      .description("Parse ingredient list")
+      .option("-t, --text <text>", "Ingredient text")
       .option("-f, --file <path>", "Read from file")
       .option("-j, --json", "Output as JSON")
-      .action(this.run.bind(this));
+      .action(this.parse.bind(this));
   }
-  async run(options) {
+
+  async parse(options) {
     let text = options.text;
     if (options.file) { const fs = await import("fs-extra"); text = await fs.readFile(options.file, "utf-8"); }
-    if (!text) { const { input } = await import("@inquirer/prompts"); text = await input({ message: "Ingredient list:", required: true }); }
+    if (!text) { const { input } = await import("@inquirer/prompts"); text = await input({ message: "Enter ingredient list:", required: true }); }
     const spinner = ora("Parsing ingredients...").start();
     try {
-      const result = await this.api.request("POST", "/ingredient-parse", { text });
-      spinner.succeed("Analysis complete");
+      const result = await this.api.ingredientParse(text);
+      spinner.succeed("Ingredients parsed");
       if (options.json) { console.log(JSON.stringify(result, null, 2)); return; }
       console.log(chalk.cyan("\n🧪 Ingredient Analysis\n"));
-      const table = new Table({ head: ["Ingredient", "E-Code", "Risk"], colWidths: [30, 10, 12] });
-      for (const item of result.parsed || []) {
-        const risk = item.risk === "haram" ? chalk.red("HARAM") : item.risk === "mashbooh" ? chalk.yellow("MASHBOOH") : chalk.green("HALAL");
-        table.push([item.name, item.eCode || "-", risk]);
-      }
+      const table = new Table({ head: ["#", "Ingredient", "Status", "Confidence"], colWidths: [4, 30, 12, 10] });
+      result.parsed.forEach((item, i) => {
+        const statusColor = item.status === "halal" ? "green" : item.status === "haram" ? "red" : "yellow";
+        table.push([i + 1, item.name, chalk[statusColor](item.status), (item.confidence * 100).toFixed(0) + "%"]);
+      });
       console.log(table.toString());
-      const s = result.summary || {};
-      console.log(chalk.bold(`\nTotal: ${s.total} | Halal: ${chalk.green(s.halal)} | Haram: ${chalk.red(s.haram)} | Mashbooh: ${chalk.yellow(s.mashbooh)}`));
+      console.log(chalk.dim("\n" + result.summary));
     } catch (e) { spinner.fail(e.message); process.exit(1); }
   }
 }

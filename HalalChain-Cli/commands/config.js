@@ -100,5 +100,18 @@ export function configCommand() {
     console.log(chalk.green("✔ Config reset to defaults."));
   });
 
+  cmd.command("show-services").description("Show service configuration").action(() => {
+    console.log(chalk.bold("\n🌐 HalalChain Service Configuration\n"));
+    console.log(chalk.cyan("  Service URLs:"));
+    console.log(chalk.dim(`    AI Gateway (ai-inference):  ${get("ai-inference.url")}`));
+    console.log(chalk.dim(`    Policy Engine (tawheed):   ${get("tawheed.url")}`));
+    console.log(chalk.dim(`    Local Models:              ${get("local-models.url")}`));
+    console.log(chalk.cyan("\n  API Keys (masked):"));
+    console.log(chalk.dim(`    AI Gateway:      ${get("ai-inference.api-key") ? "***" : "(not set)"}`));
+    console.log(chalk.dim(`    Policy Engine:   ${get("tawheed.api-key") ? "***" : "(not set)"}`));
+    console.log(chalk.dim(`    Local Models:    ${get("local-models.api-key") ? "***" : "(not set)"}`));
+    console.log(chalk.cyan("\n  HalalChain: "), configPath());
+  });
+
   return cmd;
 }

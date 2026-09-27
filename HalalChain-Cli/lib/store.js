@@ -17,14 +17,18 @@ const DEFAULTS = {
   "halalchain.url": "https://localhost:5200",
   "ai-inference.url": "http://localhost:7071",
   "tawheed.url": "http://localhost:8000",
+  "local-models.url": "http://localhost:8080",
   "jwt.issuer": "HalalChainPlatform",
   "jwt.audience": "HalalChainClients",
   "jwt.expires-minutes": "60",
   "tawheed.jurisdiction": "MY",
   "tawheed.policy-version": "MY-v3",
+  "local-models.api-key": "",
+  "tawheed.api-key": "",
+  "ai-inference.api-key": "",
 };
 
-const KNOWN_KEYS = [...Object.keys(DEFAULTS), "jwt.key", "ai-inference.api-key"];
+const KNOWN_KEYS = [...Object.keys(DEFAULTS), "jwt.key", "ai-inference.api-key", "tawheed.api-key", "local-models.api-key"];
 const SECRET_KEYS = new Set(["jwt.key", "ai-inference.api-key"]);
 
 function load() {
