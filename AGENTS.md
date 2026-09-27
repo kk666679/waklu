@@ -12,11 +12,12 @@ This file documents how to build, test, and operate the HalalChain platform.
 
 ## Solution layout
 
-The main solution currently contains **10 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
+The main solution currently contains **13 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
 
 | Project                              | Type                | Role                                  |
 |--------------------------------------|---------------------|---------------------------------------|
 | `HalalChain.Domain`                  | .NET class library  | Domain model and business concepts     |
+| `HalalChain.Application`             | .NET class library  | Use cases, orchestration, storage ports, agent orchestration |
 | `HalalChain.Platform.Contracts`      | .NET class library  | Shared DTOs + Solidity sources        |
 | `HalalChain.Platform.Http`           | .NET class library  | Typed `HttpClient` for the API        |
 | `HalalChain.Platform.Api`            | ASP.NET Core        | Core REST API (modular monolith)      |
@@ -26,6 +27,8 @@ The main solution currently contains **10 .NET projects**, including the MCP tes
 | `HalalChain.Mcp`                     | .NET console host   | Model-Context-Protocol server (runnable; not a deployable compose service) |
 | `HalalChain.Mcp.Tests`               | xUnit               | MCP server tests                      |
 | `HalalChain.Architecture.Tests`      | xUnit               | Architecture guard tests              |
+| `HalalChain.Storage`                 | .NET class library  | Blob and evidence storage adapters    |
+| `HalalChain.Storage.Tests`           | xUnit               | Adapter + contract tests              |
 
 `Radzen.Blazor.Api.Generator.csproj` sits alongside the main API in
 `HalalChain.Platform.Api/` and is invoked by the main API project only when
