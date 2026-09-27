@@ -1,0 +1,5 @@
+# Entry point for convenience only.
+# Real lock lives in .halalchain/requirements/local-models.txt
+# Regenerate with:
+#   uv pip compile .halalchain/local-models/pyproject.toml \
+#     --extra inference --generate-hashes -o .halalchain/requirements/local-models.txt
