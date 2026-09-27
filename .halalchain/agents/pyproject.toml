@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halalchain-agents"
+version = "0.1.0"
+description = "Agent orchestration and evidence collection for HalalChain"
+requires-python = ">=3.11"
+dependencies = [
+    "halalchain-shared",
+]
+
+[project.optional-dependencies]
+runtime = [
+    "mcp>=2.2.0,<3.0.0",
+    "mcp-types>=2.2.0,<3.0.0",
+    "haiku-skills[signing]>=0.18.1",
+    "agent-skills>=1.1.1",
+    "qdrant-client[fastembed]>=1.15.0",
+]
+eval = [
+    "deepeval>=4.2.0,<5.0.0",
+    # ragas intentionally excluded — unmaintained (last commit Feb 2026, 563 open issues, SSRF advisory PYSEC-2026-3046)
+    # Four RAGAS metrics reimplemented as DeepEval metrics where needed.
+]
+
+[tool.setuptools.packages.find]
+where = ["app"]
+include = ["halalchain_agents*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.uv]
+exclude-newer-package = { mcp = false, "mcp-types" = false, deepeval = false }

@@ -1,0 +1,7 @@
+{"node_type": "collector", "expectations": {"required_sources": ["certificate_issuer_api", "expiry_registry"]}}
+{"node_type": "classifier", "expectations": {"expected_labels": {"certificate": "valid", "standard": "MS1500:2019", "scope": "product"}}}
+{"node_type": "verifier", "expectations": {"expected_valid": true}}
+{"node_type": "handoff", "expectations": {"expected_bundle": {"certificate_id": "string", "issuer": "string", "expiry": "date", "standard": "string"}}}
+{"node_type": "gap", "expectations": {"expected_missing": ["renewal_proof"]}}
+{"node_type": "recollection", "expectations": {"expected_loop_closed": true}}
+{"node_type": "verdict", "expectations": {"expected_verdict": "halal"}}

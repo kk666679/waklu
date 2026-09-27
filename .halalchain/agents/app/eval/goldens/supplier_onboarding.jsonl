@@ -1,0 +1,7 @@
+{"node_type": "collector", "expectations": {"required_sources": ["certificate_db", "supplier_portal", "lab_results"]}}
+{"node_type": "classifier", "expectations": {"expected_labels": {"certificate": "valid", "ingredients": "halal", "manufacturer": "verified"}}}
+{"node_type": "verifier", "expectations": {"expected_valid": true}}
+{"node_type": "handoff", "expectations": {"expected_bundle": {"product_id": "string", "certificate": "object", "ingredients": "array", "manufacturer": "object"}}}
+{"node_type": "gap", "expectations": {"expected_missing": ["lab_certificate", "traceability_doc"]}}
+{"node_type": "recollection", "expectations": {"expected_loop_closed": true}}
+{"node_type": "verdict", "expectations": {"expected_verdict": "halal"}}
