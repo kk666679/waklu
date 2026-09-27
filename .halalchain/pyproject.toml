@@ -1,0 +1,21 @@
+[project]
+name = "halalchain-python-services"
+version = "0.1.0"
+description = "HalalChain Python Services Workspace"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = [
+  "_shared",
+  "ai-inference",
+  "tawheed",
+  "local-models",
+  "agents",
+]
+
+[tool.uv.sources]
+halalchain-shared = { workspace = true }
+halalchain-ai-inference = { workspace = true }
+tawheed = { workspace = true }
+halalchain-local-models = { workspace = true }
+halalchain-agents = { workspace = true }

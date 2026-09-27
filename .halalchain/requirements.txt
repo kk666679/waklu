@@ -1,0 +1,10 @@
+# Entry point for convenience only.
+# Real locks live in .halalchain/requirements/.
+#   per service:  -r .halalchain/requirements/ai-inference.txt
+#                 -r .halalchain/requirements/agents.txt
+#                 -r .halalchain/requirements/tawheed.txt
+#   everything:   -r .halalchain/requirements/all.txt
+#
+# Regenerate any file with:
+#   uv pip compile <source-pyproject> --extra <extra> \
+#     --generate-hashes -o <output>

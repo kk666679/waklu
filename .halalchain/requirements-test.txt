@@ -1,3 +1,5 @@
-# Shared test tooling for the Python services.
-pytest==8.3.4
-pytest-asyncio==0.25.0
+# Entry point for convenience only.
+# Real lock lives in .halalchain/requirements/dev.txt
+# Regenerate with:
+#   uv pip compile .halalchain/_shared/pyproject.toml \
+#     --extra dev --generate-hashes -o .halalchain/requirements/dev.txt

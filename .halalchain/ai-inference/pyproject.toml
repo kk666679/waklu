@@ -8,7 +8,44 @@ version = "0.2.0"
 description = "AI inference gateway for HalalChain"
 requires-python = ">=3.11"
 dependencies = [
-  "halalchain-shared",
+    "halalchain-shared",
+]
+
+[project.optional-dependencies]
+llm = [
+    "openai==1.99.9",
+    "anthropic==0.45.0",
+]
+vector = [
+    "qdrant-client==1.15.0",
+]
+doc-processing = [
+    "pypdf==6.1.0",
+    "python-docx==1.1.2",
+    "openpyxl==3.1.5",
+    "beautifulsoup4==4.13.4",
+    "lxml==6.0.0",
+    "markdown==3.8",
+]
+auth = [
+    "pyjwt==2.10.1",
+    "cryptography==44.0.0",
+]
+observability = [
+    "prometheus-client==0.21.1",
+    "opentelemetry-api==1.29.0",
+    "opentelemetry-sdk==1.29.0",
+    "opentelemetry-exporter-otlp==1.29.0",
+    "python-json-logger==4.0.0",
+    "prometheus-fastapi-instrumentator==7.0.0",
+]
+dev = [
+    "pytest==8.4.0",
+    "pytest-asyncio==0.24.0",
+    "pytest-httpx==0.35.0",
+    "ruff==0.9.0",
+    "mypy==1.15.0",
+    "coverage[toml]==7.10.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -17,3 +54,6 @@ where = ["src", "../_shared"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.uv]
+exclude-newer-package = { mcp = false, "mcp-types" = false }

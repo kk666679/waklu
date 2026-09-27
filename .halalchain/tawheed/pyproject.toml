@@ -8,7 +8,17 @@ version = "1.0.0"
 description = "Evidence-driven multi-agent halal verification service"
 requires-python = ">=3.11"
 dependencies = [
-  "halalchain-shared",
+    "halalchain-shared",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.0",
+    "pytest-asyncio==0.24.0",
+    "pytest-httpx==0.35.0",
+    "ruff==0.9.0",
+    "mypy==1.15.0",
+    "coverage[toml]==7.10.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -17,3 +27,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.uv]
+exclude-newer-package = { mcp = false, "mcp-types" = false }
