@@ -1,0 +1,95 @@
+.hc-culture {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.hc-culture__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: var(--color-surface, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.hc-culture__btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.hc-culture__flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.hc-culture__code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hc-culture__chev {
+  font-size: 0.55rem;
+  opacity: 0.6;
+}
+
+.hc-culture__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 60;
+  min-width: 220px;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, inherit);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.hc-culture__item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border-radius: 0.35rem;
+}
+
+.hc-culture__item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.hc-culture__item.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  font-weight: 600;
+}
+
+.hc-culture__native {
+  flex: 1 1 auto;
+}
+
+.hc-culture__name {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+[dir=rtl] .hc-culture__menu {
+  right: auto;
+  left: 0;
+}

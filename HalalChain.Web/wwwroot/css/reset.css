@@ -1,0 +1,106 @@
+/* ==========================================================================
+   HalalChain Reset — 2026 Dark Theme
+   Minimal, modern CSS reset with design token integration.
+   ========================================================================== */
+@layer reset {
+  /* ── Box sizing ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  /* ── Document defaults ── */
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* ── Body ── */
+  body {
+    min-height: 100vh;
+    line-height: 1.5;
+    font-family: var(--font-sans, "Inter", system-ui, -apple-system, sans-serif);
+    color: var(--color-text, #f0f2f8);
+    background: var(--color-background, #0b0d14);
+    transition: background-color var(--transition-base, 200ms), color var(--transition-base, 200ms);
+  }
+  /* ── Media ── */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  /* ── Form elements ── */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+  /* ── Typography ── */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+  /* ── Lists ── */
+  ol,
+  ul {
+    list-style: none;
+  }
+  /* ── Links ── */
+  a {
+    color: var(--color-link, #6c5ce7);
+    text-decoration: none;
+    transition: color var(--transition-fast, 150ms);
+  }
+  a:hover {
+    color: var(--color-link-hover, #a855f7);
+  }
+  /* ── Tables ── */
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  /* ── Dividers ── */
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+    opacity: 1;
+  }
+  /* ── Accessibility ── */
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring, rgba(108, 92, 231, 0.35));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 4px);
+  }
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
