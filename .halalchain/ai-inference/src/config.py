@@ -89,5 +89,9 @@ class Settings(BaseSettings):
     max_document_size: int = 10 * 1024 * 1024  # 10MB
     supported_file_types: list = [".pdf", ".docx", ".txt", ".md", ".html", ".xlsx"]
 
+    # Cross-service
+    local_models_url: str = "http://localhost:8080"
+    tawheed_url: str = "http://localhost:8000"
+
 
 settings = Settings()

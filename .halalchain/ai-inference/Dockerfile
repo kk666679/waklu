@@ -28,9 +28,11 @@ COPY _shared /tmp/_shared
 RUN pip install --no-cache-dir /tmp/_shared \
     && rm -rf /tmp/_shared
 
-# Service source
-COPY ai-inference/requirements.txt ./requirements.txt
+# Install runtime dependencies from lock file
+COPY requirements/ai-inference.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Service source
 COPY ai-inference/src ./src
 
 # Create a non-root user and chown the app directory. The stock
