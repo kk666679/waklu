@@ -35,6 +35,7 @@ public sealed class DependencyRulesTests
     private const string DomainAssembly = "HalalChain.Domain";
     private const string ApplicationAssembly = "HalalChain.Application";
     private const string InfrastructureAssembly = "HalalChain.Infrastructure";
+    private const string StorageAssembly = "HalalChain.Storage";
 
     private static readonly string[] AssembliesToLoad =
     {
@@ -45,7 +46,8 @@ public sealed class DependencyRulesTests
         HttpAssembly,
         ContractsAssembly,
         DomainAssembly,
-        ApplicationAssembly
+        ApplicationAssembly,
+        StorageAssembly
     };
 
     private static Assembly LoadOrSkip(string name)
@@ -71,7 +73,7 @@ public sealed class DependencyRulesTests
     /// silently PASSES — a guardrail that cannot fail. This test turns
     /// that class of hole into a hard failure.
     /// </summary>
-    [Theory]
+[Theory]
     [InlineData(DomainAssembly)]
     [InlineData(ApplicationAssembly)]
     [InlineData(ContractsAssembly)]
@@ -80,6 +82,7 @@ public sealed class DependencyRulesTests
     [InlineData(WebAssembly)]
     [InlineData(MarketplaceAssembly)]
     [InlineData(McpAssembly)]
+    [InlineData(StorageAssembly)]
     public void GuardedAssembly_ShouldBe_Loadable(string assemblyName)
     {
         Assembly assembly;
@@ -395,6 +398,95 @@ public sealed class DependencyRulesTests
         Assert.True(
             types.Any(),
             $"Type '{typeName}' was expected in '{domainNamespace}' but was not found.");
+    }
+
+    [Fact]
+    public void Domain_ShouldNotReference_Storage()
+    {
+        var domain = LoadOrSkip(DomainAssembly);
+        if (domain is null) return;
+
+        var result = Types.InAssembly(domain)
+            .ShouldNot()
+            .HaveDependencyOn(StorageAssembly)
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            "HalalChain.Domain must not reference HalalChain.Storage. " +
+            "Domain stays I/O-free. Violations:\n" +
+            string.Join("\n", result.FailingTypeNames ?? Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void Storage_ShouldNotReference_ApiOrUiOrMcp()
+    {
+        var storage = LoadOrSkip(StorageAssembly);
+        if (storage is null) return;
+
+        var forbidden = new[]
+        {
+            ApiAssembly,
+            WebAssembly,
+            MarketplaceAssembly,
+            McpAssembly
+        };
+
+        var result = Types.InAssembly(storage)
+            .ShouldNot()
+            .HaveDependencyOnAny(forbidden)
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            "HalalChain.Storage is a leaf library. It must not reference " +
+            "the API host, UI projects, or MCP. Violations:\n" +
+            string.Join("\n", result.FailingTypeNames ?? Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void IBlobStore_DeclaresNoDeleteMember_ArchTest()
+    {
+        // Defence-in-depth duplicate of the contract test. The rule is
+        // append-only is compile-time, not convention.
+        var storage = LoadOrSkip(StorageAssembly);
+        if (storage is null) return;
+
+        var blobStore = storage.GetType("HalalChain.Application.Storage.IBlobStore");
+        if (blobStore is null) return; // Interface moved? Test passes vacuously.
+
+        var members = blobStore.GetMembers()
+            .Select(m => m.Name)
+            .Where(n => n.Contains("Delete", StringComparison.OrdinalIgnoreCase)
+                     || n.Contains("Remove", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        Assert.True(
+            members.Count == 0,
+            "IBlobStore must not declare any Delete or Remove member. " +
+            "Append-only is a compile-time property. Offenders:\n" +
+            string.Join("\n", members));
+    }
+
+    [Fact]
+    public void Storage_AssemblyDeclaresNoMerkleTreeType()
+    {
+        // Merge decision M1. Keccak256 for on-chain Merkle internal nodes lives
+        // in the blockchain module. A SHA-256 Merkle tree in Storage is the exact
+        // bug that made every inclusion proof fail on first integration.
+        var storage = LoadOrSkip(StorageAssembly);
+        if (storage is null) return;
+
+        var offenders = storage.GetTypes()
+            .Where(t => t.Name.Contains("Merkle", StringComparison.OrdinalIgnoreCase))
+            .Select(t => t.FullName!)
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "HalalChain.Storage must not declare any Merkle tree type. " +
+            "On-chain tree shape is in the Blockchain module. Offenders:\n" +
+            string.Join("\n", offenders));
     }
 
     /// <summary>

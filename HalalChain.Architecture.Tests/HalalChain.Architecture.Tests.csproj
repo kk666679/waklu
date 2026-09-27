@@ -30,6 +30,7 @@
     <ProjectReference Include="..\HalalChain.Mcp\HalalChain.Mcp.csproj" />
     <ProjectReference Include="..\HalalChain.Marketplace\HalalChain.Marketplace.csproj" />
     <ProjectReference Include="..\HalalChain.Web\HalalChain.Web.csproj" />
+    <ProjectReference Include="..\HalalChain.Storage\HalalChain.Storage.csproj" />
   </ItemGroup>
 
 </Project>
