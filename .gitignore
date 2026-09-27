@@ -142,3 +142,5 @@ tmp_test/scss-build.manifest.json
 /HalalChain.Platform.Api/obj/openapi/
 
 .cline_inbox/*
+scripts/*
+*.sh
