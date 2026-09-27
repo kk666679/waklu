@@ -23,6 +23,7 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\HalalChain.Domain\HalalChain.Domain.csproj" />
+    <ProjectReference Include="..\HalalChain.Application\HalalChain.Application.csproj" />
     <ProjectReference Include="..\HalalChain.Platform.Contracts\HalalChain.Platform.Contracts.csproj" />
     <ProjectReference Include="..\HalalChain.Platform.Http\HalalChain.Platform.Http.csproj" />
     <ProjectReference Include="..\HalalChain.Platform.Api\HalalChain.Platform.Api.csproj" />

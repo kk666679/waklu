@@ -1,3 +1,4 @@
+using FluentValidation;
 using HalalChain.Application.Common.Interfaces;
 using HalalChain.Application.Catalog.Commands;
 using HalalChain.Application.Common.Exceptions;

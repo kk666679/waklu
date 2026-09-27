@@ -420,7 +420,7 @@ public class AdvancedRecommendationService : IAdvancedRecommendationService
         var userHistory = _userInteractions.GetValueOrDefault(userId, []);
         var lastViewedCategoryId = userHistory
             .Where(i => i.InteractionType == "view")
-            .Select(i => (await _productService.GetByIdAsync(i.ProductId, ct))?.CategoryId)
+            .Select(async i => (await _productService.GetByIdAsync(i.ProductId, ct))?.CategoryId)
             .FirstOrDefault();
 
         var product = await _productService.GetByIdAsync(productId, ct);

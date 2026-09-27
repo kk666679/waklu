@@ -1,6 +1,7 @@
 using HalalChain.Application.Catalog.Queries;
 using HalalChain.Application.Common;
 using HalalChain.Application.Common.Interfaces;
+using HalalChain.Platform.Contracts.Catalog.Dto;
 using MediatR;
 
 namespace HalalChain.Application.Catalog.Handlers;
@@ -101,13 +102,11 @@ public sealed class SearchProductsHandler(IProductRepository productRepository)
         var take = request.PageSize;
 
         // Placeholder: Return empty paged result
-        return new PagedResult<ProductSearchResult>
-        {
-            Items = results,
-            Page = request.Page,
-            PageSize = request.PageSize,
-            TotalCount = 0,
-            TotalPages = 0
-        };
+        return new PagedResult<ProductSearchResult>(
+            results.ToArray(),
+            request.Page,
+            request.PageSize,
+            TotalCount: 0,
+            TotalPages: 0);
     }
 }

@@ -339,7 +339,7 @@ public class CatalogManagementService : ICatalogManagementService
         return filtered.ToList();
     }
 
-    private string ExportToCsv(List<Product> products, List<string>? fields = null)
+    private string ExportToCsv(IReadOnlyList<Product> products, List<string>? fields = null)
     {
         var sb = new StringBuilder();
         // CSV export implementation
@@ -353,7 +353,7 @@ public class CatalogManagementService : ICatalogManagementService
         return sb.ToString();
     }
 
-    private string ExportToJson(List<Product> products, List<string>? fields = null)
+    private string ExportToJson(IReadOnlyList<Product> products, List<string>? fields = null)
     {
         return JsonSerializer.Serialize(products, new JsonSerializerOptions { WriteIndented = true });
     }

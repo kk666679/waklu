@@ -561,7 +561,7 @@ public class ProductSearchService : IProductSearchService
 
 // DTOs
 
-public class SearchQuery
+public record SearchQuery
 {
     public string? Query { get; set; }
     public int? CategoryId { get; set; }

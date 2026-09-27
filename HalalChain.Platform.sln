@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HalalChain.Architecture.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HalalChain.Domain", "HalalChain.Domain\HalalChain.Domain.csproj", "{FF0A302C-CE71-4CFD-95EE-7568A95EF329}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HalalChain.Application", "HalalChain.Application\HalalChain.Application.csproj", "{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,6 +155,18 @@ Global
 		{FF0A302C-CE71-4CFD-95EE-7568A95EF329}.Release|x64.Build.0 = Release|Any CPU
 		{FF0A302C-CE71-4CFD-95EE-7568A95EF329}.Release|x86.ActiveCfg = Release|Any CPU
 		{FF0A302C-CE71-4CFD-95EE-7568A95EF329}.Release|x86.Build.0 = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|x64.Build.0 = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Debug|x86.Build.0 = Debug|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|x64.ActiveCfg = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|x64.Build.0 = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|x86.ActiveCfg = Release|Any CPU
+		{1DEC799E-8E4E-4169-82CC-59F2602DEEFD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

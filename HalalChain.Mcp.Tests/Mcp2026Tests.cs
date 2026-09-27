@@ -107,7 +107,8 @@ public class StructuredToolResultTests
         Assert.NotEmpty(result.Content);
         Assert.Equal("text", result.Content[0].Type);
         Assert.False(string.IsNullOrWhiteSpace(result.Content[0].Text));
-        Assert.False(result.IsError);
+        // isError is omitted (null) rather than sent as false on success.
+        Assert.True(result.IsError != true);
     }
 
     [Fact]
@@ -152,7 +153,7 @@ public class ResourceTests
         Assert.Contains("halalchain://architecture", uris);
         Assert.Contains("halalchain://solution/projects", uris);
         Assert.Contains("halalchain://docs/index", uris);
-        Assert.Contains("file://AGENTS.md", uris);
+        Assert.Contains("halalchain://file/AGENTS.md", uris);
     }
 
     [Fact]

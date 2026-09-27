@@ -167,9 +167,9 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService
         var vitals = new CoreWebVitals
         {
             // LCP: Largest Contentful Paint (target: < 2.5s)
-            LargestContentfulPaint = new MetricData
-            {
-                Value = 2.1,
+                LargestContentfulPaint = new MetricData
+                {
+                    Value = 2.1m,
                 Unit = "seconds",
                 Status = "Good", // Good: < 2.5s, Needs Improvement: 2.5-4s, Poor: > 4s
                 Percentile = "p75"
@@ -217,7 +217,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService
                 "✓ Search results cached for 1 hour",
                 "⚠ Consider: Use filter before text search for better performance",
                 "⚠ Consider: Pre-compute trending queries"
-            ],
+            },
             EstimatedTime = new()
             {
                 WithoutOptimization = 1200,

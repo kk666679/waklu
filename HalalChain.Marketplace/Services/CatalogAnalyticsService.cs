@@ -1,7 +1,5 @@
 namespace HalalChain.Marketplace.Services;
 
-using HalalChain.Models;
-
 /// <summary>
 /// Catalog analytics service for vendors to track product performance.
 /// Provides insights on sales, conversion, returns, and customer behavior.
@@ -442,4 +440,23 @@ public class PerformanceReport
     public List<ProductPerformance> TopProducts { get; set; } = [];
     public List<CategoryPerformance> CategoryPerformance { get; set; } = [];
     public Dictionary<string, decimal> KeyMetrics { get; set; } = [];
+}
+
+/// <summary>
+/// One modelled point on the price-elasticity curve, used to show a vendor
+/// what revenue looks like at a candidate price.
+/// </summary>
+public class PriceScenario
+{
+    /// <summary>Expected monthly units sold at <see cref="AdjustedPrice"/>.</summary>
+    public int Quantity { get; set; }
+
+    /// <summary>The product's current list price.</summary>
+    public decimal BasePrice { get; set; }
+
+    /// <summary>The price being evaluated.</summary>
+    public decimal AdjustedPrice { get; set; }
+
+    /// <summary><see cref="Quantity"/> multiplied by <see cref="AdjustedPrice"/>.</summary>
+    public decimal EstimatedRevenue { get; set; }
 }

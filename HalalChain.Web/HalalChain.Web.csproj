@@ -5,6 +5,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);Pages\Gantt*;Pages\DataGrid*;Pages\DropDown*;Pages\FileInput*;Pages\ExportTo*;Pages\FabMenu*;Pages\AutoComplete*;Pages\Accordion*;Pages\Badge*;Pages\Card*;Pages\Menu*;Pages\Button*;Pages\Chart*;Pages\CheckBox*;Pages\ColorPicker*;Pages\ContextMenu*;Pages\DatePicker*;Pages\Dialog*;Pages\Fieldset*;Steps.razor;Tabs*.razor;Timeline*.razor;ToggleButton*.razor;Tree*.razor;Upload*.razor;TemplateForm*.razor;SplitButton*.razor;Slider*.razor;Scheduler*.razor;SelectBar*.razor;Tooltip*.razor;Sidebar*.razor;SpeechToTextButton*.razor;Rating*.razor;ContextMenu*.razor;Login*.razor;Profile*.razor;ProgressBar*.razor;RadioButton*.razor;ResetPassword*.razor;TextBox*.razor;TextArea*.razor;Switch*.razor;Themes*.razor</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.11" />
     <PackageReference Include="Microsoft.ML" Version="5.0.0" />

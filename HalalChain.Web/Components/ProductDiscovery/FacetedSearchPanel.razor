@@ -45,7 +45,7 @@
         @if (Facets.Categories.Any())
         {
             <div class="facet mb-4">
-                <h4 class="facet-header" @onclick="() => ToggleFacet(\"categories\")">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(CategoriesFacet)">
                     <i class="fas @(ExpandedFacets.Contains("categories") ? "fa-chevron-down" : "fa-chevron-right")"></i>
                     Categories
                 </h4>
@@ -71,7 +71,7 @@
         @if (Facets.PriceRanges.Any())
         {
             <div class="facet mb-4">
-                <h4 class="facet-header" @onclick="() => ToggleFacet(\"price\")">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(PriceFacet)">
                     <i class="fas @(ExpandedFacets.Contains("price") ? "fa-chevron-down" : "fa-chevron-right")"></i>
                     Price
                 </h4>
@@ -97,7 +97,7 @@
         @if (Facets.Ratings.Any())
         {
             <div class="facet mb-4">
-                <h4 class="facet-header" @onclick="() => ToggleFacet(\"rating\")">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(RatingFacet)">
                     <i class="fas @(ExpandedFacets.Contains("rating") ? "fa-chevron-down" : "fa-chevron-right")"></i>
                     Rating
                 </h4>
@@ -150,7 +150,7 @@
         @if (Facets.Tags.Any())
         {
             <div class="facet mb-4">
-                <h4 class="facet-header" @onclick="() => ToggleFacet(\"tags\")">
+                <h4 class="facet-header" @onclick="() => ToggleFacet(TagsFacet)">
                     <i class="fas @(ExpandedFacets.Contains("tags") ? "fa-chevron-down" : "fa-chevron-right")"></i>
                     Tags
                 </h4>
@@ -355,6 +355,13 @@
         // Handle suggestion selection
         ShowAutocomplete = false;
     }
+
+    // Razor cannot nest a quoted literal inside the double-quoted @onclick
+    // attribute, so the facet keys are named constants referenced from markup.
+    private const string CategoriesFacet = "categories";
+    private const string PriceFacet = "price";
+    private const string RatingFacet = "rating";
+    private const string TagsFacet = "tags";
 
     private void ToggleFacet(string facetName)
     {

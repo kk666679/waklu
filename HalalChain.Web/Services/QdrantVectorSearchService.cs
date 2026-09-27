@@ -128,7 +128,7 @@ public class QdrantVectorSearchService : IQdrantVectorSearchService
                 Vector = queryEmbedding,
                 Limit = limit,
                 WithPayload = true,
-                ScoreThreshold = 0.6 // Only return results above similarity threshold
+                ScoreThreshold = 0.6f // Only return results above similarity threshold
             };
 
             var endpoint = $"{_qdrantUrl}/collections/{_collectionName}/points/search";

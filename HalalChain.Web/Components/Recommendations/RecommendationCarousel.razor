@@ -127,7 +127,7 @@
                                 }
 
                                 <!-- Wishlist Button -->
-                                <button class="btn-wishlist" @onclick:stopPropagation @onclick="() => OnWishlistToggle(rec.Product)">
+                                <button class="btn-wishlist" @onclick:stopPropagation @onclick="() => ToggleWishlistAsync(rec.Product)">
                                     <i class="fas @(IsInWishlist(rec.Product.Id) ? "fa-heart" : "fa-heart") fa-regular"></i>
                                 </button>
                             </div>
@@ -243,13 +243,13 @@
     min-width: 200px;
 }
 
-@media (max-width: 1024px) {
+@@media (max-width: 1024px) {
     .carousel-item {
         width: calc(33.333% - 11px);
     }
 }
 
-@media (max-width: 640px) {
+@@media (max-width: 640px) {
     .carousel-item {
         width: calc(50% - 8px);
     }
@@ -594,7 +594,7 @@
         return Wishlist.Contains(productId);
     }
 
-    private async Task OnWishlistToggle(Product product)
+    private async Task ToggleWishlistAsync(Product product)
     {
         if (Wishlist.Contains(product.Id))
             Wishlist.Remove(product.Id);

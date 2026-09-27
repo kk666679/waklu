@@ -1,6 +1,4 @@
 namespace HalalChain.Marketplace.Services;
-
-using HalalChain.Models;
 using System.Text.Json;
 
 /// <summary>

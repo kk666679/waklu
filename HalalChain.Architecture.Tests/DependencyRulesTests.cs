@@ -43,15 +43,17 @@ public sealed class DependencyRulesTests
         McpAssembly,
         ApiAssembly,
         HttpAssembly,
-        ContractsAssembly
+        ContractsAssembly,
+        DomainAssembly,
+        ApplicationAssembly
     };
 
     private static Assembly LoadOrSkip(string name)
     {
         // NetArchTest needs the assembly loaded. The architecture test
         // project references all of these transitively (the API, Web,
-        // Marketplace, MCP, Http, Contracts); the Domain/Application/
-        // Infrastructure assemblies are optional and may not exist yet.
+        // Marketplace, MCP, Http, Contracts, Domain, Application);
+        // Infrastructure may not exist yet.
         try
         {
             return Assembly.Load(name);
@@ -60,6 +62,115 @@ public sealed class DependencyRulesTests
         {
             return null!;
         }
+    }
+
+    /// <summary>
+    /// The architecture test project must reference every assembly the
+    /// rules below inspect. A missing ProjectReference makes
+    /// <see cref="LoadOrSkip"/> return null and every dependent rule
+    /// silently PASSES — a guardrail that cannot fail. This test turns
+    /// that class of hole into a hard failure.
+    /// </summary>
+    [Theory]
+    [InlineData(DomainAssembly)]
+    [InlineData(ApplicationAssembly)]
+    [InlineData(ContractsAssembly)]
+    [InlineData(HttpAssembly)]
+    [InlineData(ApiAssembly)]
+    [InlineData(WebAssembly)]
+    [InlineData(MarketplaceAssembly)]
+    [InlineData(McpAssembly)]
+    public void GuardedAssembly_ShouldBe_Loadable(string assemblyName)
+    {
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.Load(assemblyName);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail(
+                $"Assembly '{assemblyName}' could not be loaded, so every " +
+                $"architecture rule guarding it silently passed. Add a " +
+                $"ProjectReference to {assemblyName} in " +
+                "HalalChain.Architecture.Tests.csproj. Cause: " + ex.Message);
+            return;
+        }
+
+        Assert.True(
+            !string.IsNullOrWhiteSpace(assembly.FullName),
+            $"Assembly '{assemblyName}' resolved to an empty identity.");
+    }
+
+    [Fact]
+    public void Application_ShouldNotReference_Api_Or_AnyUiProject()
+    {
+        var application = LoadOrSkip(ApplicationAssembly);
+        if (application is null) return;
+
+        var result = Types.InAssembly(application)
+            .ShouldNot()
+            .HaveDependencyOnAny(WebAssembly, MarketplaceAssembly, McpAssembly, ApiAssembly, InfrastructureAssembly)
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            "HalalChain.Application is the use-case layer. It must not " +
+            "reference the API host or any UI/MCP project — those depend on " +
+            "it, never the reverse. Violations:\n" +
+            string.Join("\n", result.FailingTypeNames ?? Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void Application_ShouldNotReference_ConcreteHttpClientTypes()
+    {
+        var application = LoadOrSkip(ApplicationAssembly);
+        if (application is null) return;
+
+        // Application-layer handlers must talk to persistence/AI through the
+        // abstractions in Common/Interfaces, not through EF's concrete
+        // context or a raw HttpClient. EF Core itself is allowed (the
+        // repository implementations live here today, behind IProductRepository).
+        var result = Types.InAssembly(application)
+            .That()
+            .ResideInNamespace("HalalChain.Application.Catalog.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("System.Net.Http.HttpClient")
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            "Catalog handlers must dispatch through IProductRepository / " +
+            "ICurrentUser, not construct their own transport. Violations:\n" +
+            string.Join("\n", result.FailingTypeNames ?? Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void Application_ShouldNotAssign_HalalVerdicts()
+    {
+        // The architectural principle in AGENTS.md: the deterministic Policy
+        // Engine (tawheed) assigns compliance status. The LLM collects
+        // evidence. No managed layer may fabricate a verdict.
+        var application = LoadOrSkip(ApplicationAssembly);
+        if (application is null) return;
+
+        var offenders = new List<string>();
+        foreach (var type in Types.InAssembly(application).GetTypes())
+        {
+            if (type.Namespace is null || !type.Namespace.StartsWith("HalalChain.Application", StringComparison.Ordinal))
+                continue;
+            if (!typeof(HalalChain.Domain.Halal.ComplianceStatus).IsAssignableFrom(type))
+                continue;
+            if (type.IsEnum || type.IsInterface)
+                continue;
+            offenders.Add(type.FullName ?? type.Name);
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "HalalChain.Application must not define concrete verdict types. " +
+            "Compliance status is decided by the tawheed Policy Engine. " +
+            "Offenders:\n" + string.Join("\n", offenders));
     }
 
     [Fact]
@@ -295,9 +406,6 @@ public sealed class DependencyRulesTests
     [Fact]
     public void KnownUntestable()
     {
-        // Once HalalChain.Application exists:
-        //   - Application must not reference UI, API, MCP, concrete providers
-        //
         // Once HalalChain.Infrastructure exists:
         //   - Infrastructure may reference EF Core, Nethereum, IPFS SDKs,
         //     HttpClients — but must not be referenced by UI.

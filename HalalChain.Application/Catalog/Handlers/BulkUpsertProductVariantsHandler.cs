@@ -1,3 +1,4 @@
+using FluentValidation;
 using HalalChain.Application.Common.Interfaces;
 using HalalChain.Application.Catalog.Commands;
 using HalalChain.Application.Common.Exceptions;
@@ -54,8 +55,7 @@ public sealed class BulkUpsertProductVariantsHandler(IProductRepository productR
                     Price = request.BasePrice,
                     Stock = request.BaseStock,
                     LowStockThreshold = request.LowStockThreshold,
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow
+                    IsActive = true
                 };
 
                 // TODO: Persist via repository

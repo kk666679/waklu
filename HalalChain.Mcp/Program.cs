@@ -496,7 +496,7 @@ public static class Program
             };
         }
 
-        var elapsed = Stopwatch.GetElapsed(started);
+        var elapsed = Stopwatch.GetElapsedTime(started);
         context.Logger.LogInformation(
             "Tool {ToolName} completed in {Duration}ms (error={IsError})",
             name, elapsed.TotalMilliseconds, result.IsError == true);

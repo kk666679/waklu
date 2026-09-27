@@ -21,9 +21,10 @@
                                accept="image/*"
                                @onchange="OnFileSelected"
                                style="display:none"
-                               @ref="FileInput" />
+                               @ref="FileInput"
+                               @key="_fileInputGeneration" />
                         
-                        <button class="btn btn-primary btn-lg" @onclick="() => FileInput.Value = null; FileInput.Focus()">
+                        <button class="btn btn-primary btn-lg" @onclick="ResetFileInput">
                             <i class="fas fa-cloud-upload-alt"></i>
                             Choose Image
                         </button>
@@ -105,7 +106,7 @@
     display: flex;
 }
 
-@keyframes fadeIn {
+@@keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
@@ -120,7 +121,7 @@
     animation: slideUp 0.3s ease;
 }
 
-@keyframes slideUp {
+@@keyframes slideUp {
     from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
@@ -228,7 +229,7 @@
     margin: 0 auto 20px;
 }
 
-@keyframes spin {
+@@keyframes spin {
     to { transform: rotate(360deg); }
 }
 
@@ -318,7 +319,21 @@
     private bool IsSearching = false;
     private List<SimilarProductResult> SearchResults = new();
     private ElementReference FileInput;
+    private int _fileInputGeneration;
     private bool IsDragOver = false;
+
+    /// <summary>
+    /// Clears the native file input. An <c>InputFile</c> exposes neither
+    /// <c>Value</c> nor <c>Focus</c>, so the only way to reset it is to
+    /// discard and re-render the element (via <c>@key</c>) — otherwise
+    /// re-picking the same file fires no <c>change</c> event.
+    /// </summary>
+    private void ResetFileInput()
+    {
+        FileInput = default;
+        _fileInputGeneration++;
+        StateHasChanged();
+    }
 
     private async Task OnFileSelected(ChangeEventArgs e)
     {

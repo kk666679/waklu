@@ -1,7 +1,5 @@
 namespace HalalChain.Marketplace.Services;
 
-using HalalChain.Models;
-
 /// <summary>
 /// Service for building and managing product variants.
 /// Supports color/size/material combinations, barcode generation, and inventory management per variant.
@@ -407,4 +405,27 @@ public class SyncResult
     public int VariantsSynced { get; set; }
     public int ErrorCount { get; set; }
     public List<string> Errors { get; set; } = [];
+}
+
+/// <summary>
+/// A concrete purchasable variant of a product (one colour/size combination).
+/// Distinct from <see cref="VariantTemplate"/>, which describes the shape of a
+/// variant before it is bound to a product.
+/// </summary>
+public class ProductVariantModel
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string Sku { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
+    public string? VariantAttributes { get; set; }
+    public decimal Price { get; set; }
+    public decimal? CompareAtPrice { get; set; }
+    public int Stock { get; set; }
+    public int LowStockThreshold { get; set; } = 5;
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

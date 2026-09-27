@@ -1,4 +1,5 @@
-using HalalChain.Application.Common;
+using HalalChain.Application.Common.Interfaces;
+using HalalChain.Platform.Contracts.Catalog.Dto;
 using MediatR;
 
 namespace HalalChain.Application.Catalog.Queries;

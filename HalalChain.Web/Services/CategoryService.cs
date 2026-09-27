@@ -5,6 +5,7 @@ namespace HalalChain.Services;
 public interface ICategoryService
 {
     Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken ct = default);
+    Task<Category?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Category> CreateAsync(Category c, CancellationToken ct = default);
     Task<Category> UpdateAsync(Category c, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
@@ -25,6 +26,9 @@ public class CategoryService : ICategoryService
 
     public Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<Category>>(_items.ToList());
+
+    public Task<Category?> GetByIdAsync(int id, CancellationToken ct = default)
+        => Task.FromResult(_items.FirstOrDefault(x => x.Id == id));
 
     public Task<Category> CreateAsync(Category c, CancellationToken ct = default)
     {
