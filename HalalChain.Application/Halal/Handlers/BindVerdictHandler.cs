@@ -1,6 +1,7 @@
 namespace HalalChain.Application.Halal.Handlers;
 
 using HalalChain.Application.Common.Abstractions;
+using HalalChain.Application.Common.Interfaces;
 using HalalChain.Application.Halal.Commands;
 using HalalChain.Application.Halal.Interfaces;
 using HalalChain.Application.Halal.StateMachine;

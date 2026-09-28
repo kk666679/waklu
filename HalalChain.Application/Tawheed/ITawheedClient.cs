@@ -1,3 +1,5 @@
+using HalalChain.Application.Tawheed.Models;
+
 namespace HalalChain.Application.Tawheed;
 
 /// <summary>
