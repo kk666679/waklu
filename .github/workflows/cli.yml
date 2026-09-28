@@ -1,0 +1,55 @@
+name: CLI
+
+on:
+  pull_request:
+    paths:
+      - "HalalChain-Cli/**"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @halalchain/cli typecheck
+
+      - name: Validate skills
+        working-directory: HalalChain-Cli
+        run: pnpm intent:validate
+
+      - name: Test
+        run: pnpm --filter @halalchain/cli test
+
+      - name: Guard — no browser packages
+        working-directory: HalalChain-Cli
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            const banned = ['@tanstack/ai-react','@tanstack/react-query','@tanstack/react-devtools','@tanstack/react-ai-devtools'];
+            const found = banned.filter(p => pkg.dependencies?.[p] || pkg.devDependencies?.[p]);
+            if (found.length) { console.error('Browser-only packages in a CLI:', found); process.exit(1); }
+            console.log('OK: no browser-only packages');
+          "
+
+      - name: Guard — MCP client not closed in chat.ts
+        working-directory: HalalChain-Cli
+        run: |
+          if grep -q "closeMCPClient" src/runtime/chat.ts; then
+            echo "chat.ts must not call closeMCPClient(). See src/lib/mcp-client.ts."
+            exit 1
+          fi
+          echo "OK: chat.ts does not close the MCP client"
