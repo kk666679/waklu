@@ -1,43 +1,51 @@
-# HalalChain-Cli
+# @halalchain/cli
 
-Node 22 operator and developer CLI for the HalalChain platform. Exposed as
-the `halalchain` binary.
+Operator CLI for the HalalChain platform. Talks to the platform over HTTP
+and MCP. Never issues a halal verdict — verdicts come from `tawheed`.
 
-## Layout
+## Install
 
+```bash
+corepack enable
+pnpm install
+pnpm build
 ```
-HalalChain-Cli/
-├── bin/halalchain.js   # Entry point
-├── commands/           # Individual subcommand modules (Commander.js)
-└── lib/                # Shared helpers (API client, config, auth, logger, …)
-```
-
-## Available subcommands
-
-`ai-context`, `batch`, `classify`, `config`, `embedding`, `env`, `evaluate`,
-`ingredient`, `llm`, `ml`, `monitor`, `pipeline`, `rag`, `server`,
-`summarize`, `vector`.
 
 ## Usage
 
-The CLI exposes a `halalchain` binary (`package.json` -> `bin/halalchain`).
-
-From the repository root:
-
 ```bash
-node HalalChain-Cli/bin/halalchain.js --help
+halalchain agent "which vendors have certificates expiring this month?"
+halalchain --help
 ```
 
-Or via the npm script:
+## Environment
+
+| Variable | Purpose |
+|---|---|
+| `HALALCHAIN_MCP_URL` | MCP server endpoint, e.g. `http://localhost:5002/mcp` |
+| `HALALCHAIN_MCP_TOKEN` | Bearer token, if the MCP server requires auth |
+| `HALALCHAIN_API_URL` | Platform REST API base URL |
+| `OPENAI_API_KEY` | Required by the agent command |
+
+## Skills
+
+Skill definitions live in `skills/`. Validate with:
 
 ```bash
-npm run halalchain:cli -- --help
+pnpm intent:validate
 ```
 
-## Configuration
+Install into your agent config with:
 
-The CLI reads configuration via the canonical `ConfigManager` exposed by
-`lib/store.js`. Secret values (`jwt.key`, `ai-inference.api-key`) are
-redacted in every printed view and the JSON file is created with `0600`
-permissions. Service endpoints can be overridden through environment
-variables documented in the root `.env.example`.
+```bash
+pnpm intent:install
+```
+
+## Design notes
+
+- The MCP client is a process-level singleton (`src/lib/mcp-client.ts`).
+  It is never closed between agent turns. See the file header for why.
+- The agent command does not decide policy. If asked "is this halal?",
+  it calls the platform's policy tool and reports the output.
+- The CLI is a separate runtime from `.halalchain/agents/`. Its traces
+  stay local; they do not land in the platform's `AgentTrace` chain.
