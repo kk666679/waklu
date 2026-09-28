@@ -1,21 +1,12 @@
+using HalalChain.Domain.Catalog;
+
 namespace HalalChain.Domain.Commerce;
 
-using HalalChain.Domain.Catalog;
-using HalalChain.Domain.Common;
-
-public sealed class WishlistItem : Entity<CartItemId>
+public sealed class WishlistItem
 {
-    public Guid BuyerId { get; private init; }
-    public ProductId ProductId { get; private init; }
-    public DateTimeOffset AddedAt { get; private init; }
-
-    private WishlistItem() { }
-
-    public static WishlistItem Create(Guid buyerId, ProductId productId, DateTimeOffset now) => new()
-    {
-        Id = CartItemId.New(),
-        BuyerId = buyerId,
-        ProductId = productId,
-        AddedAt = now,
-    };
+    public Guid Id { get; set; }
+    public Guid CustomerId { get; set; }
+    public Guid ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

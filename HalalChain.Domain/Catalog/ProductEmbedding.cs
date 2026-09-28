@@ -1,12 +1,12 @@
 namespace HalalChain.Domain.Catalog;
 
-/// <summary>
-/// Reference to a product embedding stored in the vector database. The
-/// vector itself lives in Qdrant; this record is the join key.
-/// </summary>
-public sealed record ProductEmbedding(
-    ProductId ProductId,
-    string VectorId,
-    string ModelId,
-    int Dimensions,
-    DateTimeOffset ComputedAt);
+public sealed class ProductEmbedding : IAggregateRoot
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public float[] Embedding { get; set; } = [];
+    public int Dimension { get; set; } = 256;
+    public string Model { get; set; } = "halalchain-local-v1";
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}

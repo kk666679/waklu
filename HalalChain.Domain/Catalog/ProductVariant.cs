@@ -1,37 +1,34 @@
 namespace HalalChain.Domain.Catalog;
 
-using HalalChain.Domain.Common;
-
-public sealed class ProductVariant : Entity<ProductVariantId>
+/// <summary>
+/// A sellable variant of a product (e.g. 100g, 250g, 500g, 1kg, or
+/// "Pack of 6", "Red / Blue / Green", "50ml / 100ml"). Each variant has
+/// its own SKU, barcode, price, stock, and wholesale pricing tiers.
+/// </summary>
+public sealed class ProductVariant
 {
-    public string Sku { get; private set; } = string.Empty;
-    public string Name { get; private set; } = string.Empty;
-    public decimal Price { get; private set; }
-    public string Currency { get; private set; } = "MYR";
-    public int StockOnHand { get; private set; }
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public string Sku { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
 
-    private ProductVariant() { }
+    public string Name { get; set; } = string.Empty;
+    public string? VariantAttributes { get; set; }
 
-    public static ProductVariant Create(string sku, string name, decimal price, string currency)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sku);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
+    public decimal Price { get; set; }
+    public string Currency { get; set; } = "MYR";
 
-        return new ProductVariant
-        {
-            Id = ProductVariantId.New(),
-            Sku = sku,
-            Name = name,
-            Price = price,
-            Currency = currency,
-        };
-    }
+    /// <summary>Compare-at price for showing a strikethrough MSRP.</summary>
+    public decimal? CompareAtPrice { get; set; }
 
-    public void AdjustStock(int delta)
-    {
-        if (StockOnHand + delta < 0)
-            throw new InvalidOperationException("Stock cannot go negative.");
-        StockOnHand += delta;
-    }
+    public int Stock { get; set; }
+    public int LowStockThreshold { get; set; } = 5;
+
+    /// <summary>Net weight/volume for shipping calculations. Optional.</summary>
+    public decimal? NetQuantity { get; set; }
+    public string? NetUnit { get; set; }
+
+    public List<WholesalePriceTier> WholesaleTiers { get; set; } = [];
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
 }

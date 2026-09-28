@@ -1,17 +1,17 @@
 namespace HalalChain.Domain.Catalog;
 
-using HalalChain.Domain.Common;
-
-public sealed class Brand : AggregateRoot<BrandId>
+/// <summary>
+/// A product brand. Brands are first-class so they can have their own page,
+/// halal profile aggregation, and verification state.
+/// </summary>
+public sealed class Brand
 {
-    public string Name { get; private set; } = string.Empty;
-    public string? LogoContentHash { get; private set; }
-
-    private Brand() { }
-
-    public static Brand Create(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return new Brand { Id = BrandId.New(), Name = name };
-    }
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
+    public string? Description { get; set; }
+    public string? CountryOfOrigin { get; set; }
+    public string? WebsiteUrl { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
