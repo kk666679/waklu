@@ -13,4 +13,30 @@
   <Target Name="BuildScss" BeforeTargets="BeforeBuild" Condition="'$(SassEnabled)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
     <Exec Command="bash $(SassBuildScript)" ContinueOnError="false" />
   </Target>
+
+  <!--
+    The .NET SDK defaults IntermediateOutputPath and BaseOutputPath to
+    Windows-style separators (e.g. "obj\Debug\net10.0") on every platform.
+    Most MSBuild tasks tolerate that, but dotnet-watch (Microsoft.DotNet.HotReload.Watch)
+    reads IntermediateOutputPath via ProjectTools and combines it with the
+    project directory using plain string concatenation. That yields a path such
+    as "/repo/HalalChain.Platform.Api/obj\Debug/net10.0/staticwebassets.development.json"
+    whose backslashes are treated as literal characters by open(2) on Linux,
+    so the file is reported as not found:
+
+        dotnet watch Failed to read '.../obj\Debug/net10.0/staticwebassets.development.json'
+
+    Normalize the output paths to forward separators (and make them absolute,
+    rooted at the project directory) so watch, and any other path-sensitive
+    consumer, resolves them correctly on Linux. The [MSBuild]::NormalizePath
+    function runs Path.GetFullPath internally, collapsing backslashes and any
+    "." or ".." segments.
+  -->
+  <PropertyGroup Condition="'$(IntermediateOutputPath)' != ''">
+    <_DotNetWatchNormalizeOutputPaths>true</_DotNetWatchNormalizeOutputPaths>
+    <BaseIntermediateOutputPath>$([MSBuild]::NormalizePath($(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)))</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$([MSBuild]::NormalizePath($(MSBuildProjectDirectory)/$(IntermediateOutputPath)))</IntermediateOutputPath>
+    <BaseOutputPath>$([MSBuild]::NormalizePath($(MSBuildProjectDirectory)/$(BaseOutputPath)))</BaseOutputPath>
+    <OutputPath>$([MSBuild]::NormalizePath($(MSBuildProjectDirectory)/$(OutputPath)))</OutputPath>
+  </PropertyGroup>
 </Project>
