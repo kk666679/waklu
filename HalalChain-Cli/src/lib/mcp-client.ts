@@ -28,11 +28,15 @@ export async function getMCPClient(options: MCPOptions = {}): Promise<MCPClient>
 
   const token = options.token ?? process.env.HALALCHAIN_MCP_TOKEN
 
+  // `headers` is omitted rather than set to undefined: under
+  // exactOptionalPropertyTypes, `{ headers: undefined }` is not assignable to
+  // `headers?: Record<string, string>`. Spreading keeps the unauthenticated
+  // case type-correct instead of forcing a cast.
   client = await createMCPClient({
     transport: {
       type: 'http',
       url,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
     },
   })
 
