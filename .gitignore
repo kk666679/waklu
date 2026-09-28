@@ -20,3 +20,7 @@ dist/
 .halalchain/
 .data/
 *.ndjson
+.cline_inbox/
+HalalChain.Platform.Api/.aspnet/
+HalalChain-Cli/sandbox/
+*.css.map
