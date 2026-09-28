@@ -1,20 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!--
-      The Domain project is the authoritative home for business concepts.
-      It must depend only on the .NET BCL. It must NOT depend on:
-        - EF Core
-        - ASP.NET Core
-        - Radzen
-        - Infrastructure
-        - Application
-        - API
-        - UI
-        - MCP
-        - external provider SDKs
-      See HalalChain.Architecture.Tests for the guardrail.
-    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+
+  <!--
+    HalalChain.Domain references NOTHING.
+
+    No Entity Framework, no ASP.NET, no JSON serializers, no logging.
+    If a type here needs one of those, the type is in the wrong project.
+
+    Enforced by HalalChain.Architecture.Tests.
+  -->
 
 </Project>

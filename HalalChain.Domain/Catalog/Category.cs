@@ -1,12 +1,17 @@
 namespace HalalChain.Domain.Catalog;
 
-public sealed class Category
+using HalalChain.Domain.Common;
+
+public sealed class Category : AggregateRoot<CategoryId>
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Slug { get; set; } = string.Empty;
-    public Guid? ParentId { get; set; }
-    public Category? Parent { get; set; }
-    public List<Category> Children { get; set; } = [];
-    public List<Product> Products { get; set; } = [];
+    public string Name { get; private set; } = string.Empty;
+    public CategoryId? ParentId { get; private set; }
+
+    private Category() { }
+
+    public static Category Create(string name, CategoryId? parentId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return new Category { Id = CategoryId.New(), Name = name, ParentId = parentId };
+    }
 }

@@ -1,68 +1,35 @@
 namespace HalalChain.Domain.Catalog;
 
+using HalalChain.Domain.Common;
+
 /// <summary>
-/// Media asset for a product (image, video, 360 view, etc.).
-/// Supports multiple formats, optimization metadata, and accessibility.
+/// A media asset attached to a product. The blob is referenced by its
+/// content hash — a string here, not a BlobRef, because BlobRef lives in
+/// the Application layer's storage ports and Domain must not reference it.
 /// </summary>
-public sealed class ProductMediaAsset
+public sealed class ProductMediaAsset : Entity<ProductMediaAssetId>
 {
-    public Guid Id { get; set; }
-    public Guid ProductId { get; set; }
+    public string ContentHash { get; private set; } = string.Empty;
+    public string Role { get; private set; } = "primary";
+    public string ContentType { get; private set; } = "image/jpeg";
+    public int SortOrder { get; private set; }
 
-    /// <summary>
-    /// Primary URL to the asset (CDN-served).
-    /// </summary>
-    public string Url { get; set; } = string.Empty;
+    private ProductMediaAsset() { }
 
-    /// <summary>
-    /// Type of media: Image, Video, 360View, Demo, Instruction, ThreeDModel.
-    /// </summary>
-    public string Type { get; set; } = "Image";
-
-    /// <summary>
-    /// Alt text for accessibility (screen readers, SEO).
-    /// </summary>
-    public string? AltText { get; set; }
-
-    /// <summary>
-    /// Human-readable caption or label.
-    /// </summary>
-    public string? Caption { get; set; }
-
-    /// <summary>
-    /// Sort order for display in galleries/carousels.
-    /// </summary>
-    public int SortOrder { get; set; }
-
-    /// <summary>
-    /// Whether this is the primary/thumbnail asset for the product.
-    /// </summary>
-    public bool IsPrimary { get; set; }
-
-    /// <summary>
-    /// Blurhash placeholder string for blur-up loading effect.
-    /// </summary>
-    public string? BlurHash { get; set; }
-
-    /// <summary>
-    /// Video duration in seconds (if Type = Video).
-    /// </summary>
-    public int? VideoDurationSeconds { get; set; }
-
-    /// <summary>
-    /// Video thumbnail URL (auto-generated from first frame).
-    /// </summary>
-    public string? VideoThumbnailUrl { get; set; }
-
-    /// <summary>
-    /// Transcript of video content (for accessibility + SEO).
-    /// </summary>
-    public string? VideoTranscript { get; set; }
-
-    /// <summary>
-    /// Attribution or licensing information.
-    /// </summary>
-    public string? Attribution { get; set; }
-
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public static ProductMediaAsset Create(
+        string contentHash,
+        string contentType,
+        string role,
+        int sortOrder)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
+        return new ProductMediaAsset
+        {
+            Id = ProductMediaAssetId.New(),
+            ContentHash = contentHash,
+            ContentType = contentType,
+            Role = role,
+            SortOrder = sortOrder,
+        };
+    }
 }
