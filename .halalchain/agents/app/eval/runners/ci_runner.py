@@ -43,7 +43,7 @@ class CIRunner:
 
     async def evaluate_trace(self, trace_id: str, workflow_name: str) -> list[EvalResult]:
         """Evaluate a single trace against goldens."""
-        trace = await self.loader.load(trace_id)
+        trace = await self.loader.load(trace_id, workflow_name)
         goldens = self.load_goldens(workflow_name)
 
         node_scores = []
@@ -85,8 +85,8 @@ def ci_runner(blob_store, goldens_dir):
 async def test_supplier_onboarding_eval(ci_runner):
     """Evaluate supplier onboarding workflow traces."""
     # Load recent traces for supplier_onboarding
-    trace_ids = await ci_runner.loader.load_recent("supplier_onboarding", limit=10)
-    for trace in trace_ids:
+    traces = await ci_runner.loader.load_recent("supplier_onboarding", limit=10)
+    for trace in traces:
         results = await ci_runner.evaluate_trace(trace.trace_id, "supplier_onboarding")
         ci_runner.assert_no_regression(results, "supplier_onboarding")
 
@@ -94,7 +94,7 @@ async def test_supplier_onboarding_eval(ci_runner):
 @pytest.mark.asyncio
 async def test_certificate_review_eval(ci_runner):
     """Evaluate certificate review workflow traces."""
-    trace_ids = await ci_runner.loader.load_recent("certificate_review", limit=10)
-    for trace in trace_ids:
+    traces = await ci_runner.loader.load_recent("certificate_review", limit=10)
+    for trace in traces:
         results = await ci_runner.evaluate_trace(trace.trace_id, "certificate_review")
         ci_runner.assert_no_regression(results, "certificate_review")

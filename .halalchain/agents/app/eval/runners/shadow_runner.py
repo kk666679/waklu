@@ -42,7 +42,7 @@ class ShadowRunner:
         return goldens
 
     async def evaluate_trace(self, trace_id: str, workflow_name: str) -> list[EvalResult]:
-        trace = await self.loader.load(trace_id)
+        trace = await self.loader.load(trace_id, workflow_name)
         goldens = self.load_goldens(workflow_name)
 
         node_scores = []
@@ -77,8 +77,8 @@ class ShadowRunner:
         """Evaluate all recent traces."""
         workflows = ["supplier_onboarding", "certificate_review", "product_verification"]
         for workflow in workflows:
-            trace_ids = await self.loader.load_recent(workflow, limit=100)
-            for trace in trace_ids:
+            traces = await self.loader.load_recent(workflow, limit=100)
+            for trace in traces:
                 # Only evaluate traces within lookback window
                 trace_time = datetime.fromisoformat(trace.started_at.replace("Z", "+00:00"))
                 if (datetime.utcnow() - trace_time).total_seconds() > self.lookback:

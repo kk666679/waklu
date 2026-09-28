@@ -1,11 +1,18 @@
-"""Node scorers for evaluation DAG."""
+"""Node scorers for evaluation DAG.
+
+The DeepEval imports are deliberately deferred to the handoff scorer, the
+only one that needs them. A module-level import made the whole ``eval``
+package — including the pure-stdlib trace loader and the deterministic
+scorers for collector, classifier, verifier, gap, recollection and terminal —
+unimportable without the ``eval`` extra installed. Scoring a collector should
+not require the LLM-judgement dependency.
+"""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
-from deepeval.metrics import DAGMetric
-from deepeval.test_case import LLMTestCase
+from typing import Any, Optional
+import json
 
 
 @dataclass
@@ -93,9 +100,24 @@ class VerifierScorer(NodeScorer):
 
 
 class HandoffScorer(NodeScorer):
-    """Scores tawheed handoff: bundle satisfies input contract (DAGMetric)."""
+    """Scores tawheed handoff: bundle satisfies input contract (DAGMetric).
+
+    The only scorer that needs the ``eval`` extra, because it is the only one
+    that asks an LLM to grade bundle quality. Everything structural about the
+    handoff — required fields present and non-empty — is checked first and
+    without any LLM involvement; the rubric runs only on a bundle that has
+    already passed that check.
+    """
+
+    #: Mirrors ``HalalChain.Agents.Eval.Dag.Scorers.HandoffScorer.RequiredFields``
+    #: and ``agents.handoff.REQUIRED_BUNDLE_FIELDS``. Three copies, kept in
+    #: step deliberately so a change to tawheed's contract is visible in all
+    #: three rather than silently diverging.
+    REQUIRED_FIELDS = ("product_id", "certificate", "ingredients", "manufacturer")
 
     def __init__(self):
+        from deepeval.metrics import DAGMetric  # noqa: PLC0415 - deferred on purpose
+
         # DAGMetric for conditional rubric: if required field missing → 0, else evaluate quality
         self.metric = DAGMetric(
             name="tawheed_handoff_contract",
@@ -112,8 +134,30 @@ class HandoffScorer(NodeScorer):
         )
 
     async def score(self, trace, node: dict, goldens: dict) -> NodeScore:
+        from deepeval.test_case import LLMTestCase  # noqa: PLC0415 - deferred on purpose
+
         bundle = node.get("output", {}).get("evidence_bundle", {})
-        # The DAGMetric evaluates the bundle structure
+
+        # Structural check first, and without an LLM in the path. An empty
+        # ingredients array is a missing field, not a low-quality one: it
+        # carries no evidence while passing a presence test, which is the
+        # failure mode most likely to reach tawheed unnoticed.
+        missing = [
+            field
+            for field in self.REQUIRED_FIELDS
+            if _is_empty(bundle.get(field))
+        ]
+        if missing:
+            return NodeScore(
+                node["id"],
+                "handoff",
+                0.0,
+                False,
+                {"missing_required_fields": missing, "reason": "missing_required_field"},
+                failure_category="handoff.missing_required_field",
+            )
+
+        # The DAGMetric evaluates bundle quality.
         test_case = LLMTestCase(
             input="evidence_bundle",
             actual_output=json.dumps(bundle),
@@ -129,6 +173,17 @@ class HandoffScorer(NodeScorer):
             {"bundle": bundle, "reason": result.reason},
             failure_category="handoff.contract_violation" if result.score < 0.7 else None,
         )
+
+
+def _is_empty(value: Any) -> bool:
+    """Empty means absent, blank, or a zero-length collection."""
+    if value is None:
+        return True
+    if isinstance(value, str) and not value.strip():
+        return True
+    if isinstance(value, (list, tuple, set, dict)) and len(value) == 0:
+        return True
+    return False
 
 
 class GapScorer(NodeScorer):
