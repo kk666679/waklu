@@ -12,7 +12,7 @@ This file documents how to build, test, and operate the HalalChain platform.
 
 ## Solution layout
 
-The main solution currently contains **13 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
+The main solution currently contains **17 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
 
 | Project                              | Type                | Role                                  |
 |--------------------------------------|---------------------|---------------------------------------|
@@ -29,6 +29,10 @@ The main solution currently contains **13 .NET projects**, including the MCP tes
 | `HalalChain.Architecture.Tests`      | xUnit               | Architecture guard tests              |
 | `HalalChain.Storage`                 | .NET class library  | Blob and evidence storage adapters    |
 | `HalalChain.Storage.Tests`           | xUnit               | Adapter + contract tests              |
+| `HalalChain.Agents`                  | .NET class library  | Agent eval DAG + agent runtime client |
+| `HalalChain.Agents.Tests`            | xUnit               | Eval DAG, budget, runtime, verdict boundary |
+| `HalalChain.DataFlow`                | .NET class library  | PostgreSQL data flow source/destination components |
+| `HalalChain.DataFlow.Tests`          | xUnit               | Data flow normalizer, validator, dead-letter, SQL guards |
 
 `Radzen.Blazor.Api.Generator.csproj` sits alongside the main API in
 `HalalChain.Platform.Api/` and is invoked by the main API project only when
@@ -43,6 +47,10 @@ The main solution currently contains **13 .NET projects**, including the MCP tes
   solution. It currently holds:
   - `ai-inference` — FastAPI AI gateway (embeddings / classify / rerank / LLM)
   - `tawheed` — FastAPI evidence + deterministic Policy Engine
+  - `agents` — FastAPI agent orchestration and evidence collection. Its
+    `app/agents`, `app/runtime` and `app/workflows` packages implement the
+    collection loop; `app/eval` holds the scoring DAG shared with
+    `HalalChain.Agents`. See `.halalchain/agents/app/README.md`.
   - `config.json` — local-only development config (gitignored in real use)
   - `_shared/` — Python package containing code genuinely shared by
     `ai-inference` and `tawheed` (LLM provider selection wiring,
@@ -144,6 +152,10 @@ This is enforced in:
 - Customer UI: `HalalChain.Web/`.
 - Vendor UI: `HalalChain.Marketplace/` (Razor Pages + Blazor Server + SignalR).
 - MCP server: `HalalChain.Mcp/`.
+- Agent evaluation DAG (.NET): `HalalChain.Agents/`.
+- Agent runtime (Python): `.halalchain/agents/app/`.
+- Data flow source/destination components: `HalalChain.DataFlow/`.
+- Operator CLI: `HalalChain-Cli/`.
 - Documentation: `docs/`.
 - Tech debt register (current findings, severities, verified evidence): `docs/architecture/tech-debt.md`.
 - Operational runbooks: `docs/runbooks/`.
