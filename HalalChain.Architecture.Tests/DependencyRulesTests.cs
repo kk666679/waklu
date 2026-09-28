@@ -36,6 +36,7 @@ public sealed class DependencyRulesTests
     private const string ApplicationAssembly = "HalalChain.Application";
     private const string InfrastructureAssembly = "HalalChain.Infrastructure";
     private const string StorageAssembly = "HalalChain.Storage";
+    private const string AgentsAssembly = "HalalChain.Agents";
 
     private static readonly string[] AssembliesToLoad =
     {
@@ -83,6 +84,7 @@ public sealed class DependencyRulesTests
     [InlineData(MarketplaceAssembly)]
     [InlineData(McpAssembly)]
     [InlineData(StorageAssembly)]
+    [InlineData(AgentsAssembly)]
     public void GuardedAssembly_ShouldBe_Loadable(string assemblyName)
     {
         Assembly assembly;
