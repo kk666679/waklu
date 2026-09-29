@@ -25,9 +25,9 @@ This review was based on the actual implementation in the repository, including:
 ## Verified technical facts
 
 ### Platform structure
-
+ 
 The repository is a .NET 10 solution with multiple applications and supporting libraries, including:
-
+ 
 - API: [HalalChain.Platform.Api](../HalalChain.Platform.Api)
 - Customer UI: [HalalChain.Web](../HalalChain.Web)
 - Vendor marketplace: [HalalChain.Marketplace](../HalalChain.Marketplace)
@@ -35,7 +35,7 @@ The repository is a .NET 10 solution with multiple applications and supporting l
 - Shared contracts and DTOs: [HalalChain.Platform.Contracts](../HalalChain.Platform.Contracts)
 - Typed HTTP client library: [HalalChain.Platform.Http](../HalalChain.Platform.Http)
 - MCP server: [HalalChain.Mcp](../HalalChain.Mcp)
-- Python services: [.halalchain/ai-inference](../.halalchain/ai-inference), [.halalchain/tawheed](../.halalchain/tawheed)
+- Python services: [.halalchain/ai-inference](../.halalchain/ai-inference), [.halalchain/tawheed](../.halalchain/tawheed), [.halalchain/agents](../.halalchain/agents), [.halalchain/local-models](../.halalchain/local-models)
 
 ### Runtime facts
 

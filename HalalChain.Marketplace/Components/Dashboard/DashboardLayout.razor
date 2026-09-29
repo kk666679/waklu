@@ -1,0 +1,150 @@
+@implements IAsyncDisposable
+@inject IDashboardConfigService ConfigService
+@inject ITenantContext TenantContext
+@inject ILogger<DashboardLayout> Logger
+
+<div class="dashboard-container" data-tenant="@TenantContext.TenantId" data-theme="@Config?.Theme">
+    <!-- Header -->
+    <DashboardHeader Config="Config?.Header" 
+                     BrandConfig="new BrandConfig { 
+                         OrganizationName = Config?.OrganizationName,
+                         LogoUrl = Config?.LogoUrl,
+                         PrimaryColor = Config?.PrimaryColor }" 
+                     CustomItems="Config?.Header?.CustomItems ?? new()" />
+
+    <div class="dashboard-body">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar" role="navigation" aria-label="Main navigation">
+            <DashboardSidebar Config="Config?.Sidebar" 
+                             NavigationItems="NavigationItems" 
+                             BrandConfig="new BrandConfig { OrganizationName = Config?.OrganizationName }" />
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main" role="main">
+            <div class="dashboard-regions">
+                @if (Config?.Regions != null)
+                {
+                    @foreach (var (regionId, regionConfig) in Config.Regions.OrderBy(x => x.Key))
+                    {
+                        @if (regionConfig.ComponentName != null)
+                        {
+                            <section class="dashboard-region @regionConfig.LayoutClass" 
+                                     id="region-@regionId"
+                                     role="region"
+                                     aria-label="@regionConfig.DisplayName">
+                                <DashboardRegion RegionId="regionId" 
+                                                RegionConfig="regionConfig" 
+                                                Widgets="Widgets.GetValueOrDefault(regionId, new())" />
+                            </section>
+                        }
+                    }
+                }
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    @if (Config?.Footer?.Visible ?? false)
+    {
+        <footer class="dashboard-footer" role="contentinfo">
+            <DashboardFooter Config="Config.Footer" />
+        </footer>
+    }
+</div>
+
+@if (IsLoading)
+{
+    <div class="dashboard-loading" role="status" aria-live="polite">
+        <div class="loading-spinner"></div>
+        <p>Loading dashboard configuration...</p>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="dashboard-error" role="alert">
+        <p>@ErrorMessage</p>
+    </div>
+}
+
+@code {
+    /// <summary>Optional child content to render.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Page title shown in header breadcrumbs.</summary>
+    [Parameter]
+    public string? PageTitle { get; set; }
+
+    /// <summary>Breadcrumb items for navigation context.</summary>
+    [Parameter]
+    public List<BreadcrumbItem>? BreadcrumbItems { get; set; }
+
+    private TenantDashboardConfig? Config { get; set; }
+    private List<NavigationItem> NavigationItems { get; set; } = new();
+    private Dictionary<string, List<WidgetConfig>> Widgets { get; set; } = new();
+    private bool IsLoading { get; set; } = true;
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation(
+                "Initializing dashboard layout for tenant {TenantId}",
+                TenantContext.TenantId);
+
+            // Load tenant dashboard configuration
+            Config = await ConfigService.GetConfigAsync(TenantContext);
+
+            // Load navigation items filtered by user capabilities
+            NavigationItems = await ConfigService.GetNavigationAsync(TenantContext);
+
+            // Load widgets for each region
+            if (Config?.Regions != null)
+            {
+                foreach (var (regionId, _) in Config.Regions)
+                {
+                    var regionWidgets = await ConfigService.GetRegionWidgetsAsync(TenantContext, regionId);
+                    Widgets[regionId] = regionWidgets;
+                }
+            }
+
+            Logger.LogInformation(
+                "Dashboard layout initialized: {RegionCount} regions, {NavigationCount} navigation items",
+                Config?.Regions.Count ?? 0,
+                NavigationItems.Count);
+
+            IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing dashboard layout");
+            ErrorMessage = "Failed to load dashboard configuration. Please refresh the page.";
+            IsLoading = false;
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        // Cleanup if needed
+        await ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>Tenant branding information.</summary>
+public class BrandConfig
+{
+    public string? OrganizationName { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? PrimaryColor { get; set; }
+}
+
+/// <summary>Breadcrumb navigation item.</summary>
+public class BreadcrumbItem
+{
+    public string Label { get; set; } = null!;
+    public string? Href { get; set; }
+    public bool IsCurrent { get; set; }
+}

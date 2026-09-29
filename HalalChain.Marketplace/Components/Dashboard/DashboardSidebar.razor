@@ -1,0 +1,187 @@
+@using HalalChain.Marketplace.Models.Dashboard
+@implements IAsyncDisposable
+@inject ILogger<DashboardSidebar> Logger
+
+<div class="sidebar-container" 
+     style="width: @(Config?.Width ?? "250px")"
+     data-collapsible="@(Config?.Collapsible ?? false)">
+
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+        @if (!string.IsNullOrEmpty(BrandConfig?.OrganizationName))
+        {
+            <div class="sidebar-brand">
+                <span class="sidebar-org-name">@BrandConfig.OrganizationName</span>
+            </div>
+        }
+
+        @if (Config?.Collapsible ?? false)
+        {
+            <button class="sidebar-collapse-btn" 
+                    @onclick="ToggleSidebarAsync"
+                    title="Toggle sidebar"
+                    aria-label="Toggle sidebar">
+                <i class="icon-chevron" aria-hidden="true"></i>
+            </button>
+        }
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav" role="navigation" aria-label="Sidebar navigation">
+        @if (NavigationItems?.Count > 0)
+        {
+            <ul class="nav-list">
+                @foreach (var item in NavigationItems.OrderBy(x => x.Order))
+                {
+                    <li class="nav-item">
+                        @if (string.IsNullOrEmpty(item.Href))
+                        {
+                            <!-- Section header -->
+                            <span class="nav-section-header">@item.Label</span>
+                        }
+                        else
+                        {
+                            <a href="@item.Href" 
+                               class="nav-link @(IsActivePage(item.Href) ? "active" : "")"
+                               @onclick="() => HandleNavClickAsync(item)">
+                                @if (!string.IsNullOrEmpty(item.IconClass))
+                                {
+                                    <i class="@item.IconClass" aria-hidden="true"></i>
+                                }
+                                <span class="nav-label">@item.Label</span>
+                            </a>
+                        }
+
+                        <!-- Submenu -->
+                        @if (item.Children?.Count > 0)
+                        {
+                            <ul class="nav-submenu">
+                                @foreach (var child in item.Children.OrderBy(x => x.Order))
+                                {
+                                    <li class="nav-item">
+                                        <a href="@child.Href" 
+                                           class="nav-link @(IsActivePage(child.Href) ? "active" : "")">
+                                            @if (!string.IsNullOrEmpty(child.IconClass))
+                                            {
+                                                <i class="@child.IconClass" aria-hidden="true"></i>
+                                            }
+                                            <span class="nav-label">@child.Label</span>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </nav>
+
+    <!-- Tenant Switcher (if enabled) -->
+    @if (Config?.ShowTenantSwitcher ?? false)
+    {
+        <div class="sidebar-tenant-switcher">
+            <button class="tenant-switcher-btn" 
+                    @onclick="ToggleTenantSwitcherAsync"
+                    aria-label="Switch tenant">
+                <i class="icon-building" aria-hidden="true"></i>
+                <span>Switch Tenant</span>
+            </button>
+        </div>
+    }
+
+    <!-- User Profile Section -->
+    @if (Config?.ShowUserProfile ?? false)
+    {
+        <div class="sidebar-user-profile">
+            <div class="user-avatar">
+                <img src="@UserAvatarUrl" alt="User avatar" class="avatar-img" />
+            </div>
+            <div class="user-info">
+                <div class="user-name">@UserDisplayName</div>
+                <div class="user-role">@UserRole</div>
+            </div>
+        </div>
+    }
+
+    <!-- Custom Sidebar Items -->
+    @if (Config?.CustomItems?.Count > 0)
+    {
+        <div class="sidebar-custom-items">
+            @foreach (var customItem in Config.CustomItems.OrderBy(x => x.Order))
+            {
+                <div class="sidebar-custom-item" id="sidebar-@customItem.Id">
+                    @if (!string.IsNullOrEmpty(customItem.ComponentName))
+                    {
+                        <DynamicComponent Type="Type.GetType($\"HalalChain.Marketplace.Components.{customItem.ComponentName}\")" />
+                    }
+                    else if (!string.IsNullOrEmpty(customItem.ContentUrl))
+                    {
+                        <!-- TODO: Load content from URL -->
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public SidebarConfig? Config { get; set; }
+
+    [Parameter]
+    public List<NavigationItem>? NavigationItems { get; set; }
+
+    [Parameter]
+    public DashboardLayout.BrandConfig? BrandConfig { get; set; }
+
+    [Inject]
+    private NavigationManager? Navigation { get; set; }
+
+    [Inject]
+    private ILogger<DashboardSidebar>? InjectedLogger { get; set; }
+
+    private bool IsSidebarCollapsed { get; set; }
+    private bool ShowTenantSwitcher { get; set; }
+    private string UserDisplayName { get; set; } = "User";
+    private string UserRole { get; set; } = "Administrator";
+    private string UserAvatarUrl { get; set; } = "/images/default-avatar.png";
+
+    protected override void OnInitialized()
+    {
+        IsSidebarCollapsed = Config?.DefaultCollapsed ?? false;
+        Logger.LogInformation("DashboardSidebar initialized with {ItemCount} navigation items", NavigationItems?.Count ?? 0);
+    }
+
+    private async Task ToggleSidebarAsync()
+    {
+        IsSidebarCollapsed = !IsSidebarCollapsed;
+        // TODO: Persist sidebar state to localStorage
+        await Task.CompletedTask;
+    }
+
+    private async Task ToggleTenantSwitcherAsync()
+    {
+        ShowTenantSwitcher = !ShowTenantSwitcher;
+        await Task.CompletedTask;
+    }
+
+    private Task HandleNavClickAsync(NavigationItem item)
+    {
+        Logger.LogInformation("Navigation item clicked: {Label}", item.Label);
+        return Task.CompletedTask;
+    }
+
+    private bool IsActivePage(string? href)
+    {
+        if (string.IsNullOrEmpty(href)) return false;
+        var uri = Navigation?.Uri ?? "";
+        return uri.Contains(href, StringComparison.OrdinalIgnoreCase);
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        // Cleanup if needed
+        await ValueTask.CompletedTask;
+    }
+}

@@ -1,0 +1,225 @@
+@using HalalChain.Marketplace.Models.Dashboard
+@inject ILogger<DashboardWidget> Logger
+
+<div class="dashboard-widget" 
+     id="widget-@Widget?.Id"
+     data-widget-id="@Widget?.Id"
+     data-widget-type="@Widget?.Type"
+     style="grid-column: span @GetGridSpan();">
+
+    <!-- Widget Header -->
+    <div class="widget-header">
+        <h3 class="widget-title">@Widget?.DisplayName</h3>
+        <div class="widget-actions">
+            @if (Editable)
+            {
+                <button class="widget-action-btn" 
+                        @onclick="HandleEditAsync"
+                        title="Edit widget"
+                        aria-label="Edit @Widget?.DisplayName">
+                    <i class="icon-edit" aria-hidden="true"></i>
+                </button>
+            }
+            <button class="widget-action-btn" 
+                    @onclick="HandleRefreshAsync"
+                    title="Refresh data"
+                    aria-label="Refresh @Widget?.DisplayName">
+                <i class="icon-refresh" aria-hidden="true"></i>
+            </button>
+            <button class="widget-action-btn" 
+                    @onclick="ToggleWidgetMenuAsync"
+                    title="Widget menu"
+                    aria-label="@Widget?.DisplayName options"
+                    aria-haspopup="menu">
+                <i class="icon-more" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        @if (ShowWidgetMenu)
+        {
+            <div class="widget-menu" role="menu">
+                @if (Widget?.CustomConfig?.ContainsKey("exportable") == true && 
+                     Widget.CustomConfig["exportable"] is bool exportable && exportable)
+                {
+                    <button role="menuitem" @onclick="HandleExportAsync">Export Data</button>
+                }
+                <button role="menuitem" @onclick="HandleRemoveAsync">Remove Widget</button>
+            </div>
+        }
+    </div>
+
+    <!-- Widget Content -->
+    <div class="widget-content">
+        @if (IsLoading)
+        {
+            <div class="widget-loading" role="status">
+                <div class="loading-spinner"></div>
+                <p>Loading...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="widget-error" role="alert">
+                <p>@ErrorMessage</p>
+                <button @onclick="HandleRefreshAsync">Retry</button>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Widget?.ComponentName))
+        {
+            <!-- Render custom widget component -->
+            @try
+            {
+                var componentType = Type.GetType($"HalalChain.Marketplace.Components.Widgets.{Widget.ComponentName}");
+                if (componentType != null)
+                {
+                    <DynamicComponent Type="componentType" 
+                                    Parameters="GetComponentParameters()" />
+                }
+                else
+                {
+                    <div class="widget-component-error">
+                        <p>Widget component not found: @Widget.ComponentName</p>
+                    </div>
+                }
+            }
+            catch (Exception ex)
+            {
+                <div class="widget-component-error">
+                    <p>Error rendering widget: @ex.Message</p>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="widget-empty">
+                <p>No data to display</p>
+            </div>
+        }
+    </div>
+
+    <!-- Widget Footer (optional) -->
+    @if (!string.IsNullOrEmpty(LastUpdated))
+    {
+        <div class="widget-footer">
+            <small>Updated: @LastUpdated</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public WidgetConfig? Widget { get; set; }
+
+    [Parameter]
+    public string? DataSourceKey { get; set; }
+
+    [Parameter]
+    public bool Editable { get; set; }
+
+    [Parameter]
+    public EventCallback<WidgetConfig> OnRemove { get; set; }
+
+    private bool IsLoading { get; set; }
+    private bool ShowWidgetMenu { get; set; }
+    private string? ErrorMessage { get; set; }
+    private string? LastUpdated { get; set; }
+    private object? WidgetData { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation(
+            "DashboardWidget initialized: WidgetId={WidgetId}, Type={WidgetType}",
+            Widget?.Id, Widget?.Type);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWidgetDataAsync();
+    }
+
+    private async Task LoadWidgetDataAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+
+        try
+        {
+            // TODO: Load widget data from data source
+            await Task.Delay(300); // Simulate data loading
+            LastUpdated = DateTime.Now.ToString("g");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading widget data: {WidgetId}", Widget?.Id);
+            ErrorMessage = "Failed to load data. Please try again.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleRefreshAsync()
+    {
+        await LoadWidgetDataAsync();
+    }
+
+    private async Task HandleEditAsync()
+    {
+        Logger.LogInformation("Edit clicked for widget: {WidgetId}", Widget?.Id);
+        // TODO: Implement widget edit mode
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleExportAsync()
+    {
+        Logger.LogInformation("Export clicked for widget: {WidgetId}", Widget?.Id);
+        // TODO: Implement data export
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleRemoveAsync()
+    {
+        Logger.LogInformation("Remove clicked for widget: {WidgetId}", Widget?.Id);
+        if (Widget != null)
+        {
+            await OnRemove.InvokeAsync(Widget);
+        }
+    }
+
+    private async Task ToggleWidgetMenuAsync()
+    {
+        ShowWidgetMenu = !ShowWidgetMenu;
+        await Task.CompletedTask;
+    }
+
+    private int GetGridSpan()
+    {
+        // Parse size string like "2x1" and return column span
+        if (string.IsNullOrEmpty(Widget?.Size)) return 1;
+        var parts = Widget.Size.Split('x');
+        return int.TryParse(parts[0], out var span) ? span : 1;
+    }
+
+    private IDictionary<string, object> GetComponentParameters()
+    {
+        var parameters = new Dictionary<string, object>();
+
+        // Pass custom configuration to widget component
+        if (Widget?.CustomConfig != null)
+        {
+            foreach (var (key, value) in Widget.CustomConfig)
+            {
+                parameters[key] = value;
+            }
+        }
+
+        // Pass data source key if available
+        if (!string.IsNullOrEmpty(DataSourceKey))
+        {
+            parameters["DataSourceKey"] = DataSourceKey;
+        }
+
+        return parameters;
+    }
+}

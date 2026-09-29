@@ -43,9 +43,15 @@ public sealed record ProductEditorViewModel(Guid? Id, CreateProductRequest Reque
 public sealed record OnChainInfo(string Source, string Status, string[] Warnings, string? CertificateId, string? Certifier);
 public sealed record VerifyViewModel(ProductDto? Product, VerificationDto? Verification, OnChainInfo? OnChain, bool OnChainAvailable);
 
+public sealed record ActivityEvent(string Title, string Subject, DateTimeOffset At, string? Icon = null, string? Category = null);
+
 public sealed record AdminViewModel(
     VendorDto[] Vendors,
     EnrichedProductDto[] Products,
     int TotalProducts,
     int VerifiedProducts,
-    int TotalCategories);
+    int TotalCategories,
+    ActivityEvent[] RecentActivity = null)
+{
+    public ActivityEvent[] RecentActivity { get; } = RecentActivity ?? [];
+}

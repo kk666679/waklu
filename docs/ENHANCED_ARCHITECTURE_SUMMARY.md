@@ -51,21 +51,12 @@ eval = ["deepeval>=4.2.0,<5.0.0"]
 
 ## 3. Enhanced .halalchain/requirements/ Directory
 
-**New Lock Files**:
+**Lock Files**:
 - `requirements/agents.txt` - Agent runtime dependencies
-- `requirements/eval.txt` - Evaluation dependencies (DeepEval)
-- `requirements/local-models*.txt` - Local model inference variants
-
-**Existing (Enhanced)**:
-- `requirements/base.txt` - Shared runtime (fastapi, uvicorn, pydantic, httpx, etc.)
-- `requirements/skills.txt` - Agent skills (agent-skills, haiku-skills[signing])
-- `requirements/llm.txt` - LLM provider SDKs (openai, anthropic)
-- `requirements/vector.txt` - Vector DB (qdrant-client)
-- `requirements/mcp.txt` - MCP client with uv exclude-newer-package
-- `requirements/ai-inference.txt` - ai-inference runtime (base + llm + vector)
-- `requirements/tawheed.txt` - tawheed runtime (base + mcp)
+- `requirements/ai-inference.txt` - ai-inference runtime
 - `requirements/dev.txt` - Development tools
-- `requirements/all.txt` - Convenience aggregator for local dev
+- `requirements/local-models.txt` - Local model inference
+- `requirements/tawheed.txt` - tawheed runtime
 
 **CI Enforcement**: `.github/workflows/python-locks.yml` validates all lock files
 
@@ -216,11 +207,11 @@ docker compose \
 - Pip install -r requirements.txt at repo root (wrong command)
 
 **After** (correct structure):
-- `requirements/ai-inference.txt` (`-r base.txt -r llm.txt -r vector.txt`)
-- `requirements/agents.txt` (`-r base.txt -r skills.txt -r mcp.txt`)
-- `requirements/local-models*.txt` - Optional GPU inference
-- `requirements/eval.txt` - Evaluation dependencies
-- `requirements/all.txt` - Convenience aggregator (dev only)
+- `requirements/ai-inference.txt` - ai-inference runtime
+- `requirements/agents.txt` - Agent runtime dependencies
+- `requirements/local-models.txt` - Local model inference
+- `requirements/dev.txt` - Development tools
+- `requirements/tawheed.txt` - tawheed runtime
 
 ### Dockerfile Updates
 - Services reference per-service requirement files
@@ -255,7 +246,6 @@ All services work together as a cohesive platform while maintaining clear bounda
 - `.halalchain/agents/app/eval/runners/` (2 files, ~300 lines)
 - `.halalchain/agents/app/eval/goldens/*.jsonl` (2 files, ~50 lines)
 - `.halalchain/requirements/agents.txt` (74 lines)
-- `.halalchain/requirements/eval.txt` (598 lines)
 - `.halalchain/local-models/Dockerfile` (45 lines)
 - `.halalchain/local-models/pyproject.toml` (51 lines)
 - `.halalchain/local-models/requirements.txt` (8 lines)

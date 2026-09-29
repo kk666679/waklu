@@ -46,6 +46,20 @@ dotnet run
 cd .halalchain/tawheed
 pip install -r requirements.txt
 uvicorn src.main:app --reload
+
+# 6. Local models (optional)
+cd .halalchain/local-models
+pip install -r requirements.txt
+uvicorn src.main:app --reload
+
+# 7. Agents (optional)
+cd .halalchain/agents
+pip install -r requirements.txt
+uvicorn src.main:app --reload
+
+# 8. Automation (scheduled jobs host - runs in background)
+cd HalalChain.Automation
+dotnet run
 ```
 
 ## Run with Docker Compose
@@ -62,6 +76,8 @@ docker compose up --build
 | Marketplace    | http://localhost:5201            |
 | Tawheed        | http://localhost:8000/docs       |
 | AI Inference   | http://localhost:7071/health     |
+| Local Models   | http://localhost:8080/health     |
+| Agents         | http://localhost:8081/health     |
 
 ## Port Configuration
 
@@ -77,6 +93,10 @@ stack impact.
 | Platform API | 5001      | 5003       | `Properties/launchSettings.json` |
 | HalalChain   | 5200      | 5201       | `Properties/launchSettings.json` |
 | Marketplace  | 5201      | —          | Docker Compose host mapping    |
+| AI Inference | 7071      | —          | `docker-compose.yml`           |
+| Tawheed      | 8000      | —          | `docker-compose.yml`           |
+| Local Models | 8080      | —          | `docker-compose.yml`           |
+| Agents       | 8081      | —          | `docker-compose.yml`           |
 
 ### Docker Compose
 
@@ -85,6 +105,10 @@ stack impact.
 | Platform API | 5001      | 8080           | `docker-compose.yml` |
 | HalalChain   | 5200      | 8080           | `docker-compose.yml` |
 | Marketplace  | 5201      | 8080           | `docker-compose.yml` |
+| AI Inference | 7071      | 7071           | `docker-compose.yml` |
+| Tawheed      | 8000      | 8000           | `docker-compose.yml` |
+| Local Models | 8080      | 8080           | `docker-compose.yml` |
+| Agents       | 8081      | 8080           | `docker-compose.yml` |
 
 ### Overriding ports
 

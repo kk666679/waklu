@@ -12,7 +12,7 @@ This file documents how to build, test, and operate the HalalChain platform.
 
 ## Solution layout
 
-The main solution currently contains **17 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
+The main solution currently contains **18 .NET projects**, including the MCP test project and supporting domain/application layers used across the platform:
 
 | Project                              | Type                | Role                                  |
 |--------------------------------------|---------------------|---------------------------------------|
@@ -33,6 +33,7 @@ The main solution currently contains **17 .NET projects**, including the MCP tes
 | `HalalChain.Agents.Tests`            | xUnit               | Eval DAG, budget, runtime, verdict boundary |
 | `HalalChain.DataFlow`                | .NET class library  | PostgreSQL data flow source/destination components |
 | `HalalChain.DataFlow.Tests`          | xUnit               | Data flow normalizer, validator, dead-letter, SQL guards |
+| `HalalChain.Automation`              | .NET console host   | Scheduled jobs host (runnable; not a deployable compose service) |
 
 `Radzen.Blazor.Api.Generator.csproj` sits alongside the main API in
 `HalalChain.Platform.Api/` and is invoked by the main API project only when
@@ -51,6 +52,11 @@ The main solution currently contains **17 .NET projects**, including the MCP tes
     `app/agents`, `app/runtime` and `app/workflows` packages implement the
     collection loop; `app/eval` holds the scoring DAG shared with
     `HalalChain.Agents`. See `.halalchain/agents/app/README.md`.
+  - `local-models` — Local model hosting (source, Dockerfile, lock files)
+    for the AI gateway and policy engine.
+  - `requirements/` — Pinned dependency lock files
+    (`agents.txt`, `ai-inference.txt`, `dev.txt`, `local-models.txt`,
+    `tawheed.txt`).
   - `config.json` — local-only development config (gitignored in real use)
   - `_shared/` — Python package containing code genuinely shared by
     `ai-inference` and `tawheed` (LLM provider selection wiring,

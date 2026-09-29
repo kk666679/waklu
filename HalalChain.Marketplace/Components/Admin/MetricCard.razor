@@ -1,0 +1,122 @@
+@* MetricCard.razor - Compact metric display with semantic design *@
+
+@{
+    var trendClass = Trend switch
+    {
+        > 0 => "trend-positive",
+        < 0 => "trend-negative",
+        _ => "trend-neutral"
+    };
+    
+    var trendSymbol = Trend switch
+    {
+        > 0 => "↑",
+        < 0 => "↓",
+        _ => "→"
+    };
+
+    var accentClass = Accent switch
+    {
+        "success" => "metric-accent-success",
+        "warning" => "metric-accent-warning",
+        "error" => "metric-accent-error",
+        _ => "metric-accent-primary"
+    };
+}
+
+<div class="metric-card @accentClass">
+    <div class="metric-card__header">
+        <span class="metric-label">@Label</span>
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <span class="metric-icon" aria-hidden="true">@GetIconSvg(Icon)</span>
+        }
+    </div>
+
+    <div class="metric-value">
+        <span class="metric-number">@Value.ToString("N0")</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Subtitle))
+    {
+        <p class="metric-subtitle">@Subtitle</p>
+    }
+
+    @if (Trend != 0)
+    {
+        <div class="metric-trend @trendClass">
+            <span class="trend-symbol">@trendSymbol</span>
+            <span class="trend-value">@Math.Abs(Trend).ToString("P1")</span>
+        </div>
+    }
+
+    @if (ShowSparkline && SparklineData != null && SparklineData.Any())
+    {
+        <svg class="metric-sparkline" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="@BuildSparklinePoints(SparklineData)" />
+        </svg>
+    }
+</div>
+
+@code {
+    /// <summary>Label displayed above the metric value.</summary>
+    [Parameter]
+    public required string Label { get; set; }
+
+    /// <summary>The numeric value to display.</summary>
+    [Parameter]
+    public required int Value { get; set; }
+
+    /// <summary>Trend as a decimal (e.g., 0.05 for +5%, -0.12 for -12%).</summary>
+    [Parameter]
+    public double Trend { get; set; } = 0;
+
+    /// <summary>Icon name (building, package, shield-check, grid, etc.).</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>Accent color: primary (default), success, warning, error.</summary>
+    [Parameter]
+    public string Accent { get; set; } = "primary";
+
+    /// <summary>Optional subtitle (e.g., "of catalog").</summary>
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    /// <summary>Show a sparkline chart of recent values.</summary>
+    [Parameter]
+    public bool ShowSparkline { get; set; }
+
+    /// <summary>Array of values for the sparkline (last 12 or 24 periods).</summary>
+    [Parameter]
+    public int[]? SparklineData { get; set; }
+
+    private string BuildSparklinePoints(int[] data)
+    {
+        if (data.Length == 0) return "";
+
+        var min = data.Min();
+        var max = data.Max();
+        var range = max - min;
+        if (range == 0) range = 1; // avoid division by zero
+
+        var points = string.Join(" ",
+            data.Select((value, index) =>
+            {
+                var x = (index / (double)(data.Length - 1)) * 100;
+                var y = 20 - ((value - min) / (double)range * 20);
+                return $"{x:F1},{y:F1}";
+            }));
+
+        return points;
+    }
+
+    private string GetIconSvg(string iconName) => iconName switch
+    {
+        "building" => """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h12M6 6v12h12V6M10 6v12m4-12v12"/></svg>""",
+        "package" => """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>""",
+        "shield-check" => """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 12 15 15 9"></polyline></svg>""",
+        "grid" => """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>""",
+        _ => """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle></svg>"""
+    };
+}

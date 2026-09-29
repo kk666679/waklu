@@ -9,11 +9,14 @@ images:
   ai-inference: "ghcr.io/halalchain/ai-inference:1.0.0"
   local-models: "ghcr.io/halalchain/local-models:1.0.0"
   agents: "ghcr.io/halalchain/agents:1.0.0"
+  marketplace: "ghcr.io/halalchain/marketplace:1.0.0"
+  halalchain: "ghcr.io/halalchain/halalchain:1.0.0"
 
 third_party:
   postgres: "postgres:17.4-alpine"
   redis: "redis:7.4.2-alpine"
   qdrant: "qdrant/qdrant:v1.19.0"
+  neo4j: "neo4j:5.26.0-community"
 
 policy:
   forbid_latest: true

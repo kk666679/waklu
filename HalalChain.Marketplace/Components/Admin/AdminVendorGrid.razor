@@ -1,0 +1,261 @@
+@* AdminVendorGrid.razor - Vendor management table with filtering, sorting, pagination *@
+
+@using HalalChain.Platform.Contracts.Vendors.Dto
+
+<div class="admin-grid">
+    <div class="grid-toolbar">
+        <div class="search-box">
+            <input type="search" 
+                   placeholder="Search vendors…" 
+                   @bind="_searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp"
+                   class="search-input"
+                   aria-label="Search vendors" />
+        </div>
+        <div class="toolbar-filters">
+            <select @onchange="OnVerificationFilterChange" class="filter-select" aria-label="Filter by verification status">
+                <option value="">All vendors</option>
+                <option value="verified">Verified only</option>
+                <option value="unverified">Unverified only</option>
+            </select>
+            <select @onchange="OnCountryFilterChange" class="filter-select" aria-label="Filter by country">
+                <option value="">All countries</option>
+                @foreach (var country in GetDistinctCountries())
+                {
+                    <option value="@country">@country</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="grid-container" role="region" aria-label="Vendor data table">
+        <table class="data-table" role="grid">
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(VendorDto.Name))" class="sortable">
+                        <span>Name</span>
+                        @if (_sortColumn == nameof(VendorDto.Name))
+                        {
+                            <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
+                                @(_sortDescending ? "▼" : "▲")
+                            </span>
+                        }
+                    </th>
+                    <th role="columnheader" @onclick="() => SortBy(nameof(VendorDto.Country))" class="sortable">
+                        <span>Country</span>
+                        @if (_sortColumn == nameof(VendorDto.Country))
+                        {
+                            <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
+                                @(_sortDescending ? "▼" : "▲")
+                            </span>
+                        }
+                    </th>
+                    <th role="columnheader">Status</th>
+                    <th role="columnheader">Email</th>
+                    <th role="columnheader">Actions</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                @if (!_filteredVendors.Any())
+                {
+                    <tr role="row">
+                        <td colspan="5" class="empty-state">No vendors found</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var vendor in _paginatedVendors)
+                    {
+                        <tr role="row" class="table-row" @onclick="() => SelectVendor(vendor)" tabindex="0" @onkeydown="(e) => HandleRowKeydown(e, vendor)">
+                            <td role="gridcell">
+                                <strong>@vendor.Name</strong>
+                            </td>
+                            <td role="gridcell">@vendor.Country</td>
+                            <td role="gridcell">
+                                <span class="badge @(vendor.IsVerified ? "badge-success" : "badge-warning")">
+                                    @(vendor.IsVerified ? "Verified" : "Pending")
+                                </span>
+                            </td>
+                            <td role="gridcell">
+                                <span class="text-muted text-sm">@(string.IsNullOrEmpty(vendor.Email) ? "—" : vendor.Email)</span>
+                            </td>
+                            <td role="gridcell">
+                                <button class="btn-icon" @onclick="() => SelectVendor(vendor)" @onclick:stopPropagation aria-label="View details for @vendor.Name">
+                                    →
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_totalPages > 1)
+    {
+        <div class="grid-pagination">
+            <button @onclick="PreviousPage" disabled="@(_currentPage == 1)" class="btn-pagination">← Previous</button>
+            <span class="page-info">Page @_currentPage of @_totalPages</span>
+            <button @onclick="NextPage" disabled="@(_currentPage == _totalPages)" class="btn-pagination">Next →</button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required IReadOnlyList<VendorDto> Vendors { get; set; }
+
+    [Parameter]
+    public EventCallback<VendorDto> OnRowSelected { get; set; }
+
+    private string _searchTerm = "";
+    private string _verificationFilter = "";
+    private string _countryFilter = "";
+    private string _sortColumn = nameof(VendorDto.Name);
+    private bool _sortDescending;
+
+    private const int PageSize = 10;
+    private int _currentPage = 1;
+    private IReadOnlyList<VendorDto> _filteredVendors = [];
+    private IReadOnlyList<VendorDto> _paginatedVendors = [];
+    private int _totalPages => (_filteredVendors.Count + PageSize - 1) / PageSize;
+
+    protected override void OnInitialized()
+    {
+        ApplyFiltersAndSort();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFiltersAndSort();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _currentPage = 1;
+            ApplyFiltersAndSort();
+        }
+    }
+
+    private async Task OnVerificationFilterChange(ChangeEventArgs e)
+    {
+        _verificationFilter = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private async Task OnCountryFilterChange(ChangeEventArgs e)
+    {
+        _countryFilter = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void ApplyFiltersAndSort()
+    {
+        var result = Vendors.AsEnumerable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var search = _searchTerm.ToLower();
+            result = result.Where(v => 
+                v.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                v.Country.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                (v.Email != null && v.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        // Verification filter
+        if (!string.IsNullOrEmpty(_verificationFilter))
+        {
+            result = _verificationFilter == "verified" 
+                ? result.Where(v => v.IsVerified) 
+                : result.Where(v => !v.IsVerified);
+        }
+
+        // Country filter
+        if (!string.IsNullOrEmpty(_countryFilter))
+        {
+            result = result.Where(v => v.Country == _countryFilter);
+        }
+
+        // Sorting
+        result = _sortColumn switch
+        {
+            nameof(VendorDto.Name) => _sortDescending 
+                ? result.OrderByDescending(v => v.Name) 
+                : result.OrderBy(v => v.Name),
+            nameof(VendorDto.Country) => _sortDescending 
+                ? result.OrderByDescending(v => v.Country) 
+                : result.OrderBy(v => v.Country),
+            _ => result.OrderBy(v => v.Name)
+        };
+
+        _filteredVendors = result.ToList();
+        _currentPage = 1;
+        UpdatePaginatedVendors();
+    }
+
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortDescending = !_sortDescending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortDescending = false;
+        }
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void UpdatePaginatedVendors()
+    {
+        var skip = (_currentPage - 1) * PageSize;
+        _paginatedVendors = _filteredVendors.Skip(skip).Take(PageSize).ToList();
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage < _totalPages)
+        {
+            _currentPage++;
+            UpdatePaginatedVendors();
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            UpdatePaginatedVendors();
+        }
+    }
+
+    private async Task SelectVendor(VendorDto vendor)
+    {
+        await OnRowSelected.InvokeAsync(vendor);
+    }
+
+    private void HandleRowKeydown(KeyboardEventArgs e, VendorDto vendor)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            SelectVendor(vendor);
+        }
+    }
+
+    private IEnumerable<string> GetDistinctCountries()
+    {
+        return Vendors
+            .Select(v => v.Country)
+            .Distinct()
+            .OrderBy(c => c);
+    }
+}

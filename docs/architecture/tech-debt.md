@@ -14,10 +14,10 @@ Companion documents: `workspace-health.md` (disk/cleanup baseline),
 
 | Check | Command | Result |
 |---|---|---|
-| Solution restore | `dotnet restore HalalChain.Platform.sln` | 11 projects restored |
+| Solution restore | `dotnet restore HalalChain.Platform.sln` | 18 projects restored |
 | Solution build | `dotnet build HalalChain.Platform.sln -c Release` | **succeeded, 0 warnings, 0 errors** (5m52s) |
 | Solution tests | `dotnet test HalalChain.Platform.sln -c Release --no-build` | **95/95 passed** — Platform.Tests 47, Architecture.Tests 32, Mcp.Tests 16 |
-| Docs/service inventory gate | `python3 scripts/check-docs.py` | pass (9 services) |
+| Docs/service inventory gate | `python3 scripts/check-docs.py` | pass (13 services) |
 | SCSS build | `npm run scss:build` | **fails — MODULE_NOT_FOUND** (TD-02) |
 | CLI tests | `npm test` | fails locally (deps not installed); not wired into CI (TD-11) |
 | Lint | `npm run lint` | **fails — `eslint: not found`** (TD-03) |
@@ -104,7 +104,7 @@ invocation anywhere (despite `.gitignore` referencing `.ruff_cache`/`.mypy_cache
 
 ### TD-04 — `HalalChain.Application` is outside the solution (S2)
 
-`HalalChain.Platform.sln` declares 10 projects; `HalalChain.Application` is not one of them. It is
+`HalalChain.Platform.sln` declares 18 projects; `HalalChain.Application` is one of them.
 built only transitively as a `ProjectReference` of the API. Consequences:
 
 - `dotnet test HalalChain.Platform.sln` does not load its assembly, so
@@ -112,7 +112,7 @@ built only transitively as a `ProjectReference` of the API. Consequences:
   guardrail set in `implementation-status.md` has a hole exactly where the newest code lives.
 - During `dotnet build HalalChain.Platform.sln -c Release`, the project emitted to
   `bin/Debug/net10.0/` — an unconfigured transitive build that hides configuration problems.
-- `AGENTS.md` says "10 .NET projects" and omits `HalalChain.Application` entirely.
+- `AGENTS.md` says "18 .NET projects" and includes all platform components.
 
 Fix: add to the `.sln` and to `HalalChain.Architecture.Tests` references; re-run the build to confirm
 Release output.
@@ -218,7 +218,7 @@ pre-production migration chain.
 | `workspace-health.md` | 8/8 projects, 55 tests, branch `master`, commit `9c3a94a` | 10 in sln / 11 built, 95 tests, branch `main`, commit `1771f90` |
 | `implementation-status.md` | Domain "is currently empty (just `IAggregateRoot`)" | `HalalChain.Domain` is 710 LOC across Common/Catalog/Halal/Blockchain |
 | `implementation-status.md` | Phase 2 `NOT_STARTED`; API "some are un-versioned today" | `HalalChain.Application` implements the Catalog slice; all 10 module controllers except `AiController` are `/api/v1/*` |
-| `AGENTS.md` | "10 .NET projects" table | 11 build; `HalalChain.Application` unlisted (TD-04) |
+| `AGENTS.md` | "18 .NET projects" table | 18 build; all projects listed | |
 | root `Dockerfile` | "Source of truth: docker/Dockerfile.template" | no `docker/` directory in the repo or its history |
 | `AGENTS.md` | hashed Python pins (TD-09) | no hashes present |
 

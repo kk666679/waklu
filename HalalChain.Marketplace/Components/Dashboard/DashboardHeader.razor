@@ -1,0 +1,147 @@
+@using HalalChain.Marketplace.Models.Dashboard
+
+<header class="dashboard-header" role="banner" style="height: @(Config?.Height ?? "60px");">
+    <div class="header-container">
+        <!-- Logo and Organization Name -->
+        <div class="header-brand">
+            @if (!string.IsNullOrEmpty(BrandConfig?.LogoUrl))
+            {
+                <img src="@BrandConfig.LogoUrl" 
+                     alt="@BrandConfig.OrganizationName logo" 
+                     class="header-logo"
+                     loading="lazy" />
+            }
+            <span class="header-org-name">@BrandConfig?.OrganizationName</span>
+        </div>
+
+        <!-- Spacer -->
+        <div class="header-spacer"></div>
+
+        <!-- Search Bar -->
+        @if (Config?.ShowSearchBar ?? false)
+        {
+            <div class="header-search">
+                <input type="search" 
+                       placeholder="Search..." 
+                       class="search-input"
+                       @onkeyup="HandleSearchAsync"
+                       aria-label="Search" />
+            </div>
+        }
+
+        <!-- Custom Header Items -->
+        @if (CustomItems != null)
+        {
+            @foreach (var item in CustomItems.OrderBy(x => x.Order))
+            {
+                <div class="header-item" id="header-@item.Id">
+                    @if (!string.IsNullOrEmpty(item.ComponentName))
+                    {
+                        <DynamicComponent Type="Type.GetType($\"HalalChain.Marketplace.Components.{item.ComponentName}\")" />
+                    }
+                    else if (!string.IsNullOrEmpty(item.IconClass))
+                    {
+                        <button class="header-icon-btn" title="@item.Label">
+                            <i class="@item.IconClass" aria-hidden="true"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <span>@item.Label</span>
+                    }
+                </div>
+            }
+        }
+
+        <!-- Theme Toggle -->
+        @if (Config?.ShowThemeToggle ?? false)
+        {
+            <button class="header-icon-btn theme-toggle" 
+                    @onclick="ToggleThemeAsync"
+                    title="Toggle dark/light mode"
+                    aria-label="Toggle theme">
+                <i class="icon-theme" aria-hidden="true"></i>
+            </button>
+        }
+
+        <!-- Notifications -->
+        @if (Config?.ShowNotifications ?? false)
+        {
+            <div class="header-notifications">
+                <button class="header-icon-btn notification-btn" 
+                        title="Notifications"
+                        aria-label="Show notifications">
+                    <i class="icon-bell" aria-hidden="true"></i>
+                    @if (NotificationCount > 0)
+                    {
+                        <span class="notification-badge">@NotificationCount</span>
+                    }
+                </button>
+            </div>
+        }
+
+        <!-- User Profile Menu -->
+        <div class="header-user-menu">
+            <button class="header-user-btn" 
+                    @onclick="ToggleUserMenuAsync"
+                    aria-label="User menu"
+                    aria-haspopup="menu">
+                <i class="icon-user" aria-hidden="true"></i>
+            </button>
+            @if (ShowUserMenu)
+            {
+                <div class="user-menu-dropdown" role="menu">
+                    <a href="/profile" role="menuitem">Profile</a>
+                    <a href="/settings" role="menuitem">Settings</a>
+                    <hr />
+                    <button @onclick="HandleLogoutAsync" role="menuitem">Logout</button>
+                </div>
+            }
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter]
+    public HeaderConfig? Config { get; set; }
+
+    [Parameter]
+    public DashboardLayout.BrandConfig? BrandConfig { get; set; }
+
+    [Parameter]
+    public List<HeaderItem>? CustomItems { get; set; } = new();
+
+    [Inject]
+    private NavigationManager? Navigation { get; set; }
+
+    private bool ShowUserMenu { get; set; }
+    private int NotificationCount { get; set; }
+
+    protected override void OnInitialized()
+    {
+        NotificationCount = 3; // TODO: Load from real notification service
+    }
+
+    private Task HandleSearchAsync(KeyboardEventArgs args)
+    {
+        // TODO: Implement search functionality
+        return Task.CompletedTask;
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        // TODO: Implement theme toggle (call JavaScript module)
+        await Task.CompletedTask;
+    }
+
+    private async Task ToggleUserMenuAsync()
+    {
+        ShowUserMenu = !ShowUserMenu;
+        await Task.CompletedTask;
+    }
+
+    private void HandleLogoutAsync()
+    {
+        Navigation?.NavigateTo("/logout");
+    }
+}

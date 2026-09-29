@@ -1453,7 +1453,7 @@ The current tree, as of this consolidation:
 ```text
 .
 ├── AGENTS.md                     # Contributor/build guide
-├── HalalChain.Platform.sln      # 13 .NET projects
+├── HalalChain.Platform.sln      # 18 .NET projects
 ├── Directory.Build.props        # Shared .NET defaults (net10.0, nullable, implicit usings)
 ├── global.json                  # Pins the .NET SDK (10.0.200, latestFeature roll-forward)
 ├── docker-compose.yml           # Full local stack
@@ -1480,10 +1480,18 @@ The current tree, as of this consolidation:
 ├── HalalChain.Architecture.Tests/ # Architecture guard tests
 ├── HalalChain.Storage/          # Blob and evidence storage adapters
 ├── HalalChain.Storage.Tests/    # Adapter + contract tests
+├── HalalChain.Agents/           # Agent eval DAG + agent runtime client
+├── HalalChain.Agents.Tests/     # Eval DAG, budget, runtime, verdict boundary
+├── HalalChain.DataFlow/         # PostgreSQL data flow source/destination components
+├── HalalChain.DataFlow.Tests/   # Data flow normalizer, validator, dead-letter, SQL guards
+├── HalalChain.Automation/        # Scheduled jobs host
 └── .halalchain/
     ├── _shared/                 # Shared Python package (LLM provider, cache abstraction)
     ├── ai-inference/            # FastAPI AI gateway
     ├── tawheed/                 # FastAPI evidence ingestion + deterministic Policy Engine
+    ├── agents/                  # FastAPI agent orchestration and evidence collection
+    ├── local-models/            # Local model hosting for AI gateway and policy engine
+    ├── requirements/            # Pinned dependency lock files
     └── config.json              # Local-only shared config placeholder
 ```
 

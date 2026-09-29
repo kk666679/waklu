@@ -1,0 +1,85 @@
+@using HalalChain.Marketplace.Models.Dashboard
+@inject ILogger<DashboardRegion> Logger
+
+<div class="dashboard-region-content" data-region-id="@RegionId">
+    @if (IsLoading)
+    {
+        <div class="region-loading" role="status" aria-live="polite">
+            <div class="loading-spinner"></div>
+        </div>
+    }
+    else if (Widgets?.Count > 0)
+    {
+        <div class="region-widgets @RegionConfig?.LayoutClass">
+            @foreach (var widget in Widgets.OrderBy(w => w.Order))
+            {
+                @if (widget.Visible)
+                {
+                    <DashboardWidget Widget="widget" 
+                                    DataSourceKey="widget.DataSourceKey"
+                                    Editable="RegionConfig?.Editable ?? false" />
+                }
+            }
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(RegionConfig?.ComponentName))
+    {
+        <!-- Custom region component -->
+        <div class="region-custom-component">
+            @try
+            {
+                var componentType = Type.GetType($"HalalChain.Marketplace.Components.{RegionConfig.ComponentName}");
+                if (componentType != null)
+                {
+                    <DynamicComponent Type="componentType" />
+                }
+                else
+                {
+                    <div class="region-empty">
+                        <p>Component not found: @RegionConfig.ComponentName</p>
+                    </div>
+                }
+            }
+            catch (Exception ex)
+            {
+                <div class="region-error">
+                    <p>Error loading region component: @ex.Message</p>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="region-empty">
+            <p>No widgets configured for this region.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? RegionId { get; set; }
+
+    [Parameter]
+    public DashboardRegionConfig? RegionConfig { get; set; }
+
+    [Parameter]
+    public List<WidgetConfig>? Widgets { get; set; }
+
+    private bool IsLoading { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation(
+            "DashboardRegion initialized: RegionId={RegionId}, WidgetCount={WidgetCount}",
+            RegionId, Widgets?.Count ?? 0);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        // Simulate async data loading if needed
+        await Task.Delay(100);
+        IsLoading = false;
+    }
+}

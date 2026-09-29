@@ -13,7 +13,7 @@ a conventional fee model where the platform holds buyer funds and pays
 vendors later, often with interest-bearing settlement accounts. This is not
 compatible with the halal-finance constraints the platform operates under.
 
-The constraints (from `docs/ARCHITECTURE.md` §7.4):
+The constraints (from `docs/ARCHITECTURE.md` § 14 — Multi-Vendor Checkout & Transaction Compliance):
 
 - **No riba.** No interest on delayed payouts. No interest-bearing escrow
   product. Platform revenue is a fixed service fee (ujrah) disclosed at
@@ -191,7 +191,7 @@ validated against multiple vendor APIs before implementation.
 
 ## References
 
-- `docs/ARCHITECTURE.md` §7.4 — halal finance constraints
+- `docs/ARCHITECTURE.md` § 14 — halal finance constraints and transaction compliance rules
 - `docs/procurement/payment-provider-evaluation.xlsx` — full evaluation
 - Shariah Board memo on wakala escrow (pending)
 - `HalalChain.Application/Payments/IPaymentProvider.cs`

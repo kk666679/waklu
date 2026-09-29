@@ -1,0 +1,54 @@
+@using HalalChain.Marketplace.Models.Dashboard
+
+<footer class="dashboard-footer-content" role="contentinfo">
+    <div class="footer-container">
+        <!-- Copyright Text -->
+        @if (!string.IsNullOrEmpty(Config?.CopyrightText))
+        {
+            <div class="footer-copyright">
+                <p>@Config.CopyrightText</p>
+            </div>
+        }
+
+        <!-- Footer Links -->
+        @if (Config?.Links?.Count > 0)
+        {
+            <nav class="footer-nav" aria-label="Footer navigation">
+                <ul class="footer-links">
+                    @foreach (var link in Config.Links)
+                    {
+                        <li>
+                            <a href="@link.Url" 
+                               target="@(link.OpenInNewTab ? "_blank" : "_self")"
+                               rel="@(link.OpenInNewTab ? "noopener noreferrer" : "")">
+                                @link.Label
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+
+        <!-- System Info -->
+        <div class="footer-info">
+            <small>
+                <span>Version: @Version</span>
+                <span>Last Updated: @LastUpdated</span>
+            </small>
+        </div>
+    </div>
+</footer>
+
+@code {
+    [Parameter]
+    public FooterConfig? Config { get; set; }
+
+    private string Version { get; set; } = "1.0.0";
+    private string LastUpdated { get; set; } = DateTime.Now.ToString("MMM dd, yyyy");
+
+    protected override void OnInitialized()
+    {
+        // Load version and last updated info
+        // TODO: Retrieve from application metadata
+    }
+}

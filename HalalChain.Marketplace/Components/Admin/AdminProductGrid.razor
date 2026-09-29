@@ -1,0 +1,330 @@
+@* AdminProductGrid.razor - Product management table with status, filtering, batch actions *@
+
+@using HalalChain.Platform.Contracts.Catalog.Dto
+
+<div class="admin-grid">
+    <div class="grid-toolbar">
+        <div class="search-box">
+            <input type="search" 
+                   placeholder="Search products…" 
+                   @bind="_searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp"
+                   class="search-input"
+                   aria-label="Search products" />
+        </div>
+        <div class="toolbar-filters">
+            <select @onchange="OnStatusFilterChange" class="filter-select" aria-label="Filter by product status">
+                <option value="">All statuses</option>
+                <option value="0">Draft</option>
+                <option value="1">Submitted</option>
+                <option value="2">Verified</option>
+                <option value="3">Rejected</option>
+            </select>
+            <select @onchange="OnVendorFilterChange" class="filter-select" aria-label="Filter by vendor">
+                <option value="">All vendors</option>
+                @foreach (var vendor in GetDistinctVendors())
+                {
+                    <option value="@vendor">@vendor</option>
+                }
+            </select>
+        </div>
+        @if (_selectedProducts.Count > 0)
+        {
+            <div class="batch-actions">
+                <span class="batch-info">@_selectedProducts.Count selected</span>
+                <button class="btn-sm btn-warning" @onclick="ClearSelection" aria-label="Clear selection">Clear</button>
+            </div>
+        }
+    </div>
+
+    <div class="grid-container" role="region" aria-label="Product data table">
+        <table class="data-table" role="grid">
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th role="columnheader" style="width: 40px;">
+                        <input type="checkbox" 
+                               @onchange="ToggleSelectAll" 
+                               aria-label="Select all products"
+                               checked="@(_selectedProducts.Count == _paginatedProducts.Count && _paginatedProducts.Count > 0)" />
+                    </th>
+                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.Title))" class="sortable">
+                        <span>Title</span>
+                        @if (_sortColumn == nameof(EnrichedProductDto.Title))
+                        {
+                            <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
+                                @(_sortDescending ? "▼" : "▲")
+                            </span>
+                        }
+                    </th>
+                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.VendorName))" class="sortable">
+                        <span>Vendor</span>
+                        @if (_sortColumn == nameof(EnrichedProductDto.VendorName))
+                        {
+                            <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
+                                @(_sortDescending ? "▼" : "▲")
+                            </span>
+                        }
+                    </th>
+                    <th role="columnheader">Status</th>
+                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.Price))" class="sortable">
+                        <span>Price</span>
+                        @if (_sortColumn == nameof(EnrichedProductDto.Price))
+                        {
+                            <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
+                                @(_sortDescending ? "▼" : "▲")
+                            </span>
+                        }
+                    </th>
+                    <th role="columnheader">Actions</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                @if (!_filteredProducts.Any())
+                {
+                    <tr role="row">
+                        <td colspan="6" class="empty-state">No products found</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var product in _paginatedProducts)
+                    {
+                        var isSelected = _selectedProducts.Contains(product.Id);
+                        <tr role="row" class="table-row @(isSelected ? "selected" : "")" tabindex="0">
+                            <td role="gridcell" @onclick:stopPropagation>
+                                <input type="checkbox" 
+                                       @onchange="(e) => ToggleProductSelection(product, (bool)e.Value!)"
+                                       checked="@isSelected"
+                                       aria-label="Select product @product.Title" />
+                            </td>
+                            <td role="gridcell">
+                                <strong>@product.Title</strong>
+                            </td>
+                            <td role="gridcell">@product.VendorName</td>
+                            <td role="gridcell">
+                                <span class="@GetStatusBadgeClass(product.Profile?.Status ?? 0)">
+                                    @GetStatusLabel(product.Profile?.Status ?? 0)
+                                </span>
+                            </td>
+                            <td role="gridcell">
+                                <span class="text-mono">@product.Price.ToString("C")</span>
+                            </td>
+                            <td role="gridcell">
+                                <button class="btn-icon" @onclick="() => SelectProduct(product)" aria-label="View details for @product.Title">
+                                    →
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_totalPages > 1)
+    {
+        <div class="grid-pagination">
+            <button @onclick="PreviousPage" disabled="@(_currentPage == 1)" class="btn-pagination">← Previous</button>
+            <span class="page-info">Page @_currentPage of @_totalPages</span>
+            <button @onclick="NextPage" disabled="@(_currentPage == _totalPages)" class="btn-pagination">Next →</button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required IReadOnlyList<EnrichedProductDto> Products { get; set; }
+
+    [Parameter]
+    public EventCallback<EnrichedProductDto> OnRowSelected { get; set; }
+
+    private string _searchTerm = "";
+    private string _statusFilter = "";
+    private string _vendorFilter = "";
+    private string _sortColumn = nameof(EnrichedProductDto.Title);
+    private bool _sortDescending;
+
+    private const int PageSize = 10;
+    private int _currentPage = 1;
+    private IReadOnlyList<EnrichedProductDto> _filteredProducts = [];
+    private IReadOnlyList<EnrichedProductDto> _paginatedProducts = [];
+    private HashSet<Guid> _selectedProducts = [];
+    private int _totalPages => (_filteredProducts.Count + PageSize - 1) / PageSize;
+
+    protected override void OnInitialized()
+    {
+        ApplyFiltersAndSort();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFiltersAndSort();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _currentPage = 1;
+            ApplyFiltersAndSort();
+        }
+    }
+
+    private async Task OnStatusFilterChange(ChangeEventArgs e)
+    {
+        _statusFilter = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private async Task OnVendorFilterChange(ChangeEventArgs e)
+    {
+        _vendorFilter = e.Value?.ToString() ?? "";
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void ApplyFiltersAndSort()
+    {
+        var result = Products.AsEnumerable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var search = _searchTerm.ToLower();
+            result = result.Where(p => 
+                p.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                p.VendorName.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Status filter
+        if (!string.IsNullOrEmpty(_statusFilter) && int.TryParse(_statusFilter, out var statusCode))
+        {
+            result = result.Where(p => p.Profile?.Status == statusCode);
+        }
+
+        // Vendor filter
+        if (!string.IsNullOrEmpty(_vendorFilter))
+        {
+            result = result.Where(p => p.VendorName == _vendorFilter);
+        }
+
+        // Sorting
+        result = _sortColumn switch
+        {
+            nameof(EnrichedProductDto.Title) => _sortDescending 
+                ? result.OrderByDescending(p => p.Title) 
+                : result.OrderBy(p => p.Title),
+            nameof(EnrichedProductDto.VendorName) => _sortDescending 
+                ? result.OrderByDescending(p => p.VendorName) 
+                : result.OrderBy(p => p.VendorName),
+            nameof(EnrichedProductDto.Price) => _sortDescending 
+                ? result.OrderByDescending(p => p.Price) 
+                : result.OrderBy(p => p.Price),
+            _ => result.OrderBy(p => p.Title)
+        };
+
+        _filteredProducts = result.ToList();
+        _currentPage = 1;
+        UpdatePaginatedProducts();
+    }
+
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortDescending = !_sortDescending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortDescending = false;
+        }
+        _currentPage = 1;
+        ApplyFiltersAndSort();
+    }
+
+    private void UpdatePaginatedProducts()
+    {
+        var skip = (_currentPage - 1) * PageSize;
+        _paginatedProducts = _filteredProducts.Skip(skip).Take(PageSize).ToList();
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage < _totalPages)
+        {
+            _currentPage++;
+            UpdatePaginatedProducts();
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            UpdatePaginatedProducts();
+        }
+    }
+
+    private async Task SelectProduct(EnrichedProductDto product)
+    {
+        await OnRowSelected.InvokeAsync(product);
+    }
+
+    private void ToggleProductSelection(EnrichedProductDto product, bool isSelected)
+    {
+        if (isSelected)
+            _selectedProducts.Add(product.Id);
+        else
+            _selectedProducts.Remove(product.Id);
+    }
+
+    private async Task ToggleSelectAll(ChangeEventArgs e)
+    {
+        var selectAll = (bool)e.Value!;
+        if (selectAll)
+        {
+            foreach (var product in _paginatedProducts)
+                _selectedProducts.Add(product.Id);
+        }
+        else
+        {
+            foreach (var product in _paginatedProducts)
+                _selectedProducts.Remove(product.Id);
+        }
+    }
+
+    private void ClearSelection()
+    {
+        _selectedProducts.Clear();
+    }
+
+    private string GetStatusBadgeClass(int status) => status switch
+    {
+        0 => "badge badge-neutral",      // Draft
+        1 => "badge badge-info",         // Submitted
+        2 => "badge badge-success",      // Verified
+        3 => "badge badge-error",        // Rejected
+        _ => "badge badge-neutral"
+    };
+
+    private string GetStatusLabel(int status) => status switch
+    {
+        0 => "Draft",
+        1 => "Submitted",
+        2 => "Verified",
+        3 => "Rejected",
+        _ => "Unknown"
+    };
+
+    private IEnumerable<string> GetDistinctVendors()
+    {
+        return Products
+            .Select(p => p.VendorName)
+            .Distinct()
+            .OrderBy(v => v);
+    }
+}

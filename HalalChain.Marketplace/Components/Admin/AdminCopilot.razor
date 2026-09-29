@@ -1,0 +1,265 @@
+@* AdminCopilot.razor - AI-native assistant for admin queries and summaries *@
+
+@* 
+    ARCHITECTURE NOTE:
+    
+    This component serves as the AI-native surface for admin operations. Per the platform principle,
+    the copilot gathers evidence and summarizes, but does NOT assign verdicts. The Policy Engine
+    and deterministic systems remain the authority for compliance decisions.
+    
+    TODO (ENT-004):
+    - Wire to HalalChain.Mcp server for tool discovery
+    - Integrate with MCP protocol to query:
+      * Evidence collection tools
+      * Policy evaluation (read-only, for context)
+      * Vendor/product status queries
+      * Audit log search
+    - Replace placeholder with real LLM calls
+    - Add result formatting with proper escaping
+*@
+
+<div class="copilot-container">
+    <div class="copilot-messages" role="log" aria-label="Copilot conversation" aria-live="polite">
+        @if (_messages.Count == 0)
+        {
+            <div class="copilot-welcome">
+                <h3>Admin Copilot</h3>
+                <p class="text-sm text-muted">Ask me about vendors, products, verification status, or recent activity.</p>
+                <div class="copilot-suggestions">
+                    <button class="suggestion-pill" @onclick="() => SendMessage('Show me unverified vendors')">
+                        Unverified vendors
+                    </button>
+                    <button class="suggestion-pill" @onclick="() => SendMessage('What are the recent policy changes?')">
+                        Recent policy changes
+                    </button>
+                    <button class="suggestion-pill" @onclick="() => SendMessage('Summarize verification status')">
+                        Verification summary
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var msg in _messages)
+            {
+                <div class="copilot-message @msg.Role" role="article">
+                    <div class="message-content">
+                        @if (msg.IsLoading)
+                        {
+                            <div class="loading-dots" aria-label="Loading response">
+                                <span></span><span></span><span></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>@msg.Text</p>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        <div @ref="_messagesEndRef"></div>
+    </div>
+
+    <div class="copilot-input-area">
+        <div class="copilot-context" role="status" aria-live="polite">
+            @if (!string.IsNullOrEmpty(Context))
+            {
+                <span class="context-badge">📍 @Context</span>
+            }
+        </div>
+        <div class="input-group">
+            <input type="text"
+                   @bind="_inputText"
+                   @onkeydown="HandleInputKeydown"
+                   placeholder="Ask me anything…"
+                   class="copilot-input"
+                   aria-label="Copilot message input"
+                   disabled="@_isSending" />
+            <button class="btn-send"
+                    @onclick="() => SendMessage(_inputText)"
+                    disabled="@(string.IsNullOrWhiteSpace(_inputText) || _isSending)"
+                    aria-label="Send message">
+                @if (_isSending)
+                {
+                    <span aria-hidden="true">⏳</span>
+                }
+                else
+                {
+                    <span aria-hidden="true">→</span>
+                }
+            </button>
+        </div>
+        <p class="input-hint text-xs text-muted">
+            💡 This copilot gathers evidence and summarizes. Final compliance decisions are made by deterministic policy engines.
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Context { get; set; } = "";
+
+    private string _inputText = "";
+    private bool _isSending;
+    private ElementReference _messagesEndRef;
+    private List<CopilotMessage> _messages = [];
+
+    private record CopilotMessage(string Role, string Text, bool IsLoading = false);
+
+    private async Task HandleInputKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_isSending && !string.IsNullOrWhiteSpace(_inputText))
+        {
+            await SendMessage(_inputText);
+        }
+    }
+
+    private async Task SendMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        // Add user message
+        _messages.Add(new CopilotMessage("user", message));
+        _inputText = "";
+        _isSending = true;
+
+        await ScrollToBottom();
+
+        try
+        {
+            // Add loading indicator
+            _messages.Add(new CopilotMessage("assistant", "", IsLoading: true));
+            await ScrollToBottom();
+
+            // TODO: Call MCP server via SignalR or HTTP
+            // For now, return a placeholder response
+            var response = await GeneratePlaceholderResponse(message);
+
+            // Remove loading indicator
+            _messages.RemoveAt(_messages.Count - 1);
+
+            // Add assistant response
+            _messages.Add(new CopilotMessage("assistant", response));
+            await ScrollToBottom();
+        }
+        finally
+        {
+            _isSending = false;
+        }
+    }
+
+    private async Task<string> GeneratePlaceholderResponse(string query)
+    {
+        // Simulate API delay
+        await Task.Delay(800);
+
+        // Return contextual placeholder responses
+        return query.ToLower() switch
+        {
+            var q when q.Contains("unverified") || q.Contains("pending") =>
+                """
+                Based on current data, there are 3 vendors pending verification:
+                • Al-Baraka Foods (Malaysia) — Registered 5 days ago
+                • Halal Direct (Indonesia) — Registered 12 days ago  
+                • Pure Provisions (Thailand) — Registered 2 days ago
+                
+                All have submitted required documentation. Policy evaluation is in progress.
+                """,
+            
+            var q when q.Contains("summary") || q.Contains("overview") =>
+                """
+                Verification Summary:
+                • Total Vendors: 12 (10 verified, 2 pending)
+                • Total Products: 247 (198 verified, 31 submitted, 18 draft)
+                • Verification Rate: 80.2% of catalog
+                • Most Recent: Certificate verified 4 minutes ago
+                
+                No policy violations detected in the last 24 hours.
+                """,
+
+            var q when q.Contains("policy") || q.Contains("change") =>
+                """
+                Recent Policy Updates (last 7 days):
+                
+                Policy v3.2 (Updated 2 days ago):
+                • Strengthened E-Code verification requirements
+                • Added cross-reference check with halal database
+                • Updated supplier audit frequency to quarterly
+                
+                No active policy violations. All current products comply with v3.2.
+                """,
+
+            var q when q.Contains("vendor") && !string.IsNullOrEmpty(Context) && Context.Contains("vendor:") =>
+                """
+                Vendor Summary:
+                • Verification Status: Verified ✓
+                • Products: 18 (17 verified, 1 draft)
+                • Compliance Score: 94%
+                • Last Audit: 8 days ago
+                
+                Recent Activity:
+                • 2 products certified in the last week
+                • 0 policy violations
+                • Email verified
+                
+                💼 Recommendation: Ready for contract renewal.
+                """,
+
+            var q when q.Contains("product") && !string.IsNullOrEmpty(Context) && Context.Contains("product:") =>
+                """
+                Product Summary:
+                • Status: Verified ✓
+                • Certification: Current (expires in 45 days)
+                • Compliance: 100%
+                • Last Verified: 2 weeks ago
+                
+                Evidence Summary:
+                • Supplier verification: ✓ Complete
+                • E-Code check: ✓ Halal-certified ingredients
+                • Policy compliance: ✓ Meets v3.2 standards
+                
+                🎯 Note: All evidence gathered, no manual verdicts assigned (Policy Engine decides).
+                """,
+
+            var q when q.Contains("activity") || q.Contains("recent") =>
+                """
+                Recent Activity (Last 24 Hours):
+                
+                ✅ Certifications: 7 products verified
+                🏢 Vendors: 1 new vendor registered
+                ⚖️ Policy: Policy v3.2 enforcement activated
+                📋 Audits: 3 compliance audits completed
+                
+                No critical issues detected. All systems operational.
+                """,
+
+            _ =>
+                """
+                I'm your AI evidence assistant. I gather and summarize data, but I don't assign compliance verdicts—that's the Policy Engine's job.
+                
+                I can help with:
+                • Vendor verification status and history
+                • Product compliance and certification evidence
+                • Recent policy updates and changes
+                • Activity summaries and trends
+                
+                Try asking:
+                • "Show me unverified vendors"
+                • "Summarize verification status"
+                • "What are recent policy changes?"
+                """
+        };
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await Task.Delay(50);
+        try
+        {
+            await _messagesEndRef.FocusAsync();
+        }
+        catch { }
+    }
+}
