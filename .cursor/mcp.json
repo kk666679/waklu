@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "halalchain": {
+      "type": "stdio",
+      "command": "c:/Users/kurni/OneDrive/Desktop/waklu-keewak/HalalChain.Mcp/bin/Release/net10.0/HalalChain.Mcp.exe",
+      "args": [],
+      "env": {
+        "HALALCHAIN_SOLUTION_ROOT": "c:/Users/kurni/OneDrive/Desktop/waklu-keewak"
+      }
+    }
+  }
+}
