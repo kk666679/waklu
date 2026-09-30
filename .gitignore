@@ -11,13 +11,17 @@ dist/
 *.suo
 .vs/
 
+# The CLI's bin/ is source, not build output: package.json declares
+# "bin": {"halalchain": "./bin/halalchain.js"} and `files` ships it, so the
+# **/bin/ rule above silently excluded the published entry point from git.
+!HalalChain-Cli/bin/
+
 # ─── Environment ─────────────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 
 # ─── Local runtime state ─────────────────────────────────────────────────────
-.halalchain/
 .data/
 *.ndjson
 HalalChain.Platform.Api/.aspnet/

@@ -1,4 +1,5 @@
 import { createMCPClient, type MCPClient } from '@tanstack/ai-mcp'
+import { get } from './config.js'
 
 let client: MCPClient | null = null
 
@@ -14,19 +15,25 @@ export interface MCPOptions {
  * the response streams; closing in a finally around chat() kills in-flight
  * tool calls. If you need per-run lifecycle, pass the client to chat() via
  * the `mcp` prop and let chat() own close().
+ *
+ * URL and token resolve through the config store (and therefore honour
+ * HALALCHAIN_MCP_URL / HALALCHAIN_MCP_TOKEN), so `halalchain config set mcp.url`
+ * and the environment are interchangeable.
  */
 export async function getMCPClient(options: MCPOptions = {}): Promise<MCPClient> {
   if (client) return client
 
-  const url = options.url ?? process.env.HALALCHAIN_MCP_URL
+  const url = options.url ?? get('mcp.url', '')
   if (!url) {
     throw new Error(
-      'HALALCHAIN_MCP_URL is not set. Point it at the platform MCP server, ' +
-        'for example http://localhost:5002/mcp.'
+      'No MCP endpoint configured. Run `halalchain config set mcp.url <url>` ' +
+        '(the platform MCP server listens on http://localhost:5002/mcp) or export ' +
+        'HALALCHAIN_MCP_URL.'
     )
   }
 
-  const token = options.token ?? process.env.HALALCHAIN_MCP_TOKEN
+  const token = options.token ?? get('mcp.token', '')
+
 
   // `headers` is omitted rather than set to undefined: under
   // exactOptionalPropertyTypes, `{ headers: undefined }` is not assignable to
