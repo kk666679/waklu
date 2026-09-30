@@ -1,6 +1,6 @@
 @* AdminVendorGrid.razor - Vendor management table with filtering, sorting, pagination *@
 
-@using HalalChain.Platform.Contracts.Vendors.Dto
+@using HalalChain.Marketplace.Models.Dashboard
 
 <div class="admin-grid">
     <div class="grid-toolbar">
@@ -33,18 +33,18 @@
         <table class="data-table" role="grid">
             <thead role="rowgroup">
                 <tr role="row">
-                    <th role="columnheader" @onclick="() => SortBy(nameof(VendorDto.Name))" class="sortable">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(AdminVendorRow.Name))" class="sortable">
                         <span>Name</span>
-                        @if (_sortColumn == nameof(VendorDto.Name))
+                        @if (_sortColumn == nameof(AdminVendorRow.Name))
                         {
                             <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
                                 @(_sortDescending ? "▼" : "▲")
                             </span>
                         }
                     </th>
-                    <th role="columnheader" @onclick="() => SortBy(nameof(VendorDto.Country))" class="sortable">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(AdminVendorRow.Country))" class="sortable">
                         <span>Country</span>
-                        @if (_sortColumn == nameof(VendorDto.Country))
+                        @if (_sortColumn == nameof(AdminVendorRow.Country))
                         {
                             <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
                                 @(_sortDescending ? "▼" : "▲")
@@ -104,21 +104,21 @@
 
 @code {
     [Parameter]
-    public required IReadOnlyList<VendorDto> Vendors { get; set; }
+    public required IReadOnlyList<AdminVendorRow> Vendors { get; set; }
 
     [Parameter]
-    public EventCallback<VendorDto> OnRowSelected { get; set; }
+    public EventCallback<AdminVendorRow> OnRowSelected { get; set; }
 
     private string _searchTerm = "";
     private string _verificationFilter = "";
     private string _countryFilter = "";
-    private string _sortColumn = nameof(VendorDto.Name);
+    private string _sortColumn = nameof(AdminVendorRow.Name);
     private bool _sortDescending;
 
     private const int PageSize = 10;
     private int _currentPage = 1;
-    private IReadOnlyList<VendorDto> _filteredVendors = [];
-    private IReadOnlyList<VendorDto> _paginatedVendors = [];
+    private IReadOnlyList<AdminVendorRow> _filteredVendors = [];
+    private IReadOnlyList<AdminVendorRow> _paginatedVendors = [];
     private int _totalPages => (_filteredVendors.Count + PageSize - 1) / PageSize;
 
     protected override void OnInitialized()
@@ -164,7 +164,7 @@
             var search = _searchTerm.ToLower();
             result = result.Where(v => 
                 v.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                v.Country.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                v.CountryFilter.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                 (v.Email != null && v.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
         }
 
@@ -179,18 +179,18 @@
         // Country filter
         if (!string.IsNullOrEmpty(_countryFilter))
         {
-            result = result.Where(v => v.Country == _countryFilter);
+            result = result.Where(v => v.CountryFilter == _countryFilter);
         }
 
         // Sorting
         result = _sortColumn switch
         {
-            nameof(VendorDto.Name) => _sortDescending 
+            nameof(AdminVendorRow.Name) => _sortDescending 
                 ? result.OrderByDescending(v => v.Name) 
                 : result.OrderBy(v => v.Name),
-            nameof(VendorDto.Country) => _sortDescending 
-                ? result.OrderByDescending(v => v.Country) 
-                : result.OrderBy(v => v.Country),
+            nameof(AdminVendorRow.Country) => _sortDescending 
+                ? result.OrderByDescending(v => v.CountryFilter) 
+                : result.OrderBy(v => v.CountryFilter),
             _ => result.OrderBy(v => v.Name)
         };
 
@@ -238,12 +238,12 @@
         }
     }
 
-    private async Task SelectVendor(VendorDto vendor)
+    private async Task SelectVendor(AdminVendorRow vendor)
     {
         await OnRowSelected.InvokeAsync(vendor);
     }
 
-    private void HandleRowKeydown(KeyboardEventArgs e, VendorDto vendor)
+    private void HandleRowKeydown(KeyboardEventArgs e, AdminVendorRow vendor)
     {
         if (e.Key == "Enter" || e.Key == " ")
         {
@@ -254,7 +254,7 @@
     private IEnumerable<string> GetDistinctCountries()
     {
         return Vendors
-            .Select(v => v.Country)
+            .Select(v => v.CountryFilter)
             .Distinct()
             .OrderBy(c => c);
     }

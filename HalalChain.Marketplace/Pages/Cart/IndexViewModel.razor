@@ -1,0 +1,250 @@
+@* Cart Index page updated to use repository layer *@
+@page "/cart"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject ICartRepository CartRepo
+@inject IProductRepository ProductRepo
+@inject ICurrentUserAccessor CurrentUser
+@inject IMapper Mapper
+@inject NavigationManager Nav
+@inject INotificationService Toast
+@inject ILogger<IndexViewModel> Logger
+@implements IAsyncDisposable
+
+<PageTitle>Your cart</PageTitle>
+
+<section class="container section-sm">
+    <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-5);">Your cart</h1>
+
+    @if (CurrentUserId == Guid.Empty)
+    {
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">🔒</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Your cart is waiting</h3>
+            <p class="muted" style="text-align:center;">Sign in to view and manage the items you've saved.</p>
+            <a class="btn btn-primary" href="/account/login?returnUrl=/cart" style="display:block; margin-top:var(--space-3);">Sign in</a>
+        </div>
+    }
+    else if (_isLoading)
+    {
+        <p class="muted">Loading cart…</p>
+    }
+    else if (_cartSummary == null || _cartSummary.Items.Count == 0)
+    {
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">🛒</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Your cart is empty</h3>
+            <p class="muted" style="text-align:center;">Discover halal-verified products from trusted vendors.</p>
+            <a class="btn btn-primary" href="/browse" style="display:block; margin-top:var(--space-3);">Start shopping</a>
+        </div>
+    }
+    else
+    {
+        <div class="grid" style="grid-template-columns: minmax(0,1fr) 320px; gap: var(--space-5); align-items:start;">
+            <div class="stack gap-4">
+                @foreach (var group in GetVendorGroups(_cartSummary.Items))
+                {
+                    <div class="panel card-pad">
+                        <div class="between" style="margin-bottom: var(--space-3);">
+                            <strong>@group.Key</strong>
+                            <span class="badge badge-halal">✓ Verified vendor</span>
+                        </div>
+
+                        @foreach (var item in group)
+                        {
+                            <div class="row gap-3" style="padding: var(--space-3) 0; border-top: 1px solid var(--color-border); align-items:start;">
+                                <div class="cart-thumb" aria-hidden="true">
+                                    @string.Join("", item.ProductName.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""))
+                                </div>
+                                <div class="grow">
+                                    <a href="/products/@item.ProductId" class="product-title" style="display:block;">@item.ProductName</a>
+                                    <span class="small muted">@item.Currency @item.Price.ToString("N2")</span>
+                                    <div class="row gap-2" style="margin-top:6px; align-items:center;">
+                                        <RadzenNumeric @bind-Value="item.Quantity" TValue="int" Min="0" 
+                                            Change="@((int v) => UpdateQuantity(item.ProductId, v))" 
+                                            Style="width:80px;" />
+                                        <RadzenButton Text="Remove" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" 
+                                            Click="@(() => RemoveItem(item.ProductId))" />
+                                    </div>
+                                </div>
+                                <div style="font-weight:700; white-space:nowrap;">@item.Currency @item.LineTotal.ToString("N2")</div>
+                            </div>
+                        }
+
+                        <div class="between" style="margin-top: var(--space-2);">
+                            <span class="small muted">Estimated shipping · Free</span>
+                            <span class="small">Subtotal: <strong>@_cartSummary.Currency @group.Sum(i => i.LineTotal).ToString("N2")</strong></span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <aside class="panel card-pad" style="position:sticky; top: calc(var(--nav-height) + 12px);">
+                <h3 style="margin:0 0 var(--space-3);">Order summary</h3>
+                <div class="between" style="margin-bottom:8px;">
+                    <span class="muted small">Items (@_cartSummary.ItemCount)</span>
+                    <span>@_cartSummary.Currency @_cartSummary.SubTotal.ToString("N2")</span>
+                </div>
+                <div class="between" style="margin-bottom:8px;">
+                    <span class="muted small">Shipping</span>
+                    <span class="badge badge-success">Free</span>
+                </div>
+                <div class="between" style="margin-bottom: var(--space-3);">
+                    <span class="muted small">Tax</span>
+                    <span class="muted small">Calculated at checkout</span>
+                </div>
+                <hr class="divider" />
+                <div class="between" style="margin-bottom: var(--space-4);">
+                    <strong>Total</strong>
+                    <strong style="font-size: var(--text-lg);">@_cartSummary.Currency @_cartSummary.Total.ToString("N2")</strong>
+                </div>
+                <a class="btn btn-primary btn-block btn-lg" href="/checkout">Proceed to checkout</a>
+                <a class="btn btn-ghost btn-block btn-sm mt-2" href="/browse">Continue shopping</a>
+            </aside>
+        </div>
+    }
+</section>
+
+@code {
+    private Guid CurrentUserId { get; set; }
+    private CartSummaryViewModel? _cartSummary;
+    private bool _isLoading = true;
+    private Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            CurrentUserId = await CurrentUser.GetIdAsync();
+            if (CurrentUserId != Guid.Empty)
+            {
+                await LoadCart();
+                // Auto-refresh cart every 30 seconds
+                _refreshTimer = new Timer(async _ => await RefreshCart(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing cart page");
+            Toast.Error("Failed to load cart");
+        }
+    }
+
+    private async Task LoadCart()
+    {
+        _isLoading = true;
+        try
+        {
+            var cartItems = await CartRepo.GetByCustomerAsync(CurrentUserId);
+            
+            // Enrich cart items with product details
+            var enrichedItems = new List<CartItemViewModel>();
+            foreach (var item in cartItems)
+            {
+                var product = await ProductRepo.GetByIdAsync(item.ProductId);
+                if (product != null)
+                {
+                    enrichedItems.Add(new CartItemViewModel
+                    {
+                        Id = item.Id,
+                        CustomerId = item.CustomerId,
+                        ProductId = item.ProductId,
+                        ProductName = product.Title,
+                        ProductImageUrl = product.MediaAssets?.FirstOrDefault(m => m.IsPrimary)?.Url,
+                        Price = product.Price,
+                        Currency = product.Currency,
+                        Quantity = item.Quantity,
+                        IsInStock = !product.IsOutOfStock,
+                        VendorName = product.Vendor?.Name ?? "Unknown"
+                    });
+                }
+            }
+
+            _cartSummary = new CartSummaryViewModel
+            {
+                Items = enrichedItems,
+                Currency = "MYR"
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading cart items");
+            Toast.Error("Failed to load cart items");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task RefreshCart()
+    {
+        await InvokeAsync(LoadCart);
+    }
+
+    private async Task UpdateQuantity(Guid productId, int quantity)
+    {
+        try
+        {
+            if (quantity <= 0)
+            {
+                await RemoveItem(productId);
+            }
+            else
+            {
+                var item = _cartSummary?.Items.FirstOrDefault(i => i.ProductId == productId);
+                if (item != null)
+                {
+                    item.Quantity = quantity;
+                    // Update in database
+                    var domainItem = new HalalChain.Domain.Commerce.CartItem
+                    {
+                        Id = item.Id,
+                        CustomerId = item.CustomerId,
+                        ProductId = item.ProductId,
+                        Quantity = quantity,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await CartRepo.UpdateAsync(domainItem);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating cart quantity");
+            Toast.Error("Failed to update quantity");
+        }
+    }
+
+    private async Task RemoveItem(Guid productId)
+    {
+        try
+        {
+            var item = _cartSummary?.Items.FirstOrDefault(i => i.ProductId == productId);
+            if (item != null)
+            {
+                await CartRepo.DeleteAsync(item.Id);
+                _cartSummary?.Items.Remove(item);
+                Toast.Success("Item removed from cart");
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing cart item");
+            Toast.Error("Failed to remove item");
+        }
+    }
+
+    private IEnumerable<IGrouping<string, CartItemViewModel>> GetVendorGroups(List<CartItemViewModel> items)
+    {
+        return items.GroupBy(i => i.VendorName);
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        _refreshTimer?.Dispose();
+        await Task.CompletedTask;
+    }
+}

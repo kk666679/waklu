@@ -1,6 +1,8 @@
 namespace HalalChain.Marketplace.Services.Dashboard.CacheStrategies;
 
 using HalalChain.Marketplace.Models.Dashboard;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 
 /// <summary>
 /// Hybrid cache strategy combining distributed (Redis) and in-memory caches.

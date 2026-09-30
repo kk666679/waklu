@@ -299,7 +299,7 @@
         }
     }
 
-    private VendorDto[] ExtractVendors(Task<ApiResponse<VendorDto[]>> task)
+    private VendorDto[] ExtractVendors(Task<ApiResult<VendorDto[]>> task)
     {
         try
         {
@@ -312,7 +312,7 @@
         }
     }
 
-    private EnrichedProductDto[] ExtractProducts(Task<ApiResponse<PagedResult<EnrichedProductDto>>> task)
+    private EnrichedProductDto[] ExtractProducts(Task<ApiResult<PagedResult<EnrichedProductDto>>> task)
     {
         try
         {
@@ -325,7 +325,7 @@
         }
     }
 
-    private CategoryDto[] ExtractCategories(Task<ApiResponse<CategoryDto[]>> task)
+    private CategoryDto[] ExtractCategories(Task<ApiResult<CategoryDto[]>> task)
     {
         try
         {

@@ -5,12 +5,20 @@ using HalalChain.Marketplace.State;
 using HalalChain.Marketplace.State.Cart;
 using HalalChain.Marketplace.Services.Abstractions;
 using HalalChain.Marketplace.State.Abstractions;
+using HalalChain.Marketplace.Data;
+using HalalChain.Marketplace.DependencyInjection;
+using HalalChain.Marketplace.Repositories;
+using HalalChain.Marketplace.Models.Mapping;
 using HalalChain.Platform.Contracts.Auth;
 using HalalChain.Platform.Http.Abstractions;
 using HalalChain.Platform.Http.Extensions;
+using HalalChain.Application.Tenancy;
+using HalalChain.Marketplace.Services.Tenancy;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using Radzen;
 using System.Globalization;
+using AutoMapper;
 
 namespace HalalChain.Marketplace;
 
@@ -27,10 +35,56 @@ public class Program
 
         builder.Services.AddRadzenComponents();
 
+        // ── Platform Database (PostgreSQL) for domain entities ─────────────
+        builder.Services.AddDbContext<PlatformDbContext>(o =>
+        {
+            var platformConn = builder.Configuration.GetConnectionString("PlatformConnection")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'PlatformConnection' not found.");
+            o.UseNpgsql(platformConn, opts => opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+        });
+
+        // ── Dashboard Services (config, caching, navigation) ──────────────────
+        builder.Services.AddDbContext<ApplicationDbContext>(o =>
+        {
+            var conn = builder.Configuration.GetConnectionString("DashboardConnection")
+                ?? $"Data Source={builder.Environment.ContentRootPath}/marketplace.db";
+            o.UseSqlite(conn);
+        });
+
+        // ── AutoMapper for domain → ViewModel mapping ──────────────────────
+        builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+        // ── Repository Registrations (all catalog, commerce, halal, etc.) ──
+        builder.Services.AddScoped<IProductRepository, ProductRepository>();
+        builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+        builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        builder.Services.AddScoped<ITaxonomyCategoryRepository, TaxonomyCategoryRepository>();
+        builder.Services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
+        builder.Services.AddScoped<IProductTypeRepository, ProductTypeRepository>();
+        builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
+        builder.Services.AddScoped<ICertificationBodyRepository, CertificationBodyRepository>();
+        builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
+        builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+
+        builder.Services.AddScoped<IVendorRepository, VendorRepository>();
+        builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+        builder.Services.AddScoped<IHalalVerificationRepository, HalalVerificationRepository>();
+        builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+        builder.Services.AddScoped<IVendorOrderRepository, VendorOrderRepository>();
+        builder.Services.AddScoped<ICartRepository, CartRepository>();
+        builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+
+        builder.Services.AddDashboardServices(builder.Configuration);
+        builder.Services.AddDashboardBackgroundJobs();
+
         // Shared API client with resilience & correlation ID
         builder.Services.AddHalalChainApiClient(builder.Configuration);
         builder.Services.AddScoped<IApiNotifier, MarketplaceApiNotifier>();
         builder.Services.AddScoped<ICurrentUserAccessor, HttpContextUserAccessor>();
+
+        // Tenant isolation (P6): every dashboard/config read is scoped to the ambient tenant.
+        builder.Services.AddScoped<ITenantContext, HttpContextTenantContext>();
 
         // AuthService owns the JWT state and also implements IPlatformTokenAccessor so the
         // shared typed HttpClient can attach the bearer header. Registering it once as the
@@ -59,6 +113,10 @@ public class Program
         builder.Services.AddScoped<IThemeService, Marketplace.Services.ThemeService>();
         builder.Services.AddScoped<ISearchService, SearchService>();
 
+        // ── Real-time SignalR notification services ──────────────────────────
+        builder.Services.AddScoped<ICartNotificationService, CartNotificationService>();
+        builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>();
+
         var supportedCultures = new[] { "en", "ms", "id", "th", "vi", "tl", "zh-Hans", "ar" }
             .Select(c => new CultureInfo(c))
             .ToList();
@@ -72,6 +130,25 @@ public class Program
         });
 
         var app = builder.Build();
+
+        // ── Apply pending EF Core migrations ─────────────────────────────────
+        using (var scope = app.Services.CreateScope())
+        {
+            // Dashboard database (SQLite)
+            var dashboardDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            if (dashboardDb.Database.IsRelational())
+            {
+                await dashboardDb.Database.MigrateAsync();
+            }
+
+            // Platform database (PostgreSQL) - Ensure schema and tables exist
+            var platformDb = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+            if (platformDb.Database.IsRelational())
+            {
+                await platformDb.Database.MigrateAsync();
+            }
+        }
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
@@ -85,6 +162,12 @@ public class Program
         app.MapRazorPages();
         app.MapBlazorHub();
         app.MapHub<NotificationHub>("/hubs/notifications");
+        app.MapHub<CartHub>("/hubs/cart");
+        app.MapHub<OrderHub>("/hubs/orders");
+
+        // ── Dashboard API endpoints ──────────────────────────────────────────
+        app.MapDashboardEndpoints();
+
         app.MapFallbackToPage("/_Host");
         app.MapHealthChecks("/health");
         app.MapHealthChecks("/health/live");

@@ -26,13 +26,13 @@
                 <h3>Admin Copilot</h3>
                 <p class="text-sm text-muted">Ask me about vendors, products, verification status, or recent activity.</p>
                 <div class="copilot-suggestions">
-                    <button class="suggestion-pill" @onclick="() => SendMessage('Show me unverified vendors')">
+                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"Show me unverified vendors\")">
                         Unverified vendors
                     </button>
-                    <button class="suggestion-pill" @onclick="() => SendMessage('What are the recent policy changes?')">
+                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"What are the recent policy changes?\")">
                         Recent policy changes
                     </button>
-                    <button class="suggestion-pill" @onclick="() => SendMessage('Summarize verification status')">
+                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"Summarize verification status\")">
                         Verification summary
                     </button>
                 </div>

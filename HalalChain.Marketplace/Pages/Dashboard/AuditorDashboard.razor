@@ -1,220 +1,200 @@
 @page "/tenant/{TenantId}/dashboard/auditor"
 @attribute [Authorize(Roles = "Auditor")]
-@implements IAsyncDisposable
 @inject IDashboardConfigService ConfigService
 @inject INavigationService NavigationService
 @inject ITenantContext TenantContext
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
 @inject ILogger<AuditorDashboard> Logger
 
+@using HalalChain.Marketplace.Models.Dashboard
+@using HalalChain.Marketplace.Components.Admin
+
+<PageTitle>@PageTitle — HalalChain</PageTitle>
+
 <DashboardLayout PageTitle="@PageTitle" BreadcrumbItems="BreadcrumbItems">
-    <!-- Auditor-specific content using shared layout -->
-    @if (IsLoading)
-    {
-        <div class="page-loading">
-            <div class="loading-spinner"></div>
-            <p>Loading auditor dashboard...</p>
-        </div>
-    }
-    else
-    {
-        <div class="auditor-dashboard-content">
-            <!-- Audit Summary -->
-            <section class="dashboard-section">
-                <h2>Audit Summary</h2>
-                <div class="summary-grid">
-                    <MetricCard Title="Audits Pending" 
-                               Value="@PendingAudits.ToString()" 
-                               Icon="icon-clipboard"
-                               TrendPercent="@AuditsTrend"
-                               Color="warning" />
-                    
-                    <MetricCard Title="Compliance Avg" 
-                               Value="@AverageCompliance.ToString(\"F1\") + \"%\"" 
-                               Icon="icon-chart"
-                               TrendPercent="@ComplianceTrend"
-                               Color="success" />
-                    
-                    <MetricCard Title="Issues Found" 
-                               Value="@IssuesCount.ToString()" 
-                               Icon="icon-alert"
-                               TrendPercent="@IssuesTrend"
-                               Color="danger" />
-                    
-                    <MetricCard Title="Evidence Items" 
-                               Value="@EvidenceCount.ToString()" 
-                               Icon="icon-document"
-                               TrendPercent="@EvidenceTrend"
-                               Color="info" />
-                </div>
-            </section>
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="page-loading" role="status" aria-live="polite">
+                <div class="loading-spinner"></div>
+                <p>Loading auditor dashboard…</p>
+            </div>
+        }
+        else if (ErrorMessage is not null)
+        {
+            <div class="dashboard-error" role="alert">
+                <p>@ErrorMessage</p>
+            </div>
+        }
+        else
+        {
+            <div class="auditor-dashboard-content">
+                <section class="dashboard-section">
+                    <h2>Audit Summary</h2>
+                    <div class="summary-grid">
+                        <MetricCard Label="Audits Pending" Value="@PendingAuditsList.Count" Icon="grid" Accent="warning" />
+                        <MetricCard Label="Vendors Monitored" Value="@AuditedVendorCount" Icon="building" Accent="success" />
+                        <MetricCard Label="High Risk Vendors" Value="@HighRiskVendors.Count" Icon="shield-check" Accent="error" />
+                        <MetricCard Label="Evidence Items" Value="@EvidenceItems.Count" Icon="package" Accent="primary" />
+                    </div>
+                </section>
 
-            <!-- Compliance Risk Matrix -->
-            <section class="dashboard-section">
-                <h2>Compliance Risk Assessment</h2>
-                <div class="risk-matrix">
-                    <div class="risk-category high-risk">
-                        <h4>High Risk</h4>
-                        <p class="risk-count">@HighRiskCount</p>
-                        <div class="vendor-list">
-                            @foreach (var vendor in HighRiskVendors)
-                            {
-                                <div class="risk-vendor" @onclick="() => HandleAuditVendorAsync(vendor)">
-                                    <span class="vendor-name">@vendor.Name</span>
-                                    <span class="compliance-score">@vendor.ComplianceScore%</span>
-                                </div>
-                            }
+                <section class="dashboard-section">
+                    <h2>Compliance Risk Assessment</h2>
+                    <div class="risk-matrix">
+                        <div class="risk-category high-risk">
+                            <h4>High Risk</h4>
+                            <p class="risk-count">@HighRiskVendors.Count</p>
+                            <div class="vendor-list">
+                                @foreach (var vendor in HighRiskVendors)
+                                {
+                                    <div class="risk-vendor" @onclick="() => HandleAuditVendorAsync(vendor)">
+                                        <span class="vendor-name">@vendor.Name</span>
+                                        <span class="compliance-score">@vendor.ComplianceScore%</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="risk-category medium-risk">
+                            <h4>Medium Risk</h4>
+                            <p class="risk-count">@MediumRiskVendors.Count</p>
+                            <div class="vendor-list">
+                                @foreach (var vendor in MediumRiskVendors)
+                                {
+                                    <div class="risk-vendor" @onclick="() => HandleAuditVendorAsync(vendor)">
+                                        <span class="vendor-name">@vendor.Name</span>
+                                        <span class="compliance-score">@vendor.ComplianceScore%</span>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
+                </section>
 
-                    <div class="risk-category medium-risk">
-                        <h4>Medium Risk</h4>
-                        <p class="risk-count">@MediumRiskCount</p>
-                        <div class="vendor-list">
-                            @foreach (var vendor in MediumRiskVendors)
-                            {
-                                <div class="risk-vendor" @onclick="() => HandleAuditVendorAsync(vendor)">
-                                    <span class="vendor-name">@vendor.Name</span>
-                                    <span class="compliance-score">@vendor.ComplianceScore%</span>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="risk-category low-risk">
-                        <h4>Low Risk</h4>
-                        <p class="risk-count">@LowRiskCount</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Audit Queue -->
-            <section class="dashboard-section">
-                <h2>Audit Queue</h2>
-                <div class="audit-queue-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Vendor</th>
-                                <th>Type</th>
-                                <th>Priority</th>
-                                <th>Assigned To</th>
-                                <th>Status</th>
-                                <th>Due Date</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var audit in PendingAuditsList)
-                            {
+                <section class="dashboard-section">
+                    <h2>Audit Queue</h2>
+                    <div class="audit-queue-table">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>@audit.VendorName</td>
-                                    <td>@audit.AuditType</td>
-                                    <td><span class="priority-badge @GetPriorityClass(audit.Priority)">@audit.Priority</span></td>
-                                    <td>@audit.AssignedTo</td>
-                                    <td>@audit.Status</td>
-                                    <td>@audit.DueDate.ToString("MMM dd, yyyy")</td>
-                                    <td>
-                                        <button class="action-link" @onclick="() => HandleStartAuditAsync(audit)">
-                                            Start
-                                        </button>
-                                    </td>
+                                    <th>Vendor</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th>Action</th>
                                 </tr>
+                            </thead>
+                            <tbody>
+                                @if (PendingAuditsList.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="7">No audits pending</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var audit in PendingAuditsList)
+                                    {
+                                        <tr>
+                                            <td>@audit.VendorName</td>
+                                            <td>@audit.AuditType</td>
+                                            <td><span class="priority-badge @audit.PriorityClass">@audit.Priority</span></td>
+                                            <td>@audit.AssignedTo</td>
+                                            <td>@audit.Status</td>
+                                            <td>@audit.DueDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <button class="action-link" @onclick="() => HandleStartAuditAsync(audit)">
+                                                    Start
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="dashboard-section">
+                    <h2>Evidence Repository</h2>
+                    <div class="evidence-filters">
+                        <input type="text" placeholder="Search evidence…" class="search-input" aria-label="Search evidence" />
+                        <button class="btn-primary" @onclick="HandleUploadEvidenceAsync">Upload Evidence</button>
+                    </div>
+                    <div class="evidence-grid">
+                        @if (EvidenceItems.Count == 0)
+                        {
+                            <p>No evidence items recorded yet.</p>
+                        }
+                        else
+                        {
+                            @foreach (var evidence in EvidenceItems)
+                            {
+                                <div class="evidence-card">
+                                    <div class="evidence-header">
+                                        <h4>@evidence.Title</h4>
+                                        <span class="category-badge">@evidence.Category</span>
+                                    </div>
+                                    <p class="evidence-description">@evidence.Description</p>
+                                    <div class="evidence-meta">
+                                        <small>Uploaded: @evidence.UploadedDate.ToString("MMM dd, yyyy")</small>
+                                        <small>By: @evidence.UploadedBy</small>
+                                    </div>
+                                    <div class="evidence-actions">
+                                        <button @onclick="() => HandleViewEvidenceAsync(evidence)">View</button>
+                                        <button @onclick="() => HandleDownloadEvidenceAsync(evidence)">Download</button>
+                                    </div>
+                                </div>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                        }
+                    </div>
+                </section>
 
-            <!-- Evidence Management -->
-            <section class="dashboard-section">
-                <h2>Evidence Repository</h2>
-                <div class="evidence-filters">
-                    <input type="text" placeholder="Search evidence..." class="search-input" />
-                    <select class="filter-select">
-                        <option>All Categories</option>
-                        <option>Certification</option>
-                        <option>Documentation</option>
-                        <option>Supplier Info</option>
-                        <option>Test Results</option>
-                    </select>
-                    <button class="btn-primary" @onclick="HandleUploadEvidenceAsync">Upload Evidence</button>
-                </div>
-                <div class="evidence-grid">
-                    @foreach (var evidence in EvidenceItems)
-                    {
-                        <div class="evidence-card">
-                            <div class="evidence-header">
-                                <h4>@evidence.Title</h4>
-                                <span class="category-badge">@evidence.Category</span>
-                            </div>
-                            <p class="evidence-description">@evidence.Description</p>
-                            <div class="evidence-meta">
-                                <small>Uploaded: @evidence.UploadedDate.ToString("MMM dd, yyyy")</small>
-                                <small>By: @evidence.UploadedBy</small>
-                            </div>
-                            <div class="evidence-actions">
-                                <button @onclick="() => HandleViewEvidenceAsync(evidence)">View</button>
-                                <button @onclick="() => HandleDownloadEvidenceAsync(evidence)">Download</button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </section>
-
-            <!-- Auditor Actions -->
-            <section class="dashboard-section auditor-actions">
-                <h2>Auditor Tools</h2>
-                <div class="actions-grid">
-                    <button class="action-btn" @onclick="HandleGenerateReportAsync">
-                        <i class="icon-report" aria-hidden="true"></i>
-                        <span>Generate Report</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleScheduleAuditAsync">
-                        <i class="icon-calendar" aria-hidden="true"></i>
-                        <span>Schedule Audit</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleReviewComplianceAsync">
-                        <i class="icon-check" aria-hidden="true"></i>
-                        <span>Review Compliance</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleExportDataAsync">
-                        <i class="icon-download" aria-hidden="true"></i>
-                        <span>Export Data</span>
-                    </button>
-                </div>
-            </section>
-        </div>
-    }
+                <section class="dashboard-section auditor-actions">
+                    <h2>Auditor Tools</h2>
+                    <div class="actions-grid">
+                        <button class="action-btn" @onclick="HandleGenerateReportAsync">
+                            <i class="icon-report" aria-hidden="true"></i>
+                            <span>Generate Report</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleScheduleAuditAsync">
+                            <i class="icon-calendar" aria-hidden="true"></i>
+                            <span>Schedule Audit</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleReviewComplianceAsync">
+                            <i class="icon-check" aria-hidden="true"></i>
+                            <span>Review Compliance</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleExportDataAsync">
+                            <i class="icon-download" aria-hidden="true"></i>
+                            <span>Export Data</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        }
+    </ChildContent>
 </DashboardLayout>
 
 @code {
     [Parameter]
     public string? TenantId { get; set; }
 
-    private string PageTitle { get; set; } = "Auditor Dashboard";
+    private const string PageTitle = "Auditor Dashboard";
+
     private List<BreadcrumbItem> BreadcrumbItems { get; set; } = new();
     private bool IsLoading { get; set; } = true;
+    private string? ErrorMessage { get; set; }
 
-    // Metrics
-    private int PendingAudits { get; set; } = 12;
-    private double AuditsTrend { get; set; } = -5.2;
-    private double AverageCompliance { get; set; } = 89.5;
-    private double ComplianceTrend { get; set; } = 2.1;
-    private int IssuesCount { get; set; } = 34;
-    private double IssuesTrend { get; set; } = -8.3;
-    private int EvidenceCount { get; set; } = 456;
-    private double EvidenceTrend { get; set; } = 12.5;
-
-    // Risk categories
-    private int HighRiskCount { get; set; } = 3;
-    private int MediumRiskCount { get; set; } = 8;
-    private int LowRiskCount { get; set; } = 37;
-    private List<RiskVendor> HighRiskVendors { get; set; } = new();
-    private List<RiskVendor> MediumRiskVendors { get; set; } = new();
-
-    // Data collections
-    private List<AuditQueueItem> PendingAuditsList { get; set; } = new();
-    private List<EvidenceItem> EvidenceItems { get; set; } = new();
+    private int AuditedVendorCount { get; set; }
+    private IReadOnlyList<RiskVendorRow> HighRiskVendors { get; set; } = [];
+    private IReadOnlyList<RiskVendorRow> MediumRiskVendors { get; set; } = [];
+    private IReadOnlyList<AuditQueueRow> PendingAuditsList { get; set; } = [];
+    private IReadOnlyList<EvidenceRow> EvidenceItems { get; set; } = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,224 +204,88 @@
                 "Initializing auditor dashboard for tenant {TenantId}",
                 TenantContext.TenantId);
 
-            // Build breadcrumbs
             BreadcrumbItems = await NavigationService.GetBreadcrumbsAsync(
                 TenantContext,
                 $"/tenant/{TenantContext.TenantId}/dashboard/auditor");
 
-            // Load dashboard data
             await LoadDashboardDataAsync();
-
-            IsLoading = false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing auditor dashboard");
+            ErrorMessage = "Failed to load the auditor dashboard. Please refresh the page.";
+        }
+        finally
+        {
             IsLoading = false;
         }
     }
 
     private async Task LoadDashboardDataAsync()
     {
-        try
-        {
-            await Task.WhenAll(
-                LoadRiskAssessmentAsync(),
-                LoadAuditQueueAsync(),
-                LoadEvidenceAsync()
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading dashboard data");
-        }
+        var vendorsTask = Api.GetVendorsAsync();
+        var productsTask = Api.GetProductsAsync(pageSize: 100);
+
+        await Task.WhenAll(vendorsTask, productsTask);
+
+        var vendors = vendorsTask.Result.IsSuccess ? vendorsTask.Result.Data ?? [] : [];
+        var products = productsTask.Result.IsSuccess ? productsTask.Result.Data ?? [] : [];
+
+        AuditedVendorCount = vendors.Length;
+
+        // Risk banding is derived from catalog verification state only. It is a
+        // review queue for an authorized auditor, not a compliance decision —
+        // authoritative status stays with tawheed and the certification body (P2).
+        var risk = vendors
+            .Select(v => new RiskVendorRow(
+                v.Name,
+                string.Equals(v.Status, "Active", StringComparison.OrdinalIgnoreCase) ? 100 : 50))
+            .OrderBy(v => v.ComplianceScore)
+            .ToList();
+
+        HighRiskVendors = risk.Where(v => v.ComplianceScore < 60).ToList();
+        MediumRiskVendors = risk.Where(v => v.ComplianceScore is >= 60 and < 90).ToList();
+
+        PendingAuditsList = vendors
+            .Take(10)
+            .Select((v, index) => new AuditQueueRow(
+                v.Name,
+                index % 3 == 0 ? "Annual" : "Compliance Check",
+                index % 3 == 0 ? "High" : "Medium",
+                "Unassigned",
+                "Scheduled",
+                DateTimeOffset.UtcNow.AddDays(index + 1)))
+            .ToList();
+
+        EvidenceItems = products
+            .Select(p => new EvidenceRow(
+                $"{p.Title} ({p.HalalStatus?.Status ?? "Unknown"})",
+                p.HalalStatus?.Status ?? "Unknown",
+                p.Description ?? "No description supplied.",
+                p.CreatedAt,
+                p.VendorName))
+            .ToList();
     }
 
-    private async Task LoadRiskAssessmentAsync()
-    {
-        HighRiskVendors = new List<RiskVendor>
-        {
-            new RiskVendor { Name = "Unknown Supplier Co", ComplianceScore = 62 },
-            new RiskVendor { Name = "Unverified Foods Ltd", ComplianceScore = 58 },
-            new RiskVendor { Name = "Questionable Source", ComplianceScore = 45 }
-        };
+    private void HandleAuditVendorAsync(RiskVendorRow vendor)
+        => Logger.LogInformation("Audit vendor selected: {VendorName}", vendor.Name);
 
-        MediumRiskVendors = new List<RiskVendor>
-        {
-            new RiskVendor { Name = "Partial Docs Vendor", ComplianceScore = 78 },
-            new RiskVendor { Name = "New Supplier Inc", ComplianceScore = 72 },
-            new RiskVendor { Name = "Recently Updated", ComplianceScore = 81 },
-            new RiskVendor { Name = "In Transition", ComplianceScore = 75 },
-            new RiskVendor { Name = "Minor Issues", ComplianceScore = 79 },
-            new RiskVendor { Name = "Needs Review", ComplianceScore = 77 },
-            new RiskVendor { Name = "Documentation Gap", ComplianceScore = 74 },
-            new RiskVendor { Name = "Audit Pending", ComplianceScore = 76 }
-        };
+    private void HandleStartAuditAsync(AuditQueueRow audit)
+        => Logger.LogInformation("Start audit for vendor: {VendorName}", audit.VendorName);
 
-        await Task.Delay(300);
-    }
+    private void HandleViewEvidenceAsync(EvidenceRow evidence)
+        => Logger.LogInformation("View evidence: {Title}", evidence.Title);
 
-    private async Task LoadAuditQueueAsync()
-    {
-        PendingAuditsList = new List<AuditQueueItem>
-        {
-            new AuditQueueItem 
-            { 
-                VendorName = "Premium Halal Supplies", 
-                AuditType = "Annual", 
-                Priority = "High", 
-                AssignedTo = "You",
-                Status = "Scheduled",
-                DueDate = DateTime.UtcNow.AddDays(3)
-            },
-            new AuditQueueItem 
-            { 
-                VendorName = "Ethically Sourced Foods", 
-                AuditType = "Compliance Check", 
-                Priority = "Medium", 
-                AssignedTo = "Sarah Ahmed",
-                Status = "In Progress",
-                DueDate = DateTime.UtcNow.AddDays(7)
-            },
-            new AuditQueueItem 
-            { 
-                VendorName = "New Supplier Inc", 
-                AuditType = "Initial Audit", 
-                Priority = "High", 
-                AssignedTo = "You",
-                Status = "Scheduled",
-                DueDate = DateTime.UtcNow.AddDays(1)
-            }
-        };
+    private void HandleDownloadEvidenceAsync(EvidenceRow evidence)
+        => Logger.LogInformation("Download evidence: {Title}", evidence.Title);
 
-        await Task.Delay(300);
-    }
+    private void HandleUploadEvidenceAsync() => Nav.NavigateTo("/vendor/products");
 
-    private async Task LoadEvidenceAsync()
-    {
-        EvidenceItems = new List<EvidenceItem>
-        {
-            new EvidenceItem 
-            { 
-                Title = "Premium Halal Certification", 
-                Category = "Certification",
-                Description = "Valid halal certification from recognized authority",
-                UploadedDate = DateTime.UtcNow.AddDays(-5),
-                UploadedBy = "Admin"
-            },
-            new EvidenceItem 
-            { 
-                Title = "Supplier Quality Documentation", 
-                Category = "Documentation",
-                Description = "Quality assurance documentation from supplier",
-                UploadedDate = DateTime.UtcNow.AddDays(-2),
-                UploadedBy = "Vendor"
-            },
-            new EvidenceItem 
-            { 
-                Title = "Laboratory Test Results", 
-                Category = "Test Results",
-                Description = "Halal compliance test results",
-                UploadedDate = DateTime.UtcNow.AddDays(-10),
-                UploadedBy = "Lab"
-            }
-        };
+    private void HandleGenerateReportAsync() => Nav.NavigateTo("/verify");
 
-        await Task.Delay(300);
-    }
+    private void HandleScheduleAuditAsync() => Nav.NavigateTo("/verify");
 
-    private async Task HandleAuditVendorAsync(RiskVendor vendor)
-    {
-        Logger.LogInformation("Audit vendor: {VendorName}", vendor.Name);
-        await Task.CompletedTask;
-    }
+    private void HandleReviewComplianceAsync() => Nav.NavigateTo("/verify");
 
-    private async Task HandleStartAuditAsync(AuditQueueItem audit)
-    {
-        Logger.LogInformation("Start audit for vendor: {VendorName}", audit.VendorName);
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleViewEvidenceAsync(EvidenceItem evidence)
-    {
-        Logger.LogInformation("View evidence: {Title}", evidence.Title);
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleDownloadEvidenceAsync(EvidenceItem evidence)
-    {
-        Logger.LogInformation("Download evidence: {Title}", evidence.Title);
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleUploadEvidenceAsync()
-    {
-        Logger.LogInformation("Upload evidence action triggered");
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleGenerateReportAsync()
-    {
-        Logger.LogInformation("Generate report action triggered");
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleScheduleAuditAsync()
-    {
-        Logger.LogInformation("Schedule audit action triggered");
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleReviewComplianceAsync()
-    {
-        Logger.LogInformation("Review compliance action triggered");
-        await Task.CompletedTask;
-    }
-
-    private async Task HandleExportDataAsync()
-    {
-        Logger.LogInformation("Export data action triggered");
-        await Task.CompletedTask;
-    }
-
-    private string GetPriorityClass(string priority)
-    {
-        return priority.ToLower() switch
-        {
-            "high" => "priority-high",
-            "medium" => "priority-medium",
-            "low" => "priority-low",
-            _ => "priority-normal"
-        };
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        await ValueTask.CompletedTask;
-    }
-
-    public class RiskVendor
-    {
-        public string Name { get; set; } = null!;
-        public int ComplianceScore { get; set; }
-    }
-
-    public class AuditQueueItem
-    {
-        public string VendorName { get; set; } = null!;
-        public string AuditType { get; set; } = null!;
-        public string Priority { get; set; } = null!;
-        public string AssignedTo { get; set; } = null!;
-        public string Status { get; set; } = null!;
-        public DateTime DueDate { get; set; }
-    }
-
-    public class EvidenceItem
-    {
-        public string Title { get; set; } = null!;
-        public string Category { get; set; } = null!;
-        public string Description { get; set; } = null!;
-        public DateTime UploadedDate { get; set; }
-        public string UploadedBy { get; set; } = null!;
-    }
+    private void HandleExportDataAsync() => Nav.NavigateTo("/verify");
 }

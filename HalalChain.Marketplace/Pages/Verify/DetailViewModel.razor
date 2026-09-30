@@ -1,0 +1,276 @@
+@* Halal verification detail page with evidence and compliance metrics *@
+@page "/verify/{id:guid}"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IHalalVerificationRepository VerificationRepo
+@inject IProductRepository ProductRepo
+@inject IMapper Mapper
+@inject ILogger<DetailViewModel> Logger
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>@(_verification?.ProductName ?? "Verification")</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container section-sm">
+        <p class="muted">Loading verification details…</p>
+    </section>
+}
+else if (_verification == null)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">❌</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Verification not found</h3>
+            <p class="muted" style="text-align:center;">The verification record you're looking for doesn't exist.</p>
+            <a class="btn btn-primary" href="/verify" style="display:block; margin-top:var(--space-3); text-align:center;">Back to verifications</a>
+        </div>
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <nav class="breadcrumbs" style="margin-bottom: var(--space-4);">
+            <a href="/verify">Verifications</a>
+            <span aria-hidden="true">/</span>
+            <span>@_verification.ProductName</span>
+        </nav>
+
+        <div class="between" style="margin-bottom: var(--space-5); align-items: center; gap: var(--space-3);">
+            <div>
+                <p class="eyebrow">Compliance</p>
+                <h1 style="font-size: var(--text-2xl); margin: 4px 0 0;">@_verification.ProductName</h1>
+            </div>
+            <span class="@_verification.StatusBadgeClass" style="font-size: 1.125rem; padding: 8px 12px;">@_verification.DisplayStatus</span>
+        </div>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div class="panel card-pad">
+                <div class="eyebrow">Status</div>
+                <div style="font-size: 1.5rem; margin: 8px 0 0; font-weight: 600;">@_verification.DisplayStatus</div>
+            </div>
+            <div class="panel card-pad">
+                <div class="eyebrow">Policy Version</div>
+                <div style="font-size: 1.5rem; margin: 8px 0 0; font-weight: 600;">@_verification.PolicyVersion</div>
+            </div>
+            <div class="panel card-pad">
+                <div class="eyebrow">Jurisdiction</div>
+                <div style="font-size: 1.5rem; margin: 8px 0 0; font-weight: 600;">@_verification.Jurisdiction</div>
+            </div>
+            <div class="panel card-pad">
+                <div class="eyebrow">Verified Date</div>
+                <div style="font-size: 1.125rem; margin: 8px 0 0;">@_verification.VerifiedAt.ToString("MMM dd, yyyy")</div>
+            </div>
+        </div>
+
+        @if (_verification.RequiresHumanReview)
+        {
+            <div class="alert alert-warning" style="margin-bottom: var(--space-4);">
+                <strong>⚠️ Pending Human Review</strong>
+                <p style="margin: 8px 0 0;">This product requires verification by a compliance officer. Review is currently in progress.</p>
+            </div>
+        }
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-5); align-items: start;">
+            <div>
+                @* Evidence Collection Status *@
+                <div class="panel card-pad">
+                    <h3 style="margin-top: 0;">Evidence Collection</h3>
+                    
+                    @if (_evidenceItems?.Length > 0)
+                    {
+                        <div class="stack gap-3">
+                            @foreach (var evidence in _evidenceItems)
+                            {
+                                <div style="padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 4px;">
+                                    <div class="between" style="margin-bottom: 4px;">
+                                        <strong>@evidence.EvidenceType</strong>
+                                        <span class="@EvidenceStatusClass(evidence.Status)">@evidence.Status</span>
+                                    </div>
+                                    <p class="small muted" style="margin: 4px 0 0;">@evidence.Description</p>
+                                    @if (!string.IsNullOrEmpty(evidence.Source))
+                                    {
+                                        <p class="small" style="margin: 4px 0 0; color: var(--color-text-secondary);">
+                                            Source: <code>@evidence.Source</code>
+                                        </p>
+                                    }
+                                    <p class="small muted" style="margin: 4px 0 0;">
+                                        Collected @evidence.CollectedAt.ToString("MMM dd, yyyy HH:mm")
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="muted">No evidence collected yet.</p>
+                    }
+                </div>
+            </div>
+
+            <div>
+                @* Compliance Details *@
+                <div class="panel card-pad">
+                    <h3 style="margin-top: 0;">Compliance Details</h3>
+
+                    @if (_verification.ReasonCodes?.Length > 0)
+                    {
+                        <div style="margin-bottom: var(--space-3);">
+                            <strong class="small">Reason Codes</strong>
+                            <div class="stack gap-1" style="margin-top: 8px;">
+                                @foreach (var reason in _verification.ReasonCodes)
+                                {
+                                    <div class="badge badge-neutral">@reason</div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (_verification.MissingEvidence?.Length > 0)
+                    {
+                        <div style="margin-bottom: var(--space-3);">
+                            <strong class="small" style="color: var(--color-warning);">⚠ Missing Evidence</strong>
+                            <ul style="margin: 8px 0 0; padding-left: 20px;">
+                                @foreach (var evidence in _verification.MissingEvidence)
+                                {
+                                    <li class="small">@evidence</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div>
+                        <strong class="small">Metrics</strong>
+                        <div class="stack gap-2" style="margin-top: 8px;">
+                            <div class="between">
+                                <span class="small muted">Evidence Completeness</span>
+                                <span class="small">@_verification.EvidenceCompleteness%</span>
+                            </div>
+                            <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: var(--color-halal); height: 100%; width: @_verification.EvidenceCompleteness%; transition: width 0.3s ease;"></div>
+                            </div>
+
+                            <div class="between" style="margin-top: var(--space-2);">
+                                <span class="small muted">Compliance Score</span>
+                                <span class="small">@_verification.ComplianceScore%</span>
+                            </div>
+                            <div style="background: var(--color-border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: @ComplianceScoreColor(_verification.ComplianceScore); height: 100%; width: @_verification.ComplianceScore%; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Audit Trail *@
+        <div class="panel card-pad" style="margin-bottom: var(--space-4);">
+            <h3 style="margin-top: 0;">Audit Trail</h3>
+            @if (_auditTrail?.Length > 0)
+            {
+                <div class="stack gap-3">
+                    @foreach (var audit in _auditTrail.OrderByDescending(a => a.Timestamp))
+                    {
+                        <div style="padding: var(--space-2); border-left: 2px solid var(--color-border-secondary); padding-left: var(--space-3);">
+                            <div class="between" style="margin-bottom: 4px;">
+                                <strong>@audit.ActionName</strong>
+                                <span class="small muted">@audit.Timestamp.ToString("MMM dd, yyyy HH:mm:ss")</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(audit.PerformedBy))
+                            {
+                                <p class="small muted" style="margin: 4px 0 0;">By: @audit.PerformedBy</p>
+                            }
+                            @if (!string.IsNullOrEmpty(audit.Notes))
+                            {
+                                <p class="small" style="margin: 4px 0 0;">@audit.Notes</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="muted">No audit records available.</p>
+            }
+        </div>
+
+        <div class="row gap-2">
+            <a href="/products/@_verification.ProductId" class="btn btn-primary">View product</a>
+            <a href="/verify" class="btn btn-secondary">Back to list</a>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private HalalVerificationViewModel? _verification;
+    private VerificationEvidenceViewModel[]? _evidenceItems;
+    private VerificationAuditViewModel[]? _auditTrail;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadVerificationDetail();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing verification detail page for {VerificationId}", Id);
+            Toast.Error("Failed to load verification details");
+        }
+    }
+
+    private async Task LoadVerificationDetail()
+    {
+        _isLoading = true;
+        try
+        {
+            // Load verification
+            var verification = await VerificationRepo.GetByIdAsync(Id);
+            if (verification == null)
+            {
+                return;
+            }
+
+            _verification = Mapper.Map<HalalVerificationViewModel>(verification);
+
+            // Load evidence items
+            var evidence = await VerificationRepo.GetEvidenceByVerificationAsync(Id);
+            _evidenceItems = Mapper.Map<VerificationEvidenceViewModel[]>(evidence.ToArray());
+
+            // Load audit trail
+            var audit = await VerificationRepo.GetAuditTrailAsync(Id);
+            _auditTrail = Mapper.Map<VerificationAuditViewModel[]>(audit.ToArray());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading verification {VerificationId}", Id);
+            Toast.Error("Failed to load verification details");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string EvidenceStatusClass(string status) => status switch
+    {
+        "Collected" => "badge badge-success",
+        "Pending" => "badge badge-warning",
+        "Failed" => "badge badge-danger",
+        "Verified" => "badge badge-info",
+        _ => "badge badge-secondary"
+    };
+
+    private string ComplianceScoreColor(int score) => score switch
+    {
+        >= 90 => "var(--color-success)",
+        >= 70 => "var(--color-warning)",
+        >= 50 => "var(--color-warning)",
+        _ => "var(--color-danger)"
+    };
+}

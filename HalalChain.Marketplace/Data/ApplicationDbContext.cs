@@ -27,6 +27,11 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Determine the current database provider
+        var provider = Database.ProviderName;
+        var isDbSqlServer = provider?.Contains("SqlServer") ?? false;
+        var isDbSqlite = provider?.Contains("Sqlite") ?? false;
+
         // Configure DashboardConfigEntity
         modelBuilder.Entity<DashboardConfigEntity>(entity =>
         {
@@ -47,10 +52,10 @@ public class ApplicationDbContext : DbContext
                 .HasDefaultValue(true);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql(isDbSqlite ? "CURRENT_TIMESTAMP" : "GETUTCDATE()");
 
             entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql(isDbSqlite ? "CURRENT_TIMESTAMP" : "GETUTCDATE()");
 
             entity.Property(e => e.CreatedBy)
                 .HasMaxLength(255);
@@ -98,7 +103,7 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
 
             entity.Property(e => e.ChangedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql(isDbSqlite ? "CURRENT_TIMESTAMP" : "GETUTCDATE()");
 
             entity.Property(e => e.Reason)
                 .HasMaxLength(500);
@@ -150,7 +155,7 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql(isDbSqlite ? "CURRENT_TIMESTAMP" : "GETUTCDATE()");
 
             // Indexes
             entity.HasIndex(e => e.CacheKey)

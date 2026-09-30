@@ -22,6 +22,12 @@
 
         <!-- Main Content -->
         <main class="dashboard-main" role="main">
+            @if (ChildContent is not null)
+            {
+                <div class="dashboard-page-content">
+                    @ChildContent
+                </div>
+            }
             <div class="dashboard-regions">
                 @if (Config?.Regions != null)
                 {
@@ -133,18 +139,3 @@
     }
 }
 
-/// <summary>Tenant branding information.</summary>
-public class BrandConfig
-{
-    public string? OrganizationName { get; set; }
-    public string? LogoUrl { get; set; }
-    public string? PrimaryColor { get; set; }
-}
-
-/// <summary>Breadcrumb navigation item.</summary>
-public class BreadcrumbItem
-{
-    public string Label { get; set; } = null!;
-    public string? Href { get; set; }
-    public bool IsCurrent { get; set; }
-}

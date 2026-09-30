@@ -1,0 +1,383 @@
+@* Product detail page with full repository integration *@
+@page "/products/{id:guid}"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IProductRepository ProductRepo
+@inject ICertificateRepository CertRepo
+@inject IHalalVerificationRepository VerificationRepo
+@inject IWishlistRepository WishlistRepo
+@inject ICartRepository CartRepo
+@inject ICurrentUserAccessor CurrentUser
+@inject IMapper Mapper
+@inject ILogger<DetailViewModel> Logger
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>@(_productModel?.Title ?? "Product")</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container section-sm">
+        <p class="muted">Loading product…</p>
+    </section>
+}
+else if (_productModel == null)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">❌</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Product not found</h3>
+            <p class="muted" style="text-align:center;">The product you're looking for doesn't exist or has been removed.</p>
+            <a class="btn btn-primary" href="/browse" style="display:block; margin-top:var(--space-3); text-align:center;">Back to catalog</a>
+        </div>
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <nav class="breadcrumbs" style="margin-bottom: var(--space-4);">
+            <a href="/browse">Catalog</a>
+            <span aria-hidden="true">/</span>
+            <a href="/vendors/@_productModel.Id">@_productModel.VendorName</a>
+            <span aria-hidden="true">/</span>
+            <span>@_productModel.Title</span>
+        </nav>
+
+        <div class="grid" style="grid-template-columns: 1fr 400px; gap: var(--space-5); align-items:start;">
+            <div>
+                @* Product Media Gallery *@
+                <div class="panel" style="background: var(--color-surface); margin-bottom: var(--space-4); aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;">
+                    @if (_productModel.MediaAssets?.Any() == true)
+                    {
+                        var primaryImage = _productModel.MediaAssets.FirstOrDefault(m => m.IsPrimary)?.Url 
+                            ?? _productModel.MediaAssets.FirstOrDefault()?.Url;
+                        @if (!string.IsNullOrEmpty(primaryImage))
+                        {
+                            <img src="@primaryImage" alt="@_productModel.Title" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                        }
+                        else
+                        {
+                            <span style="font-size: var(--text-4xl);">🖼️</span>
+                        }
+                    }
+                    else
+                    {
+                        <span style="font-size: var(--text-4xl);">📦</span>
+                    }
+                </div>
+
+                @if (_productModel.MediaAssets?.Count > 1)
+                {
+                    <div class="row gap-2" style="margin-bottom: var(--space-4); overflow-x: auto;">
+                        @foreach (var media in _productModel.MediaAssets.Take(5))
+                        {
+                            <button class="btn btn-ghost" style="min-width: 80px; padding: 8px;">
+                                <img src="@media.Url" alt="@media.AltText" style="width: 100%; height: 80px; object-fit: cover; border-radius: 4px;" />
+                            </button>
+                        }
+                    </div>
+                }
+
+                @* Product Description *@
+                <div class="panel card-pad" style="margin-bottom: var(--space-4);">
+                    <h2 style="margin-top: 0;">About this product</h2>
+                    <p>@(_productModel.Description ?? "No description available")</p>
+                </div>
+
+                @* Ingredients & Allergens *@
+                @if (!string.IsNullOrEmpty(_productModel.AllergenWarnings))
+                {
+                    <div class="panel card-pad" style="background: var(--color-warning-soft); margin-bottom: var(--space-4);">
+                        <strong style="color: var(--color-warning);">⚠️ Allergen Warning</strong>
+                        <p style="margin: var(--space-2) 0 0;">@_productModel.AllergenWarnings</p>
+                    </div>
+                }
+
+                @* Halal Verification *@
+                @if (_verificationModel != null)
+                {
+                    <div class="panel card-pad" style="margin-bottom: var(--space-4);">
+                        <h3>Halal Verification</h3>
+                        <div class="between" style="margin-bottom: var(--space-2); align-items: center;">
+                            <span>Status</span>
+                            <span class="@_verificationModel.StatusBadgeClass">@_verificationModel.DisplayStatus</span>
+                        </div>
+                        <div class="between" style="margin-bottom: var(--space-2);">
+                            <span class="muted small">Verified</span>
+                            <span class="small">@_verificationModel.VerifiedAt.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        @if (_verificationModel.RequiresHumanReview)
+                        {
+                            <div class="alert alert-info">
+                                ⓘ This product requires human review for compliance.
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Certificates *@
+                @if (_certificates?.Any() == true)
+                {
+                    <div class="panel card-pad">
+                        <h3>Certificates</h3>
+                        <div class="stack gap-2">
+                            @foreach (var cert in _certificates)
+                            {
+                                <div style="padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 4px;">
+                                    <div class="between" style="margin-bottom: 4px;">
+                                        <strong>@cert.CertificationBody</strong>
+                                        <span class="@cert.StatusBadgeClass" style="font-size: 0.875rem;">@cert.Status</span>
+                                    </div>
+                                    <div class="small muted">
+                                        Cert. @cert.CertificateNumber · Issued @cert.IssueDate.ToString("MMM dd, yyyy")
+                                    </div>
+                                    @if (cert.IsExpired)
+                                    {
+                                        <div class="small" style="color: var(--color-danger);">
+                                            ✗ Expired on @cert.ExpiryDate.ToString("MMM dd, yyyy")
+                                        </div>
+                                    }
+                                    else if (cert.IsExpiringSoon)
+                                    {
+                                        <div class="small" style="color: var(--color-warning);">
+                                            ⚠ Expires in @cert.DaysUntilExpiry days
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <aside>
+                @* Pricing & Purchase *@
+                <div class="panel card-pad" style="position: sticky; top: calc(var(--nav-height) + 12px);">
+                    <div style="margin-bottom: var(--space-3);">
+                        <div class="eyebrow">Price</div>
+                        <h2 style="margin: 4px 0 0;">@_productModel.Currency @_productModel.Price.ToString("N2")</h2>
+                        @if (_productModel.CompareAtPrice.HasValue && _productModel.CompareAtPrice > _productModel.Price)
+                        {
+                            <span class="small muted"><s>@_productModel.Currency @_productModel.CompareAtPrice.Value.ToString("N2")</s></span>
+                        }
+                    </div>
+
+                    @* Stock Status *@
+                    <div style="margin-bottom: var(--space-3);">
+                        @if (_productModel.IsOutOfStock)
+                        {
+                            <span class="badge badge-danger">Out of stock</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-success">In stock</span>
+                        }
+                    </div>
+
+                    @* Halal Status Badge *@
+                    <div style="margin-bottom: var(--space-3);">
+                        @if (_productModel.HalalStatus == "Certified")
+                        {
+                            <div style="background: var(--color-halal-soft); color: var(--color-halal-ink); padding: var(--space-2); border-radius: 4px; text-align: center;">
+                                <strong>✓ Halal Certified</strong>
+                            </div>
+                        }
+                    </div>
+
+                    @* Variants *@
+                    @if (_productModel.Variants?.Any() == true)
+                    {
+                        <div style="margin-bottom: var(--space-3);">
+                            <div class="eyebrow">Variants</div>
+                            <div class="stack gap-2">
+                                @foreach (var variant in _productModel.Variants.Take(3))
+                                {
+                                    <button class="btn btn-secondary btn-sm" style="text-align: left;">
+                                        @variant.Name<br/>
+                                        <span class="small muted">@variant.Currency @variant.Price.ToString("N2")</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* Action Buttons *@
+                    <div class="stack gap-2">
+                        <button class="btn btn-primary btn-block btn-lg" 
+                                @onclick="AddToCart" 
+                                disabled="@(_productModel.IsOutOfStock || _isAddingToCart)">
+                            @if (_isAddingToCart)
+                            {
+                                <span>Adding…</span>
+                            }
+                            else
+                            {
+                                <span>Add to cart</span>
+                            }
+                        </button>
+
+                        <button class="btn btn-secondary btn-block"
+                                @onclick="ToggleWishlist"
+                                style="@(_isInWishlist ? "background: var(--color-halal-soft); color: var(--color-halal-ink);" : "")">
+                            @if (_isInWishlist)
+                            {
+                                <span>♥ Saved to wishlist</span>
+                            }
+                            else
+                            {
+                                <span>♡ Save to wishlist</span>
+                            }
+                        </button>
+                    </div>
+
+                    @* Vendor Info *@
+                    <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
+                        <div class="eyebrow">Sold by</div>
+                        <a href="/vendors/@_productModel.VendorName" class="btn btn-ghost btn-sm btn-block" style="justify-content: flex-start;">
+                            @_productModel.VendorName →
+                        </a>
+                    </div>
+                </div>
+                </aside>
+            </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private ProductViewModel? _productModel;
+    private HalalVerificationViewModel? _verificationModel;
+    private CertificateViewModel[]? _certificates;
+    private Guid CurrentUserId { get; set; }
+    private bool _isLoading = true;
+    private bool _isAddingToCart = false;
+    private bool _isInWishlist = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            CurrentUserId = await CurrentUser.GetIdAsync();
+            await LoadProduct();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing product detail page for {ProductId}", Id);
+            Toast.Error("Failed to load product");
+        }
+    }
+
+    private async Task LoadProduct()
+    {
+        _isLoading = true;
+        try
+        {
+            // Load product
+            var product = await ProductRepo.GetByIdAsync(Id);
+            if (product == null)
+            {
+                return;
+            }
+
+            _productModel = Mapper.Map<ProductViewModel>(product);
+
+            // Load halal verification
+            var verification = await VerificationRepo.GetByProductAsync(Id);
+            if (verification != null)
+            {
+                _verificationModel = Mapper.Map<HalalVerificationViewModel>(verification);
+            }
+
+            // Load certificates
+            var certs = await CertRepo.GetByProductAsync(Id);
+            _certificates = Mapper.Map<CertificateViewModel[]>(certs.ToArray());
+
+            // Check wishlist status
+            if (CurrentUserId != Guid.Empty)
+            {
+                _isInWishlist = await WishlistRepo.ExistsInWishlistAsync(CurrentUserId, Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product {ProductId}", Id);
+            Toast.Error("Failed to load product details");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddToCart()
+    {
+        if (_isAddingToCart || CurrentUserId == Guid.Empty || _productModel == null) return;
+
+        _isAddingToCart = true;
+        try
+        {
+            var cartItem = new HalalChain.Domain.Commerce.CartItem
+            {
+                Id = Guid.NewGuid(),
+                CustomerId = CurrentUserId,
+                ProductId = _productModel.Id,
+                Quantity = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await CartRepo.AddAsync(cartItem);
+            Toast.Success($"{_productModel.Title} added to cart");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding product to cart");
+            Toast.Error("Failed to add to cart");
+        }
+        finally
+        {
+            _isAddingToCart = false;
+        }
+    }
+
+    private async Task ToggleWishlist()
+    {
+        if (CurrentUserId == Guid.Empty || _productModel == null) return;
+
+        try
+        {
+            if (_isInWishlist)
+            {
+                var item = await WishlistRepo.GetByCustomerAndProductAsync(CurrentUserId, _productModel.Id);
+                if (item != null)
+                {
+                    await WishlistRepo.DeleteAsync(item.Id);
+                    _isInWishlist = false;
+                    Toast.Success("Removed from wishlist");
+                }
+            }
+            else
+            {
+                var wishlistItem = new HalalChain.Domain.Commerce.WishlistItem
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = CurrentUserId,
+                    ProductId = _productModel.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await WishlistRepo.AddAsync(wishlistItem);
+                _isInWishlist = true;
+                Toast.Success("Added to wishlist");
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling wishlist");
+            Toast.Error("Failed to update wishlist");
+        }
+    }
+}

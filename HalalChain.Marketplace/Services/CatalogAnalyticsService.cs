@@ -1,3 +1,5 @@
+using HalalChain.Marketplace.Repositories;
+
 namespace HalalChain.Marketplace.Services;
 
 /// <summary>
@@ -6,67 +8,76 @@ namespace HalalChain.Marketplace.Services;
 /// </summary>
 public interface ICatalogAnalyticsService
 {
-    /// <summary>
-    /// Get top performing products by revenue, units sold, or conversion rate.
-    /// </summary>
-    Task<List<ProductPerformance>> GetTopPerformersAsync(int vendorId, string metric = "revenue", int limit = 10, CancellationToken ct = default);
+    /// <summary>Get top performing products by revenue, units sold, or conversion rate.</summary>
+    Task<List<ProductPerformance>> GetTopPerformersAsync(Guid vendorId, string metric = "revenue", int limit = 10, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get conversion funnel for a product (views → clicks → purchases).
-    /// </summary>
-    Task<ConversionFunnel> GetConversionFunnelAsync(int productId, CancellationToken ct = default);
+    /// <summary>Get conversion funnel for a product (views → clicks → purchases).</summary>
+    Task<ConversionFunnel> GetConversionFunnelAsync(Guid productId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get return rate analysis (total returns / total sales).
-    /// </summary>
-    Task<ReturnAnalysis> GetReturnAnalysisAsync(int vendorId, DateTime? startDate = null, CancellationToken ct = default);
+    /// <summary>Get return rate analysis (total returns / total sales).</summary>
+    Task<ReturnAnalysis> GetReturnAnalysisAsync(Guid vendorId, DateTime? startDate = null, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get customer feedback sentiment for products (positive, neutral, negative reviews).
-    /// </summary>
-    Task<List<ProductSentiment>> GetFeedbackSentimentAsync(int vendorId, CancellationToken ct = default);
+    /// <summary>Get customer feedback sentiment for products (positive, neutral, negative reviews).</summary>
+    Task<List<ProductSentiment>> GetFeedbackSentimentAsync(Guid vendorId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get pricing strategy analysis (optimal price based on elasticity).
-    /// </summary>
-    Task<PriceElasticityAnalysis> GetPriceElasticityAsync(int productId, CancellationToken ct = default);
+    /// <summary>Get pricing strategy analysis (optimal price based on elasticity).</summary>
+    Task<PriceElasticityAnalysis> GetPriceElasticityAsync(Guid productId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get inventory efficiency metrics (turnover, stockout rate, waste).
-    /// </summary>
-    Task<InventoryEfficiency> GetInventoryEfficiencyAsync(int vendorId, CancellationToken ct = default);
+    /// <summary>Get inventory efficiency metrics (turnover, stockout rate, waste).</summary>
+    Task<InventoryEfficiency> GetInventoryEfficiencyAsync(Guid vendorId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Get category-level performance comparison.
-    /// </summary>
-    Task<List<CategoryPerformance>> GetCategoryPerformanceAsync(int vendorId, CancellationToken ct = default);
+    /// <summary>Get category-level performance comparison.</summary>
+    Task<List<CategoryPerformance>> GetCategoryPerformanceAsync(Guid vendorId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Generate performance report for a date range.
-    /// </summary>
-    Task<PerformanceReport> GeneratePerformanceReportAsync(int vendorId, DateTime startDate, DateTime endDate, CancellationToken ct = default);
+    /// <summary>Generate performance report for a date range.</summary>
+    Task<PerformanceReport> GeneratePerformanceReportAsync(Guid vendorId, DateTime startDate, DateTime endDate, CancellationToken ct = default);
 }
 
-/// <summary>
-/// Implementation of catalog analytics service.
-/// </summary>
+/// <summary>Implementation of catalog analytics service.</summary>
 public class CatalogAnalyticsService : ICatalogAnalyticsService
 {
+    private readonly IProductRepository _productRepository;
+    private readonly IOrderRepository _orderRepository;
     private readonly ILogger<CatalogAnalyticsService> _logger;
 
-    public CatalogAnalyticsService(ILogger<CatalogAnalyticsService> logger)
+    public CatalogAnalyticsService(
+        IProductRepository productRepository,
+        IOrderRepository orderRepository,
+        ILogger<CatalogAnalyticsService> logger)
     {
+        _productRepository = productRepository;
+        _orderRepository = orderRepository;
         _logger = logger;
     }
 
-    public async Task<List<ProductPerformance>> GetTopPerformersAsync(int vendorId, string metric = "revenue", int limit = 10, CancellationToken ct = default)
+    public async Task<List<ProductPerformance>> GetTopPerformersAsync(Guid vendorId, string metric = "revenue", int limit = 10, CancellationToken ct = default)
     {
         try
         {
-            var performers = new List<ProductPerformance>();
-
-            // In production, fetch from analytics database
-            // Metrics: revenue, units_sold, conversion_rate, margin, rating
+            var products = await _productRepository.GetByVendorAsync(vendorId, 0, 1000, ct);
+            var performers = products.Select(p => new ProductPerformance
+            {
+                ProductId = p.Id,
+                ProductName = p.Title,
+                Revenue = p.Price * (p.Inventory > 0 ? p.Inventory : 1),
+                UnitsSold = p.Inventory,
+                ConversionRate = 0.08m, // Placeholder
+                Margin = p.Price * 0.35m, // Placeholder: 35% margin
+                Rating = p.AverageRating,
+                Rank = 0
+            })
+            .OrderByDescending(x => metric switch
+            {
+                "revenue" => x.Revenue,
+                "units_sold" => x.UnitsSold,
+                "conversion_rate" => x.ConversionRate,
+                "margin" => x.Margin,
+                "rating" => x.Rating,
+                _ => x.Revenue
+            })
+            .Take(limit)
+            .Select((p, i) => { p.Rank = i + 1; return p; })
+            .ToList();
 
             _logger.LogInformation("Retrieved top {Count} performers for VendorId: {VendorId} by {Metric}",
                 limit, vendorId, metric);
@@ -80,7 +91,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<ConversionFunnel> GetConversionFunnelAsync(int productId, CancellationToken ct = default)
+    public async Task<ConversionFunnel> GetConversionFunnelAsync(Guid productId, CancellationToken ct = default)
     {
         try
         {
@@ -113,7 +124,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<ReturnAnalysis> GetReturnAnalysisAsync(int vendorId, DateTime? startDate = null, CancellationToken ct = default)
+    public async Task<ReturnAnalysis> GetReturnAnalysisAsync(Guid vendorId, DateTime? startDate = null, CancellationToken ct = default)
     {
         try
         {
@@ -149,7 +160,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<List<ProductSentiment>> GetFeedbackSentimentAsync(int vendorId, CancellationToken ct = default)
+    public async Task<List<ProductSentiment>> GetFeedbackSentimentAsync(Guid vendorId, CancellationToken ct = default)
     {
         try
         {
@@ -187,7 +198,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<PriceElasticityAnalysis> GetPriceElasticityAsync(int productId, CancellationToken ct = default)
+    public async Task<PriceElasticityAnalysis> GetPriceElasticityAsync(Guid productId, CancellationToken ct = default)
     {
         try
         {
@@ -222,7 +233,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<InventoryEfficiency> GetInventoryEfficiencyAsync(int vendorId, CancellationToken ct = default)
+    public async Task<InventoryEfficiency> GetInventoryEfficiencyAsync(Guid vendorId, CancellationToken ct = default)
     {
         try
         {
@@ -255,7 +266,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<List<CategoryPerformance>> GetCategoryPerformanceAsync(int vendorId, CancellationToken ct = default)
+    public async Task<List<CategoryPerformance>> GetCategoryPerformanceAsync(Guid vendorId, CancellationToken ct = default)
     {
         try
         {
@@ -295,7 +306,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
         }
     }
 
-    public async Task<PerformanceReport> GeneratePerformanceReportAsync(int vendorId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    public async Task<PerformanceReport> GeneratePerformanceReportAsync(Guid vendorId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
     {
         try
         {

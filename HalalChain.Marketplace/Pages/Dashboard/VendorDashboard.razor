@@ -1,204 +1,181 @@
 @page "/tenant/{TenantId}/dashboard/vendor"
 @attribute [Authorize(Roles = "Vendor")]
-@implements IAsyncDisposable
 @inject IDashboardConfigService ConfigService
 @inject INavigationService NavigationService
 @inject ITenantContext TenantContext
+@inject IPlatformApiClient Api
+@inject ICurrentUserAccessor CurrentUser
+@inject NavigationManager Nav
 @inject ILogger<VendorDashboard> Logger
 
+@using HalalChain.Marketplace.Models.Dashboard
+@using HalalChain.Marketplace.Components.Admin
+
+<PageTitle>@PageTitle — HalalChain</PageTitle>
+
 <DashboardLayout PageTitle="@PageTitle" BreadcrumbItems="BreadcrumbItems">
-    <!-- Vendor-specific content using shared layout -->
-    @if (IsLoading)
-    {
-        <div class="page-loading">
-            <div class="loading-spinner"></div>
-            <p>Loading vendor dashboard...</p>
-        </div>
-    }
-    else
-    {
-        <div class="vendor-dashboard-content">
-            <!-- Vendor Overview -->
-            <section class="dashboard-section">
-                <h2>Your Store Overview</h2>
-                <div class="vendor-overview-card">
-                    <div class="overview-header">
-                        <h3>@VendorName</h3>
-                        <span class="compliance-badge" style="background-color: @GetComplianceBadgeColor()">
-                            Compliance: @ComplianceScore%
-                        </span>
-                    </div>
-                    <p class="overview-description">@VendorDescription</p>
-                </div>
-            </section>
-
-            <!-- Key Metrics Row -->
-            <section class="dashboard-section">
-                <h2>Performance Metrics</h2>
-                <div class="metrics-grid">
-                    <MetricCard Title="Total Sales" 
-                               Value="@TotalSales.ToString("C0")" 
-                               Icon="icon-dollar"
-                               TrendPercent="@SalesTrend"
-                               Color="success" />
-                    
-                    <MetricCard Title="Active Products" 
-                               Value="@ActiveProducts.ToString()" 
-                               Icon="icon-package"
-                               TrendPercent="@ProductsTrend"
-                               Color="primary" />
-                    
-                    <MetricCard Title="Orders (30d)" 
-                               Value="@OrderCount.ToString()" 
-                               Icon="icon-shopping-cart"
-                               TrendPercent="@OrdersTrend"
-                               Color="info" />
-                    
-                    <MetricCard Title="Avg Rating" 
-                               Value="@AverageRating.ToString(\"F1\")" 
-                               Icon="icon-star"
-                               TrendPercent="@RatingTrend"
-                               Color="warning" />
-                </div>
-            </section>
-
-            <!-- Recent Orders -->
-            <section class="dashboard-section">
-                <h2>Recent Orders</h2>
-                <div class="orders-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var order in RecentOrders)
-                            {
-                                <tr>
-                                    <td>@order.OrderId</td>
-                                    <td>@order.CustomerName</td>
-                                    <td>@order.Amount.ToString("C")</td>
-                                    <td><span class="status-badge @GetOrderStatusClass(order.Status)">@order.Status</span></td>
-                                    <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
-                                    <td>
-                                        <button class="action-link" @onclick="() => HandleViewOrderAsync(order)">
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Product Inventory -->
-            <section class="dashboard-section">
-                <h2>Product Inventory</h2>
-                <div class="inventory-grid">
-                    @foreach (var product in Products)
-                    {
-                        <div class="inventory-card">
-                            <div class="product-info">
-                                <h4>@product.Name</h4>
-                                <p class="product-sku">SKU: @product.Sku</p>
-                            </div>
-                            <div class="stock-info">
-                                <span class="stock-level">Stock: @product.StockLevel</span>
-                                <div class="stock-bar">
-                                    <div class="stock-bar-fill" style="width: @GetStockPercentage(product.StockLevel, product.MaxStock)%"></div>
-                                </div>
-                            </div>
-                            <div class="product-actions">
-                                <button @onclick="() => HandleEditProductAsync(product)">Edit</button>
-                                <button @onclick="() => HandleViewAnalyticsAsync(product)">Analytics</button>
-                            </div>
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="page-loading" role="status" aria-live="polite">
+                <div class="loading-spinner"></div>
+                <p>Loading vendor dashboard…</p>
+            </div>
+        }
+        else if (ErrorMessage is not null)
+        {
+            <div class="dashboard-error" role="alert">
+                <p>@ErrorMessage</p>
+            </div>
+        }
+        else
+        {
+            <div class="vendor-dashboard-content">
+                <section class="dashboard-section">
+                    <h2>Your Store Overview</h2>
+                    <div class="vendor-overview-card">
+                        <div class="overview-header">
+                            <h3>@VendorName</h3>
+                            <span class="compliance-badge" style="background-color: @GetComplianceBadgeColor()">
+                                Compliance: @ComplianceScore%
+                            </span>
                         </div>
-                    }
-                </div>
-            </section>
+                        <p class="overview-description">@VendorDescription</p>
+                    </div>
+                </section>
 
-            <!-- Compliance Status -->
-            <section class="dashboard-section compliance-section">
-                <h2>Compliance Status</h2>
-                <div class="compliance-status">
-                    <div class="status-item">
-                        <span class="status-label">Certification</span>
-                        <span class="status-value @(IsCertified ? "status-approved" : "status-pending")">
-                            @(IsCertified ? "Certified" : "Pending")
-                        </span>
+                <section class="dashboard-section">
+                    <h2>Performance Metrics</h2>
+                    <div class="metrics-grid">
+                        <MetricCard Label="Total Sales" Value="@OrderCount" Icon="package" Accent="success" />
+                        <MetricCard Label="Active Products" Value="@Products.Count" Icon="package" Accent="primary" />
+                        <MetricCard Label="Pending Orders" Value="@PendingOrderCount" Icon="grid" Accent="warning" />
+                        <MetricCard Label="Shipped Orders" Value="@ShippedOrderCount" Icon="shield-check" Accent="primary" />
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">Documentation</span>
-                        <span class="status-value status-approved">Complete</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Last Audit</span>
-                        <span class="status-value">@LastAuditDate.ToString("MMM dd, yyyy")</span>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- Quick Actions -->
-            <section class="dashboard-section quick-actions">
-                <h2>Quick Actions</h2>
-                <div class="actions-grid">
-                    <button class="action-btn" @onclick="HandleAddProductAsync">
-                        <i class="icon-plus" aria-hidden="true"></i>
-                        <span>Add Product</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleManageInventoryAsync">
-                        <i class="icon-inventory" aria-hidden="true"></i>
-                        <span>Manage Inventory</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleViewReportsAsync">
-                        <i class="icon-report" aria-hidden="true"></i>
-                        <span>View Reports</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleContactSupportAsync">
-                        <i class="icon-help" aria-hidden="true"></i>
-                        <span>Contact Support</span>
-                    </button>
-                </div>
-            </section>
-        </div>
-    }
+                <section class="dashboard-section">
+                    <h2>Recent Orders</h2>
+                    <div class="orders-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (RecentOrders.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="5">No orders yet</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var order in RecentOrders)
+                                    {
+                                        <tr>
+                                            <td>@order.OrderId</td>
+                                            <td>@order.Currency @order.Amount.ToString("N2")</td>
+                                            <td>
+                                                <span class="status-badge @GetOrderStatusClass(order.Status)">@order.Status</span>
+                                            </td>
+                                            <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <button class="action-link" @onclick="() => HandleViewOrderAsync(order)">
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="dashboard-section">
+                    <h2>Product Inventory</h2>
+                    <div class="inventory-grid">
+                        @if (Products.Count == 0)
+                        {
+                            <p>No products yet. Add your first product to get started.</p>
+                        }
+                        else
+                        {
+                            @foreach (var product in Products)
+                            {
+                                <div class="inventory-card">
+                                    <div class="product-info">
+                                        <h4>@product.Name</h4>
+                                        <p class="product-sku">SKU: @product.Sku</p>
+                                    </div>
+                                    <div class="stock-info">
+                                        <span class="stock-level">Stock: @product.StockLevel</span>
+                                        <div class="stock-bar">
+                                            <div class="stock-bar-fill" style="width: @product.StockPercentage.ToString("F0")%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="product-actions">
+                                        <button @onclick="() => HandleEditProductAsync(product)">Edit</button>
+                                        <button @onclick="() => HandleViewAnalyticsAsync(product)">Analytics</button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </section>
+
+                <section class="dashboard-section quick-actions">
+                    <h2>Quick Actions</h2>
+                    <div class="actions-grid">
+                        <button class="action-btn" @onclick="HandleAddProductAsync">
+                            <i class="icon-plus" aria-hidden="true"></i>
+                            <span>Add Product</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleManageInventoryAsync">
+                            <i class="icon-inventory" aria-hidden="true"></i>
+                            <span>Manage Inventory</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleViewReportsAsync">
+                            <i class="icon-report" aria-hidden="true"></i>
+                            <span>View Reports</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleContactSupportAsync">
+                            <i class="icon-help" aria-hidden="true"></i>
+                            <span>Contact Support</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        }
+    </ChildContent>
 </DashboardLayout>
 
 @code {
     [Parameter]
     public string? TenantId { get; set; }
 
-    private string PageTitle { get; set; } = "Vendor Dashboard";
+    private const string PageTitle = "Vendor Dashboard";
+
     private List<BreadcrumbItem> BreadcrumbItems { get; set; } = new();
     private bool IsLoading { get; set; } = true;
+    private string? ErrorMessage { get; set; }
 
-    // Vendor Info
     private string VendorName { get; set; } = "Your Store";
     private string VendorDescription { get; set; } = "Premium halal products and services";
     private int ComplianceScore { get; set; } = 96;
-    private bool IsCertified { get; set; } = true;
-    private DateTime LastAuditDate { get; set; } = DateTime.UtcNow.AddDays(-30);
 
-    // Metrics
-    private decimal TotalSales { get; set; } = 45230;
-    private double SalesTrend { get; set; } = 15.2;
-    private int ActiveProducts { get; set; } = 47;
-    private double ProductsTrend { get; set; } = 5.1;
-    private int OrderCount { get; set; } = 128;
-    private double OrdersTrend { get; set; } = 8.3;
-    private double AverageRating { get; set; } = 4.7;
-    private double RatingTrend { get; set; } = 0.3;
+    private IReadOnlyList<VendorOrderRow> RecentOrders { get; set; } = [];
+    private IReadOnlyList<VendorInventoryRow> Products { get; set; } = [];
 
-    // Data collections
-    private List<OrderDto> RecentOrders { get; set; } = new();
-    private List<ProductDto> Products { get; set; } = new();
+    private int OrderCount => RecentOrders.Count;
+    private int PendingOrderCount => RecentOrders.Count(o => IsStatus(o.Status, "pending", "processing"));
+    private int ShippedOrderCount => RecentOrders.Count(o => IsStatus(o.Status, "shipped", "out for delivery"));
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,144 +185,107 @@
                 "Initializing vendor dashboard for tenant {TenantId}",
                 TenantContext.TenantId);
 
-            // Build breadcrumbs
             BreadcrumbItems = await NavigationService.GetBreadcrumbsAsync(
                 TenantContext,
                 $"/tenant/{TenantContext.TenantId}/dashboard/vendor");
 
-            // Load dashboard data
             await LoadDashboardDataAsync();
-
-            IsLoading = false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing vendor dashboard");
+            ErrorMessage = "Failed to load the vendor dashboard. Please refresh the page.";
+        }
+        finally
+        {
             IsLoading = false;
         }
     }
 
     private async Task LoadDashboardDataAsync()
     {
-        try
+        var vendorId = CurrentUser.UserId;
+        var vendorName = VendorName;
+
+        if (vendorId is not null)
         {
-            await Task.WhenAll(
-                LoadOrdersAsync(),
-                LoadProductsAsync()
-            );
+            var vendorResult = await Api.GetVendorByIdAsync(vendorId.Value);
+            if (vendorResult.IsSuccess && vendorResult.Data is { } vendor)
+            {
+                vendorName = vendor.Name;
+            }
         }
-        catch (Exception ex)
+
+        var ordersTask = Api.GetOrdersAsync();
+        var productsTask = Api.GetProductsAsync(pageSize: 100);
+
+        await Task.WhenAll(ordersTask, productsTask);
+
+        VendorName = vendorName;
+        RecentOrders = ProjectOrders(ordersTask.Result);
+        Products = ProjectInventory(productsTask.Result);
+    }
+
+    private static IReadOnlyList<VendorOrderRow> ProjectOrders(ApiResult<OrderDto[]> result)
+    {
+        if (!result.IsSuccess || result.Data is null)
         {
-            Logger.LogError(ex, "Error loading dashboard data");
+            return [];
         }
+
+        return result.Data
+            .SelectMany(order => order.VendorOrders.Select(vendorOrder => new VendorOrderRow(
+                $"{order.Id.ToString("N")[..8].ToUpperInvariant()}-{vendorOrder.Id.ToString("N")[..4].ToUpperInvariant()}",
+                vendorOrder.VendorName,
+                vendorOrder.Subtotal,
+                vendorOrder.Currency,
+                vendorOrder.Status,
+                order.CreatedAt)))
+            .OrderByDescending(o => o.OrderDate)
+            .ToList();
     }
 
-    private async Task LoadOrdersAsync()
+    private static IReadOnlyList<VendorInventoryRow> ProjectInventory(ApiResult<ProductDto[]> result)
     {
-        RecentOrders = new List<OrderDto>
+        if (!result.IsSuccess || result.Data is null)
         {
-            new OrderDto { OrderId = "ORD-001", CustomerName = "Ahmad Hassan", Amount = 245.50m, Status = "Delivered", OrderDate = DateTime.UtcNow.AddDays(-2) },
-            new OrderDto { OrderId = "ORD-002", CustomerName = "Fatima Al-Rashid", Amount = 189.00m, Status = "Processing", OrderDate = DateTime.UtcNow.AddDays(-1) },
-            new OrderDto { OrderId = "ORD-003", CustomerName = "Mohammed Ibrahim", Amount = 412.75m, Status = "Shipped", OrderDate = DateTime.UtcNow }
-        };
-        
-        await Task.Delay(300);
+            return [];
+        }
+
+        return result.Data
+            .Select(p => new VendorInventoryRow(p.Id, p.Title, p.Slug, p.Inventory, Math.Max(p.Inventory, 100)))
+            .ToList();
     }
 
-    private async Task LoadProductsAsync()
-    {
-        Products = new List<ProductDto>
-        {
-            new ProductDto { Name = "Halal Beef Pack", Sku = "HBP-001", StockLevel = 45, MaxStock = 100 },
-            new ProductDto { Name = "Certified Chicken", Sku = "CC-002", StockLevel = 12, MaxStock = 50 },
-            new ProductDto { Name = "Organic Vegetables", Sku = "OV-003", StockLevel = 78, MaxStock = 100 }
-        };
-        
-        await Task.Delay(300);
-    }
+    private static bool IsStatus(string status, params string[] candidates)
+        => candidates.Contains(status, StringComparer.OrdinalIgnoreCase);
 
-    private async Task HandleViewOrderAsync(OrderDto order)
-    {
-        Logger.LogInformation("View order: {OrderId}", order.OrderId);
-        await Task.CompletedTask;
-    }
+    private void HandleViewOrderAsync(VendorOrderRow order)
+        => Logger.LogInformation("View order: {OrderId}", order.OrderId);
 
-    private async Task HandleEditProductAsync(ProductDto product)
-    {
-        Logger.LogInformation("Edit product: {ProductName}", product.Name);
-        await Task.CompletedTask;
-    }
+    private void HandleEditProductAsync(VendorInventoryRow product)
+        => Nav.NavigateTo($"/vendor/products/{product.Id}/edit");
 
-    private async Task HandleViewAnalyticsAsync(ProductDto product)
-    {
-        Logger.LogInformation("View analytics for: {ProductName}", product.Name);
-        await Task.CompletedTask;
-    }
+    private void HandleViewAnalyticsAsync(VendorInventoryRow product)
+        => Nav.NavigateTo("/vendor/analytics");
 
-    private async Task HandleAddProductAsync()
-    {
-        Logger.LogInformation("Add product action triggered");
-        await Task.CompletedTask;
-    }
+    private void HandleAddProductAsync() => Nav.NavigateTo("/vendor/products/new");
 
-    private async Task HandleManageInventoryAsync()
-    {
-        Logger.LogInformation("Manage inventory action triggered");
-        await Task.CompletedTask;
-    }
+    private void HandleManageInventoryAsync() => Nav.NavigateTo("/vendor/products");
 
-    private async Task HandleViewReportsAsync()
-    {
-        Logger.LogInformation("View reports action triggered");
-        await Task.CompletedTask;
-    }
+    private void HandleViewReportsAsync() => Nav.NavigateTo("/vendor/analytics");
 
-    private async Task HandleContactSupportAsync()
-    {
-        Logger.LogInformation("Contact support action triggered");
-        await Task.CompletedTask;
-    }
+    private void HandleContactSupportAsync() => Nav.NavigateTo("/account");
 
     private string GetComplianceBadgeColor()
-    {
-        return ComplianceScore >= 95 ? "#10B981" : ComplianceScore >= 85 ? "#F59E0B" : "#EF4444";
-    }
+        => ComplianceScore >= 95 ? "#10B981" : ComplianceScore >= 85 ? "#F59E0B" : "#EF4444";
 
-    private string GetOrderStatusClass(string status)
-    {
-        return status.ToLower() switch
+    private static string GetOrderStatusClass(string status)
+        => status.ToLowerInvariant() switch
         {
             "delivered" => "status-delivered",
             "processing" => "status-processing",
             "shipped" => "status-shipped",
             _ => "status-pending"
         };
-    }
-
-    private double GetStockPercentage(int current, int max)
-    {
-        return max > 0 ? (current * 100.0) / max : 0;
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        await ValueTask.CompletedTask;
-    }
-
-    public class OrderDto
-    {
-        public string OrderId { get; set; } = null!;
-        public string CustomerName { get; set; } = null!;
-        public decimal Amount { get; set; }
-        public string Status { get; set; } = null!;
-        public DateTime OrderDate { get; set; }
-    }
-
-    public class ProductDto
-    {
-        public string Name { get; set; } = null!;
-        public string Sku { get; set; } = null!;
-        public int StockLevel { get; set; }
-        public int MaxStock { get; set; }
-    }
 }

@@ -2,7 +2,12 @@ namespace HalalChain.Marketplace.DependencyInjection;
 
 using HalalChain.Marketplace.Services.Dashboard;
 using HalalChain.Marketplace.Repositories.Dashboard;
+using HalalChain.Marketplace.Data;
+using HalalChain.Marketplace.Models.Dashboard;
+using HalalChain.Application.Tenancy;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Extension methods for registering dashboard services in the DI container.
@@ -134,66 +139,164 @@ public static class DashboardServiceCollectionExtensions
     // Minimal API handlers
     private static async Task<IResult> GetDashboardConfig(
         IDashboardConfigService configService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILoggerFactory loggerFactory)
     {
-        var config = await configService.GetConfigAsync(tenantContext);
-        return Results.Ok(config);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var config = await configService.GetConfigAsync(tenantContext);
+            logger.LogDebug("Dashboard config retrieved for tenant {TenantId}", tenantContext.TenantId);
+            return Results.Ok(config);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting dashboard config for tenant {TenantId}", tenantContext.TenantId);
+            return Results.BadRequest(new { error = "Failed to retrieve dashboard configuration" });
+        }
     }
 
     private static async Task<IResult> UpdateDashboardConfig(
         IDashboardConfigService configService,
         TenantDashboardConfig config,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILoggerFactory loggerFactory)
     {
-        await configService.UpdateConfigAsync(tenantContext.TenantId, config);
-        return Results.Ok(config);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            if (config == null)
+                return Results.BadRequest(new { error = "Configuration cannot be null" });
+
+            await configService.UpdateConfigAsync(tenantContext.TenantId, config);
+            logger.LogInformation("Dashboard config updated for tenant {TenantId}", tenantContext.TenantId);
+            return Results.Ok(new { message = "Configuration updated successfully", config });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating dashboard config for tenant {TenantId}", tenantContext.TenantId);
+            return Results.BadRequest(new { error = "Failed to update dashboard configuration" });
+        }
     }
 
     private static async Task<IResult> GetConfigVersions(
-        IDashboardConfigRepository repository,
-        ITenantContext tenantContext)
+        IDashboardConfigService configService,
+        ITenantContext tenantContext,
+        ILoggerFactory loggerFactory)
     {
-        var versions = await repository.GetAllVersionsAsync(tenantContext.TenantId);
-        return Results.Ok(versions);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var versions = await configService.GetConfigurationVersionsAsync(tenantContext.TenantId);
+            logger.LogDebug("Retrieved {VersionCount} configuration versions for tenant {TenantId}",
+                versions.Count, tenantContext.TenantId);
+            return Results.Ok(versions);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting configuration versions for tenant {TenantId}", tenantContext.TenantId);
+            return Results.BadRequest(new { error = "Failed to retrieve configuration versions" });
+        }
     }
 
     private static async Task<IResult> ActivateConfig(
-        IDashboardConfigRepository repository,
+        IDashboardConfigService configService,
         int configId,
-        HttpContext context)
+        HttpContext context,
+        ILoggerFactory loggerFactory)
     {
-        var userId = context.User.FindFirst("sub")?.Value ?? "system";
-        var config = await repository.ActivateAsync(configId, userId, "Activated via API");
-        return Results.Ok(config);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var reason = context.Request.Query["reason"].ToString();
+            await configService.ActivateConfigurationVersionAsync(configId, reason);
+            logger.LogInformation("Configuration version {ConfigId} activated", configId);
+            return Results.Ok(new { message = "Configuration activated successfully", configId });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error activating configuration {ConfigId}", configId);
+            return Results.BadRequest(new { error = "Failed to activate configuration" });
+        }
     }
 
     private static async Task<IResult> GetNavigation(
         IDashboardConfigService configService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILoggerFactory loggerFactory)
     {
-        var navigation = await configService.GetNavigationAsync(tenantContext);
-        return Results.Ok(navigation);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var navigation = await configService.GetNavigationAsync(tenantContext);
+            logger.LogDebug("Retrieved navigation for tenant {TenantId}", tenantContext.TenantId);
+            return Results.Ok(navigation);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting navigation for tenant {TenantId}", tenantContext.TenantId);
+            return Results.BadRequest(new { error = "Failed to retrieve navigation" });
+        }
     }
 
     private static async Task<IResult> GetBreadcrumbs(
         INavigationService navigationService,
         ITenantContext tenantContext,
-        HttpContext context)
+        HttpContext context,
+        ILoggerFactory loggerFactory)
     {
-        var currentPath = context.Request.Query["path"].ToString();
-        var breadcrumbs = await navigationService.GetBreadcrumbsAsync(tenantContext, currentPath);
-        return Results.Ok(breadcrumbs);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var currentPath = context.Request.Query["path"].ToString();
+            if (string.IsNullOrEmpty(currentPath))
+                return Results.BadRequest(new { error = "path query parameter is required" });
+
+            var breadcrumbs = await navigationService.GetBreadcrumbsAsync(tenantContext, currentPath);
+            logger.LogDebug("Retrieved breadcrumbs for path {Path}", currentPath);
+            return Results.Ok(breadcrumbs);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting breadcrumbs");
+            return Results.BadRequest(new { error = "Failed to retrieve breadcrumbs" });
+        }
     }
 
     private static async Task<IResult> GetAuditLog(
-        IDashboardConfigRepository repository,
+        IDashboardConfigService configService,
         ITenantContext tenantContext,
-        int? configId = null,
-        int days = 30)
+        HttpContext context,
+        ILoggerFactory loggerFactory)
     {
-        var since = DateTime.UtcNow.AddDays(-days);
-        var audit = await repository.GetAuditLogAsync(tenantContext.TenantId, configId, since);
-        return Results.Ok(audit);
+        var logger = loggerFactory.CreateLogger("DashboardApi");
+
+        try
+        {
+            var configIdStr = context.Request.Query["configId"].ToString();
+            var daysStr = context.Request.Query["days"].ToString() ?? "30";
+
+            int? configId = string.IsNullOrEmpty(configIdStr) ? null : int.Parse(configIdStr);
+            int days = int.TryParse(daysStr, out var d) ? d : 30;
+
+            var since = DateTime.UtcNow.AddDays(-days);
+            var audit = await configService.GetAuditLogAsync(tenantContext.TenantId, configId, since);
+
+            logger.LogDebug("Retrieved {AuditCount} audit entries for tenant {TenantId}",
+                audit.Count, tenantContext.TenantId);
+            return Results.Ok(audit);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting audit log for tenant {TenantId}", tenantContext.TenantId);
+            return Results.BadRequest(new { error = "Failed to retrieve audit log" });
+        }
     }
 }
 
@@ -292,13 +395,15 @@ public class DashboardCacheCleanupService : BackgroundService
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             // Delete expired cache entries
-            var expiredCount = await context.DashboardConfigCache
+            var expiredEntries = await context.DashboardConfigCache
                 .Where(c => c.ExpiresAt < DateTime.UtcNow)
-                .ExecuteDeleteAsync();
+                .ToListAsync();
 
-            if (expiredCount > 0)
+            if (expiredEntries.Count > 0)
             {
-                _logger.LogInformation("Cleaned up {ExpiredCount} expired cache entries", expiredCount);
+                context.DashboardConfigCache.RemoveRange(expiredEntries);
+                await context.SaveChangesAsync();
+                _logger.LogInformation("Cleaned up {ExpiredCount} expired cache entries", expiredEntries.Count);
             }
         }
         catch (Exception ex)

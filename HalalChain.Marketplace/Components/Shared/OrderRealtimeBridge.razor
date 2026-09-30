@@ -1,0 +1,150 @@
+@* Real-time order tracking via SignalR *@
+@using HalalChain.Marketplace.Realtime
+@using HalalChain.Marketplace.Models.ViewModels
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Nav
+@inject ILogger<OrderRealtimeBridge> Logger
+@implements IAsyncDisposable
+
+@code {
+    [Parameter]
+    public Guid OrderId { get; set; }
+
+    [Parameter]
+    public Guid? VendorId { get; set; }
+
+    [Parameter]
+    public EventCallback<OrderStatusUpdate> OnOrderStatusChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<TrackingUpdate> OnTrackingUpdated { get; set; }
+
+    private HubConnection? _hubConnection;
+    private bool _isConnected = false;
+
+    public class OrderStatusUpdate
+    {
+        public Guid OrderId { get; set; }
+        public string NewStatus { get; set; } = string.Empty;
+        public string? Reason { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class TrackingUpdate
+    {
+        public string? TrackingNumber { get; set; }
+        public string? CarrierName { get; set; }
+        public string? TrackingUrl { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Create hub connection
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Nav.ToAbsoluteUri("/hubs/orders"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Register event handlers for order updates
+            _hubConnection.On<Guid, string, string?>("OrderStatusChanged", 
+                async (orderId, newStatus, reason) => await OnStatusChanged(orderId, newStatus, reason));
+            
+            _hubConnection.On<string, string>("VendorOrderUpdated", OnVendorOrderUpdated);
+            
+            _hubConnection.On<string?, string?, string?>("TrackingUpdated", 
+                async (trackingNumber, carrierName, trackingUrl) => 
+                    await OnTrackingUpdatedEvent(trackingNumber, carrierName, trackingUrl));
+            
+            _hubConnection.On<string>("OrderDelivered", OnOrderDelivered);
+
+            // Start connection
+            await _hubConnection.StartAsync();
+            _isConnected = true;
+
+            // Join order group
+            await _hubConnection.SendAsync("JoinOrderGroup", OrderId);
+
+            // If vendor, also join vendor orders group
+            if (VendorId.HasValue && VendorId.Value != Guid.Empty)
+            {
+                await _hubConnection.SendAsync("JoinVendorOrdersGroup", VendorId.Value);
+            }
+
+            Logger.LogInformation("Connected to order realtime hub for order {OrderId}", OrderId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error connecting to order realtime hub");
+            // Continue gracefully - realtime updates are optional
+        }
+    }
+
+    private async Task OnStatusChanged(Guid orderId, string newStatus, string? reason)
+    {
+        Logger.LogInformation("Order {OrderId} status changed to {Status}", orderId, newStatus);
+        
+        var update = new OrderStatusUpdate
+        {
+            OrderId = orderId,
+            NewStatus = newStatus,
+            Reason = reason
+        };
+
+        await OnOrderStatusChanged.InvokeAsync(update);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnVendorOrderUpdated(string vendorName, string status)
+    {
+        Logger.LogInformation("Vendor {VendorName} updated order status to {Status}", vendorName, status);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnTrackingUpdatedEvent(string? trackingNumber, string? carrierName, string? trackingUrl)
+    {
+        Logger.LogInformation("Tracking updated: {TrackingNumber} via {Carrier}", trackingNumber, carrierName);
+        
+        var update = new TrackingUpdate
+        {
+            TrackingNumber = trackingNumber,
+            CarrierName = carrierName,
+            TrackingUrl = trackingUrl
+        };
+
+        await OnTrackingUpdated.InvokeAsync(update);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnOrderDelivered(string customerName)
+    {
+        Logger.LogInformation("Order delivered to {CustomerName}", customerName);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                if (_isConnected)
+                {
+                    await _hubConnection.SendAsync("LeaveOrderGroup", OrderId);
+                    
+                    if (VendorId.HasValue && VendorId.Value != Guid.Empty)
+                    {
+                        await _hubConnection.SendAsync("LeaveVendorOrdersGroup", VendorId.Value);
+                    }
+                }
+                await _hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error disposing order realtime hub");
+            }
+        }
+    }
+}

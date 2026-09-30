@@ -1,6 +1,7 @@
 namespace HalalChain.Marketplace.Repositories.Dashboard;
 
 using HalalChain.Marketplace.Models.Dashboard;
+using HalalChain.Marketplace.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 

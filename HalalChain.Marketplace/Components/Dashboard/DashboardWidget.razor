@@ -1,7 +1,12 @@
 @using HalalChain.Marketplace.Models.Dashboard
+@using HalalChain.Marketplace.Services.Dashboard
+@using HalalChain.Application.Tenancy
 @inject ILogger<DashboardWidget> Logger
+@inject IDashboardConfigService ConfigService
+@inject ITenantContext TenantContext
+@inject HttpClient HttpClient
 
-<div class="dashboard-widget" 
+<div class="dashboard-widget"
      id="widget-@Widget?.Id"
      data-widget-id="@Widget?.Id"
      data-widget-type="@Widget?.Type"
@@ -13,20 +18,20 @@
         <div class="widget-actions">
             @if (Editable)
             {
-                <button class="widget-action-btn" 
+                <button class="widget-action-btn"
                         @onclick="HandleEditAsync"
                         title="Edit widget"
                         aria-label="Edit @Widget?.DisplayName">
                     <i class="icon-edit" aria-hidden="true"></i>
                 </button>
             }
-            <button class="widget-action-btn" 
+            <button class="widget-action-btn"
                     @onclick="HandleRefreshAsync"
                     title="Refresh data"
                     aria-label="Refresh @Widget?.DisplayName">
                 <i class="icon-refresh" aria-hidden="true"></i>
             </button>
-            <button class="widget-action-btn" 
+            <button class="widget-action-btn"
                     @onclick="ToggleWidgetMenuAsync"
                     title="Widget menu"
                     aria-label="@Widget?.DisplayName options"
@@ -38,7 +43,7 @@
         @if (ShowWidgetMenu)
         {
             <div class="widget-menu" role="menu">
-                @if (Widget?.CustomConfig?.ContainsKey("exportable") == true && 
+                @if (Widget?.CustomConfig?.ContainsKey("exportable") == true &&
                      Widget.CustomConfig["exportable"] is bool exportable && exportable)
                 {
                     <button role="menuitem" @onclick="HandleExportAsync">Export Data</button>
@@ -72,7 +77,7 @@
                 var componentType = Type.GetType($"HalalChain.Marketplace.Components.Widgets.{Widget.ComponentName}");
                 if (componentType != null)
                 {
-                    <DynamicComponent Type="componentType" 
+                    <DynamicComponent Type="componentType"
                                     Parameters="GetComponentParameters()" />
                 }
                 else
@@ -144,8 +149,49 @@
 
         try
         {
-            // TODO: Load widget data from data source
-            await Task.Delay(300); // Simulate data loading
+            // Resolve data source if widget has one configured
+            if (Widget != null && !string.IsNullOrEmpty(Widget.DataSourceKey))
+            {
+                var dataSourceUrl = await ConfigService.GetDataSourceAsync(
+                    TenantContext.TenantId,
+                    Widget.DataSourceKey);
+
+                if (!string.IsNullOrEmpty(dataSourceUrl))
+                {
+                    try
+                    {
+                        // Fetch data from the resolved endpoint
+                        var response = await HttpClient.GetAsync(dataSourceUrl);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var jsonContent = await response.Content.ReadAsStringAsync();
+                            WidgetData = System.Text.Json.JsonDocument.Parse(jsonContent).RootElement;
+                            Logger.LogDebug(
+                                "Widget data loaded successfully: WidgetId={WidgetId}, DataSourceKey={DataSourceKey}",
+                                Widget.Id, Widget.DataSourceKey);
+                        }
+                        else
+                        {
+                            ErrorMessage = $"Failed to load data: {response.StatusCode}";
+                            Logger.LogWarning(
+                                "Failed to fetch widget data: WidgetId={WidgetId}, StatusCode={StatusCode}",
+                                Widget.Id, response.StatusCode);
+                        }
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        ErrorMessage = "Failed to fetch data from server";
+                        Logger.LogError(ex, "HTTP error loading widget data: WidgetId={WidgetId}", Widget.Id);
+                    }
+                }
+                else
+                {
+                    Logger.LogWarning(
+                        "Data source not configured: WidgetId={WidgetId}, DataSourceKey={DataSourceKey}",
+                        Widget.Id, Widget.DataSourceKey);
+                }
+            }
+
             LastUpdated = DateTime.Now.ToString("g");
         }
         catch (Exception ex)
@@ -218,6 +264,18 @@
         if (!string.IsNullOrEmpty(DataSourceKey))
         {
             parameters["DataSourceKey"] = DataSourceKey;
+        }
+
+        // Pass loaded widget data if available
+        if (WidgetData != null)
+        {
+            parameters["Data"] = WidgetData;
+        }
+
+        // Pass widget configuration for reference
+        if (Widget != null)
+        {
+            parameters["Widget"] = Widget;
         }
 
         return parameters;

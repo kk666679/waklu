@@ -102,6 +102,40 @@ public interface IDashboardConfigService
     /// Gets cache statistics for monitoring (hit rate, size, TTL).
     /// </summary>
     Task<CacheStatistics> GetCacheStatsAsync();
+
+    /// <summary>
+    /// Gets all configuration versions for a tenant (for version history/rollback).
+    /// </summary>
+    Task<List<ConfigurationVersionInfo>> GetConfigurationVersionsAsync(string tenantId);
+
+    /// <summary>
+    /// Activates a specific configuration version.
+    /// Automatically deactivates other versions for the tenant.
+    /// </summary>
+    Task ActivateConfigurationVersionAsync(int configurationId, string? reason = null);
+
+    /// <summary>
+    /// Gets audit log entries for a tenant's dashboard configuration changes.
+    /// </summary>
+    Task<List<ConfigurationAuditEntry>> GetAuditLogAsync(
+        string tenantId,
+        int? configurationId = null,
+        DateTime? since = null,
+        int limit = 100);
+}
+
+/// <summary>Configuration version information for version history.</summary>
+public class ConfigurationVersionInfo
+{
+    public int Id { get; set; }
+    public string TenantId { get; set; } = null!;
+    public int Version { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public string? Notes { get; set; }
 }
 
 /// <summary>Cache statistics for monitoring.</summary>
@@ -113,4 +147,19 @@ public class CacheStatistics
     public double HitRate => TotalEntries > 0 ? (double)HitCount / (HitCount + MissCount) : 0;
     public long CacheSizeBytes { get; set; }
     public DateTime CollectedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>Configuration audit entry for tracking changes.</summary>
+public class ConfigurationAuditEntry
+{
+    public long Id { get; set; }
+    public string TenantId { get; set; } = null!;
+    public int ConfigurationId { get; set; }
+    public string Operation { get; set; } = null!;
+    public string? ChangesSummary { get; set; }
+    public string ChangedBy { get; set; } = null!;
+    public DateTime ChangedAt { get; set; }
+    public string? Reason { get; set; }
+    public string? RequestIpAddress { get; set; }
+    public string? UserAgent { get; set; }
 }

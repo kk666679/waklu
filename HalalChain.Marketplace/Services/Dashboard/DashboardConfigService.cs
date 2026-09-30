@@ -1,7 +1,9 @@
 namespace HalalChain.Marketplace.Services.Dashboard;
 
 using HalalChain.Marketplace.Models.Dashboard;
+using HalalChain.Marketplace.Repositories.Dashboard;
 using HalalChain.Application.Tenancy;
+using HalalChain.Application.Common.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
@@ -9,13 +11,13 @@ using System.Text.Json;
 
 /// <summary>
 /// Implementation of IDashboardConfigService.
-/// 
+///
 /// Configuration resolution hierarchy:
 /// 1. Runtime overrides (in-memory, highest priority)
 /// 2. Database configuration (tenant-specific customizations)
 /// 3. appsettings.json configuration (environment-level defaults)
 /// 4. Hard-coded defaults (lowest priority)
-/// 
+///
 /// Caching strategy:
 /// - Use distributed cache (Redis) for configs
 /// - Fall back to in-memory cache if Redis unavailable
@@ -28,6 +30,8 @@ public class DashboardConfigService : IDashboardConfigService
     private readonly IConfiguration _configuration;
     private readonly DashboardConfigOptions _options;
     private readonly ILogger<DashboardConfigService> _logger;
+    private readonly IDashboardConfigRepository _repository;
+    private readonly ICurrentUser? _currentUser;
 
     // In-memory cache for runtime overrides and fallback
     private readonly ConcurrentDictionary<string, (TenantDashboardConfig config, DateTime expiry)> _runtimeCache = new();
@@ -40,12 +44,16 @@ public class DashboardConfigService : IDashboardConfigService
         IDistributedCache cache,
         IConfiguration configuration,
         IOptions<DashboardConfigOptions> options,
-        ILogger<DashboardConfigService> logger)
+        ILogger<DashboardConfigService> logger,
+        IDashboardConfigRepository repository,
+        ICurrentUser? currentUser = null)
     {
         _cache = cache;
         _configuration = configuration;
         _options = options.Value;
         _logger = logger;
+        _repository = repository;
+        _currentUser = currentUser;
     }
 
     public async Task<TenantDashboardConfig> GetConfigAsync(ITenantContext tenantContext)
@@ -77,12 +85,16 @@ public class DashboardConfigService : IDashboardConfigService
         {
             try
             {
-                var cached = await _cache.GetAsAsync<TenantDashboardConfig>(cacheKey);
-                if (cached != null)
+                var jsonData = await _cache.GetAsync(cacheKey);
+                if (jsonData != null)
                 {
-                    _logger.LogDebug("Dashboard config retrieved from distributed cache for tenant {TenantId}", tenantId);
-                    RecordCacheHit(cacheKey);
-                    return cached;
+                    var cached = JsonSerializer.Deserialize<TenantDashboardConfig>(jsonData);
+                    if (cached != null)
+                    {
+                        _logger.LogDebug("Dashboard config retrieved from distributed cache for tenant {TenantId}", tenantId);
+                        RecordCacheHit(cacheKey);
+                        return cached;
+                    }
                 }
             }
             catch (Exception ex)
@@ -108,7 +120,8 @@ public class DashboardConfigService : IDashboardConfigService
                 AbsoluteExpirationRelativeToNow = cacheDuration
             };
 
-            await _cache.SetAsAsync(cacheKey, config, cacheOptions);
+            var jsonData = JsonSerializer.SerializeToUtf8Bytes(config);
+            await _cache.SetAsync(cacheKey, jsonData, cacheOptions);
             _logger.LogInformation(
                 "Dashboard config cached for tenant {TenantId} with TTL {CacheDuration}s",
                 tenantId, cacheDuration.TotalSeconds);
@@ -162,10 +175,10 @@ public class DashboardConfigService : IDashboardConfigService
     public async Task<List<NavigationItem>> GetNavigationAsync(ITenantContext tenantContext)
     {
         var config = await GetConfigAsync(tenantContext);
-        
+
         // Filter navigation items by user capabilities and feature flags
         var filtered = FilterNavigationByCapabilities(config.NavigationItems, tenantContext.Capabilities, config.FeatureFlags);
-        
+
         return filtered.OrderBy(x => x.Order).ToList();
     }
 
@@ -293,9 +306,23 @@ public class DashboardConfigService : IDashboardConfigService
         ApplyConfigurationDefaults(config);
 
         // 3. Merge tenant-specific configuration from database
-        // TODO: Implement database loading
-        // var dbConfig = await _configRepository.GetByTenantIdAsync(tenantId);
-        // if (dbConfig != null) MergeConfigurations(config, dbConfig);
+        try
+        {
+            var dbEntity = await _repository.GetActiveConfigAsync(tenantId);
+            if (dbEntity != null)
+            {
+                var dbConfig = JsonSerializer.Deserialize<TenantDashboardConfig>(dbEntity.ConfigurationJson);
+                if (dbConfig != null)
+                {
+                    MergeConfigurations(config, dbConfig);
+                    _logger.LogDebug("Dashboard configuration loaded from database for tenant {TenantId}", tenantId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error loading configuration from database for tenant {TenantId}; using defaults", tenantId);
+        }
 
         _logger.LogInformation("Dashboard configuration loaded for tenant {TenantId}", tenantId);
         return await Task.FromResult(config);
@@ -303,9 +330,89 @@ public class DashboardConfigService : IDashboardConfigService
 
     private async Task SaveConfigToStorageAsync(TenantDashboardConfig config)
     {
-        // TODO: Implement database saving
-        // await _configRepository.UpdateAsync(config);
-        await Task.CompletedTask;
+        try
+        {
+            var configJson = JsonSerializer.Serialize(config);
+            var userId = _currentUser?.UserId?.ToString() ?? "system";
+
+            var existingConfigs = await _repository.GetAllVersionsAsync(config.TenantId);
+            var hasActive = existingConfigs.Any(c => c.IsActive);
+
+            if (hasActive)
+            {
+                // Update existing
+                var activeConfig = existingConfigs.First(c => c.IsActive);
+                activeConfig.ConfigurationJson = configJson;
+                activeConfig.UpdatedBy = userId;
+                activeConfig.UpdatedAt = DateTime.UtcNow;
+                await _repository.UpdateAsync(activeConfig, userId, "Configuration updated via dashboard service");
+            }
+            else
+            {
+                // Create new
+                await _repository.CreateAsync(
+                    config.TenantId,
+                    configJson,
+                    userId,
+                    replaceActive: true,
+                    notes: "Initial configuration");
+            }
+
+            _logger.LogInformation("Dashboard configuration saved for tenant {TenantId}", config.TenantId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving configuration to database for tenant {TenantId}", config.TenantId);
+            throw;
+        }
+    }
+
+    private void MergeConfigurations(TenantDashboardConfig target, TenantDashboardConfig source)
+    {
+        if (!string.IsNullOrEmpty(source.OrganizationName))
+            target.OrganizationName = source.OrganizationName;
+
+        if (!string.IsNullOrEmpty(source.LogoUrl))
+            target.LogoUrl = source.LogoUrl;
+
+        if (!string.IsNullOrEmpty(source.FaviconUrl))
+            target.FaviconUrl = source.FaviconUrl;
+
+        if (!string.IsNullOrEmpty(source.PrimaryColor))
+            target.PrimaryColor = source.PrimaryColor;
+
+        if (!string.IsNullOrEmpty(source.SecondaryColor))
+            target.SecondaryColor = source.SecondaryColor;
+
+        if (!string.IsNullOrEmpty(source.Theme))
+            target.Theme = source.Theme;
+
+        if (source.CacheDurationSeconds > 0)
+            target.CacheDurationSeconds = source.CacheDurationSeconds;
+
+        if (source.Sidebar != null)
+            target.Sidebar = source.Sidebar;
+
+        if (source.Header != null)
+            target.Header = source.Header;
+
+        if (source.Footer != null)
+            target.Footer = source.Footer;
+
+        if (source.NavigationItems.Count > 0)
+            target.NavigationItems = source.NavigationItems;
+
+        if (source.Regions.Count > 0)
+            target.Regions = new Dictionary<string, DashboardRegionConfig>(source.Regions);
+
+        if (source.RolePermissions.Count > 0)
+            target.RolePermissions = new Dictionary<string, DashboardRolePermissions>(source.RolePermissions);
+
+        if (source.FeatureFlags.Count > 0)
+            target.FeatureFlags = new Dictionary<string, bool>(source.FeatureFlags);
+
+        if (source.DataSources.Count > 0)
+            target.DataSources = new Dictionary<string, string>(source.DataSources);
     }
 
     private void ApplyDefaults(TenantDashboardConfig config)
@@ -464,6 +571,91 @@ public class DashboardConfigService : IDashboardConfigService
     {
         return _runtimeCache.Values.Sum(entry =>
             JsonSerializer.Serialize(entry.config).Length * sizeof(char));
+    }
+
+    public async Task<List<ConfigurationVersionInfo>> GetConfigurationVersionsAsync(string tenantId)
+    {
+        try
+        {
+            var versions = await _repository.GetAllVersionsAsync(tenantId);
+            return versions
+                .OrderByDescending(v => v.UpdatedAt)
+                .Select(v => new ConfigurationVersionInfo
+                {
+                    Id = v.Id,
+                    TenantId = v.TenantId,
+                    Version = v.Version,
+                    IsActive = v.IsActive,
+                    CreatedAt = v.CreatedAt,
+                    UpdatedAt = v.UpdatedAt,
+                    CreatedBy = v.CreatedBy,
+                    UpdatedBy = v.UpdatedBy,
+                    Notes = v.Notes
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving configuration versions for tenant {TenantId}", tenantId);
+            throw;
+        }
+    }
+
+    public async Task ActivateConfigurationVersionAsync(int configurationId, string? reason = null)
+    {
+        try
+        {
+            var config = await _repository.GetByIdAsync(configurationId);
+            if (config == null)
+                throw new InvalidOperationException($"Configuration {configurationId} not found");
+
+            var userId = _currentUser?.UserId?.ToString() ?? "system";
+            await _repository.ActivateAsync(configurationId, userId, reason);
+
+            // Invalidate cache for this tenant
+            await InvalidateCacheAsync(config.TenantId);
+
+            _logger.LogInformation(
+                "Configuration version activated: ConfigId={ConfigId}, TenantId={TenantId}",
+                configurationId, config.TenantId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error activating configuration version {ConfigId}", configurationId);
+            throw;
+        }
+    }
+
+    public async Task<List<ConfigurationAuditEntry>> GetAuditLogAsync(
+        string tenantId,
+        int? configurationId = null,
+        DateTime? since = null,
+        int limit = 100)
+    {
+        try
+        {
+            var auditEntries = await _repository.GetAuditLogAsync(tenantId, configurationId, since, limit);
+            return auditEntries
+                .Select(a => new ConfigurationAuditEntry
+                {
+                    Id = a.Id,
+                    TenantId = a.TenantId,
+                    ConfigurationId = a.ConfigurationId,
+                    Operation = a.Operation,
+                    ChangesSummary = a.ChangesSummary,
+                    ChangedBy = a.ChangedBy,
+                    ChangedAt = a.ChangedAt,
+                    Reason = a.Reason,
+                    RequestIpAddress = a.RequestIpAddress,
+                    UserAgent = a.UserAgent
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving audit log for tenant {TenantId}", tenantId);
+            throw;
+        }
     }
 }
 

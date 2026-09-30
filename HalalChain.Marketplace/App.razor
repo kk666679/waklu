@@ -33,6 +33,9 @@
         var routeTemplate = pageType.GetCustomAttribute<RouteAttribute>()?.Template;
         if (!string.IsNullOrEmpty(routeTemplate))
         {
+            if (routeTemplate.StartsWith("/tenant", StringComparison.OrdinalIgnoreCase)
+                && routeTemplate.Contains("dashboard", StringComparison.OrdinalIgnoreCase))
+                return typeof(DashboardLayout);
             if (routeTemplate.StartsWith("/admin", StringComparison.OrdinalIgnoreCase))
                 return typeof(AdminLayout);
             if (routeTemplate.StartsWith("/vendor", StringComparison.OrdinalIgnoreCase))

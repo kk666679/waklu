@@ -1,6 +1,6 @@
 @* AdminProductGrid.razor - Product management table with status, filtering, batch actions *@
 
-@using HalalChain.Platform.Contracts.Catalog.Dto
+@using HalalChain.Marketplace.Models.Dashboard
 
 <div class="admin-grid">
     <div class="grid-toolbar">
@@ -48,18 +48,18 @@
                                aria-label="Select all products"
                                checked="@(_selectedProducts.Count == _paginatedProducts.Count && _paginatedProducts.Count > 0)" />
                     </th>
-                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.Title))" class="sortable">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(AdminProductRow.Title))" class="sortable">
                         <span>Title</span>
-                        @if (_sortColumn == nameof(EnrichedProductDto.Title))
+                        @if (_sortColumn == nameof(AdminProductRow.Title))
                         {
                             <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
                                 @(_sortDescending ? "▼" : "▲")
                             </span>
                         }
                     </th>
-                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.VendorName))" class="sortable">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(AdminProductRow.VendorName))" class="sortable">
                         <span>Vendor</span>
-                        @if (_sortColumn == nameof(EnrichedProductDto.VendorName))
+                        @if (_sortColumn == nameof(AdminProductRow.VendorName))
                         {
                             <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
                                 @(_sortDescending ? "▼" : "▲")
@@ -67,9 +67,9 @@
                         }
                     </th>
                     <th role="columnheader">Status</th>
-                    <th role="columnheader" @onclick="() => SortBy(nameof(EnrichedProductDto.Price))" class="sortable">
+                    <th role="columnheader" @onclick="() => SortBy(nameof(AdminProductRow.Price))" class="sortable">
                         <span>Price</span>
-                        @if (_sortColumn == nameof(EnrichedProductDto.Price))
+                        @if (_sortColumn == nameof(AdminProductRow.Price))
                         {
                             <span aria-label="@(_sortDescending ? "sorted descending" : "sorted ascending")">
                                 @(_sortDescending ? "▼" : "▲")
@@ -103,12 +103,12 @@
                             </td>
                             <td role="gridcell">@product.VendorName</td>
                             <td role="gridcell">
-                                <span class="@GetStatusBadgeClass(product.Profile?.Status ?? 0)">
-                                    @GetStatusLabel(product.Profile?.Status ?? 0)
+                                <span class="@GetStatusBadgeClass(product.StatusCode)">
+                                    @GetStatusLabel(product.StatusCode)
                                 </span>
                             </td>
                             <td role="gridcell">
-                                <span class="text-mono">@product.Price.ToString("C")</span>
+                                <span class="text-mono">@product.Currency @product.Price.ToString("N2")</span>
                             </td>
                             <td role="gridcell">
                                 <button class="btn-icon" @onclick="() => SelectProduct(product)" aria-label="View details for @product.Title">
@@ -134,21 +134,21 @@
 
 @code {
     [Parameter]
-    public required IReadOnlyList<EnrichedProductDto> Products { get; set; }
+    public required IReadOnlyList<AdminProductRow> Products { get; set; }
 
     [Parameter]
-    public EventCallback<EnrichedProductDto> OnRowSelected { get; set; }
+    public EventCallback<AdminProductRow> OnRowSelected { get; set; }
 
     private string _searchTerm = "";
     private string _statusFilter = "";
     private string _vendorFilter = "";
-    private string _sortColumn = nameof(EnrichedProductDto.Title);
+    private string _sortColumn = nameof(AdminProductRow.Title);
     private bool _sortDescending;
 
     private const int PageSize = 10;
     private int _currentPage = 1;
-    private IReadOnlyList<EnrichedProductDto> _filteredProducts = [];
-    private IReadOnlyList<EnrichedProductDto> _paginatedProducts = [];
+    private IReadOnlyList<AdminProductRow> _filteredProducts = [];
+    private IReadOnlyList<AdminProductRow> _paginatedProducts = [];
     private HashSet<Guid> _selectedProducts = [];
     private int _totalPages => (_filteredProducts.Count + PageSize - 1) / PageSize;
 
@@ -201,7 +201,7 @@
         // Status filter
         if (!string.IsNullOrEmpty(_statusFilter) && int.TryParse(_statusFilter, out var statusCode))
         {
-            result = result.Where(p => p.Profile?.Status == statusCode);
+            result = result.Where(p => p.StatusCode == statusCode);
         }
 
         // Vendor filter
@@ -213,13 +213,13 @@
         // Sorting
         result = _sortColumn switch
         {
-            nameof(EnrichedProductDto.Title) => _sortDescending 
+            nameof(AdminProductRow.Title) => _sortDescending 
                 ? result.OrderByDescending(p => p.Title) 
                 : result.OrderBy(p => p.Title),
-            nameof(EnrichedProductDto.VendorName) => _sortDescending 
+            nameof(AdminProductRow.VendorName) => _sortDescending 
                 ? result.OrderByDescending(p => p.VendorName) 
                 : result.OrderBy(p => p.VendorName),
-            nameof(EnrichedProductDto.Price) => _sortDescending 
+            nameof(AdminProductRow.Price) => _sortDescending 
                 ? result.OrderByDescending(p => p.Price) 
                 : result.OrderBy(p => p.Price),
             _ => result.OrderBy(p => p.Title)
@@ -269,12 +269,12 @@
         }
     }
 
-    private async Task SelectProduct(EnrichedProductDto product)
+    private async Task SelectProduct(AdminProductRow product)
     {
         await OnRowSelected.InvokeAsync(product);
     }
 
-    private void ToggleProductSelection(EnrichedProductDto product, bool isSelected)
+    private void ToggleProductSelection(AdminProductRow product, bool isSelected)
     {
         if (isSelected)
             _selectedProducts.Add(product.Id);

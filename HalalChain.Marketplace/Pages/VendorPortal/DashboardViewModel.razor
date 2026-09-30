@@ -1,0 +1,194 @@
+@* Vendor Portal Dashboard with analytics *@
+@page "/vendor/dashboard"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IVendorRepository VendorRepo
+@inject IProductRepository ProductRepo
+@inject IOrderRepository OrderRepo
+@inject ICatalogAnalyticsService Analytics
+@inject ICurrentUserAccessor CurrentUser
+@inject IMapper Mapper
+@inject ILogger<DashboardViewModel> Logger
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Vendor Dashboard</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container section-sm">
+        <p class="muted">Loading dashboard…</p>
+    </section>
+}
+else if (!_isAuthenticated)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">🔒</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Sign in to access vendor portal</h3>
+            <a class="btn btn-primary" href="/account/login?returnUrl=/vendor/dashboard" style="display:block; margin-top:var(--space-3); text-align:center;">Sign in</a>
+        </div>
+    </section>
+}
+else if (_vendor == null)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">❌</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Vendor account not found</h3>
+            <p class="muted" style="text-align:center;">Please contact support to set up your vendor account.</p>
+        </div>
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <div style="margin-bottom: var(--space-5);">
+            <h1 style="font-size: var(--text-2xl); margin-bottom: var(--space-2);">Welcome, @_vendor.Name</h1>
+            <p class="muted">Manage your products, orders, and performance metrics.</p>
+        </div>
+
+        @* Key Metrics *@
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+            <div class="panel card-pad">
+                <p class="eyebrow">Active Products</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">@_totalProducts</h2>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Total Orders</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">@_totalOrders</h2>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Pending Orders</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl); color: var(--color-warning);">@_pendingOrders</h2>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Revenue (30d)</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">MYR @_monthlyRevenue.ToString("N0")</h2>
+            </div>
+        </div>
+
+        @* Top Performers *@
+        @if (_topProducts?.Any() == true)
+        {
+            <div class="panel card-pad" style="margin-bottom: var(--space-5);">
+                <h2 style="margin-top: 0;">Top Performing Products</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--color-border);">
+                            <th style="text-align: left; padding: var(--space-2) 0;">Product</th>
+                            <th style="text-align: right; padding: var(--space-2) 0;">Revenue</th>
+                            <th style="text-align: right; padding: var(--space-2) 0;">Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in _topProducts.Take(5))
+                        {
+                            <tr style="border-bottom: 1px solid var(--color-border);">
+                                <td style="padding: var(--space-2) 0;">
+                                    <a href="/products/@product.ProductId">@product.ProductName</a>
+                                </td>
+                                <td style="text-align: right; padding: var(--space-2) 0;">MYR @product.Revenue.ToString("N0")</td>
+                                <td style="text-align: right; padding: var(--space-2) 0;">@product.UnitsSold</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @* Quick Actions *@
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3);">
+            <a class="btn btn-primary btn-block" href="/vendor/products">
+                📦 Manage Products
+            </a>
+            <a class="btn btn-secondary btn-block" href="/vendor/orders">
+                📋 View Orders
+            </a>
+            <a class="btn btn-secondary btn-block" href="/vendor/analytics">
+                📊 View Analytics
+            </a>
+            <a class="btn btn-secondary btn-block" href="/vendor/settings">
+                ⚙️ Settings
+            </a>
+        </div>
+    </section>
+}
+
+@code {
+    private VendorViewModel? _vendor;
+    private List<ProductPerformance> _topProducts = new();
+    private int _totalProducts = 0;
+    private int _totalOrders = 0;
+    private int _pendingOrders = 0;
+    private decimal _monthlyRevenue = 0;
+    private bool _isAuthenticated = false;
+    private bool _isLoading = true;
+    private Guid VendorId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            VendorId = await CurrentUser.GetIdAsync();
+            _isAuthenticated = VendorId != Guid.Empty;
+
+            if (_isAuthenticated)
+            {
+                await LoadDashboard();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing vendor dashboard");
+            Toast.Error("Failed to load dashboard");
+        }
+    }
+
+    private async Task LoadDashboard()
+    {
+        _isLoading = true;
+        try
+        {
+            // Load vendor info
+            var vendor = await VendorRepo.GetByIdAsync(VendorId);
+            if (vendor == null)
+            {
+                _isAuthenticated = false;
+                return;
+            }
+
+            _vendor = Mapper.Map<VendorViewModel>(vendor);
+
+            // Load products
+            var products = await ProductRepo.GetByVendorAsync(VendorId);
+            _totalProducts = products.Count();
+
+            // Load orders
+            var orders = await OrderRepo.GetByStatusAsync("Pending", 0, 1000);
+            _pendingOrders = orders.Count();
+
+            var allOrders = await OrderRepo.GetAllAsync(0, int.MaxValue);
+            _totalOrders = allOrders.Count();
+
+            // Calculate revenue (last 30 days)
+            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+            _monthlyRevenue = await OrderRepo.GetRevenueByDateRangeAsync(thirtyDaysAgo, DateTime.UtcNow);
+
+            // Load top products
+            _topProducts = await Analytics.GetTopPerformersAsync(VendorId, "revenue", 5);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading vendor dashboard for {VendorId}", VendorId);
+            Toast.Error("Failed to load dashboard metrics");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

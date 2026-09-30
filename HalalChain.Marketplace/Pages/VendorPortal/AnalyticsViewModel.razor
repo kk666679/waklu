@@ -1,0 +1,342 @@
+@* Vendor analytics page with performance metrics *@
+@page "/vendor/analytics"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@using System.Linq
+@inject IProductRepository ProductRepo
+@inject IOrderRepository OrderRepo
+@inject ICatalogAnalyticsService Analytics
+@inject ICurrentUserAccessor CurrentUser
+@inject IMapper Mapper
+@inject ILogger<AnalyticsViewModel> Logger
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Analytics</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container section-sm">
+        <p class="muted">Loading analytics…</p>
+    </section>
+}
+else if (!_isAuthenticated)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">🔒</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Sign in required</h3>
+            <a class="btn btn-primary" href="/account/login?returnUrl=/vendor/analytics" style="display:block; margin-top:var(--space-3); text-align:center;">Sign in to view analytics</a>
+        </div>
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <div style="margin-bottom: var(--space-5);">
+            <p class="eyebrow">Performance</p>
+            <h1 style="font-size: var(--text-2xl); margin: 4px 0 0;">Analytics</h1>
+        </div>
+
+        @* Time Period Selector *@
+        <div class="panel card-pad" style="margin-bottom: var(--space-4);">
+            <div class="row gap-2">
+                <button class="btn @(_timePeriod == "7d" ? "btn-primary" : "btn-secondary") btn-sm" @onclick="@(() => SetTimePeriod("7d"))">Last 7 days</button>
+                <button class="btn @(_timePeriod == "30d" ? "btn-primary" : "btn-secondary") btn-sm" @onclick="@(() => SetTimePeriod("30d"))">Last 30 days</button>
+                <button class="btn @(_timePeriod == "90d" ? "btn-primary" : "btn-secondary") btn-sm" @onclick="@(() => SetTimePeriod("90d"))">Last 90 days</button>
+                <button class="btn @(_timePeriod == "1y" ? "btn-primary" : "btn-secondary") btn-sm" @onclick="@(() => SetTimePeriod("1y"))">Last year</button>
+            </div>
+        </div>
+
+        @* Key Metrics *@
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+            <div class="panel card-pad">
+                <p class="eyebrow">Total Revenue</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">MYR @_metrics.TotalRevenue.ToString("N0")</h2>
+                <p class="small muted" style="margin: 4px 0 0;">@_metrics.RevenueChange% vs previous period</p>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Total Orders</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">@_metrics.TotalOrders</h2>
+                <p class="small muted" style="margin: 4px 0 0;">@_metrics.OrderChange orders vs previous period</p>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Avg Order Value</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">MYR @_metrics.AvgOrderValue.ToString("N0")</h2>
+            </div>
+
+            <div class="panel card-pad">
+                <p class="eyebrow">Product Views</p>
+                <h2 style="margin: 4px 0 0; font-size: var(--text-3xl);">@_metrics.TotalProductViews</h2>
+                <p class="small muted" style="margin: 4px 0 0;">@_metrics.ConversionRate.ToString("N2")% conversion</p>
+            </div>
+        </div>
+
+        @* Top Products *@
+        <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div class="panel card-pad">
+                <h3 style="margin-top: 0;">Top Products by Revenue</h3>
+                @if (_topProductsByRevenue?.Any() == true)
+                {
+                    <div class="stack gap-2">
+                        @foreach (var product in _topProductsByRevenue.Take(5))
+                        {
+                            <div style="padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 4px;">
+                                <div class="between" style="margin-bottom: 4px;">
+                                    <strong>@product.ProductName</strong>
+                                    <span>MYR @product.Revenue.ToString("N0")</span>
+                                </div>
+                                <div class="between">
+                                    <span class="small muted">@product.UnitsSold units</span>
+                                    <span class="small muted">@(product.ConversionRate > 0 ? $"{product.ConversionRate:N2}% conv" : "")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="muted">No sales data available.</p>
+                }
+            </div>
+
+            <div class="panel card-pad">
+                <h3 style="margin-top: 0;">Top Categories</h3>
+                @if (_topCategories?.Any() == true)
+                {
+                    <div class="stack gap-2">
+                        @foreach (var category in _topCategories.Take(5))
+                        {
+                            <div style="padding: var(--space-2); background: var(--color-surface); border-radius: 4px;">
+                                <div class="between" style="margin-bottom: 4px;">
+                                    <span class="small">@category</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="muted">No category data available.</p>
+                }
+            </div>
+        </div>
+
+        @* Order Status Distribution *@
+        <div class="panel card-pad" style="margin-bottom: var(--space-5);">
+            <h3 style="margin-top: 0;">Order Status Distribution</h3>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3);">
+                <div>
+                    <p class="small muted">Pending</p>
+                    <h3 style="margin: 4px 0 0;">@_metrics.PendingOrders</h3>
+                </div>
+                <div>
+                    <p class="small muted">Processing</p>
+                    <h3 style="margin: 4px 0 0;">@_metrics.ProcessingOrders</h3>
+                </div>
+                <div>
+                    <p class="small muted">Shipped</p>
+                    <h3 style="margin: 4px 0 0;">@_metrics.ShippedOrders</h3>
+                </div>
+                <div>
+                    <p class="small muted">Delivered</p>
+                    <h3 style="margin: 4px 0 0;">@_metrics.DeliveredOrders</h3>
+                </div>
+                <div>
+                    <p class="small muted">Cancelled</p>
+                    <h3 style="margin: 4px 0 0;">@_metrics.CancelledOrders</h3>
+                </div>
+            </div>
+        </div>
+
+        @* Recent Orders *@
+        <div class="panel card-pad">
+            <h3 style="margin-top: 0;">Recent Orders</h3>
+            @if (_recentOrders?.Any() == true)
+            {
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--color-border);">
+                                <th style="text-align: left; padding: var(--space-2);">Order #</th>
+                                <th style="text-align: center; padding: var(--space-2);">Items</th>
+                                <th style="text-align: center; padding: var(--space-2);">Amount</th>
+                                <th style="text-align: center; padding: var(--space-2);">Status</th>
+                                <th style="text-align: center; padding: var(--space-2);">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in _recentOrders.Take(10))
+                            {
+                                <tr style="border-bottom: 1px solid var(--color-border);">
+                                    <td style="padding: var(--space-2);">
+                                        <a href="/vendor/orders/@order.Id">@order.OrderNumber</a>
+                                    </td>
+                                    <td style="text-align: center; padding: var(--space-2);">@order.ItemCount</td>
+                                    <td style="text-align: center; padding: var(--space-2);">MYR @order.TotalAmount.ToString("N0")</td>
+                                    <td style="text-align: center; padding: var(--space-2);">
+                                        <span class="@GetOrderStatusClass(order.Status)">@order.Status</span>
+                                    </td>
+                                    <td style="text-align: center; padding: var(--space-2);">@order.CreatedAt.ToString("MMM dd")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="muted">No recent orders.</p>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private VendorAnalyticsMetrics _metrics = new();
+    private List<ProductPerformance> _topProductsByRevenue = new();
+    private List<string> _topCategories = new();
+    private List<OrderSummary> _recentOrders = new();
+    private string _timePeriod = "30d";
+    private bool _isAuthenticated = false;
+    private bool _isLoading = true;
+    private Guid VendorId { get; set; }
+
+    private class VendorAnalyticsMetrics
+    {
+        public decimal TotalRevenue { get; set; }
+        public int RevenueChange { get; set; }
+        public int TotalOrders { get; set; }
+        public int OrderChange { get; set; }
+        public decimal AvgOrderValue { get; set; }
+        public int TotalProductViews { get; set; }
+        public decimal ConversionRate { get; set; }
+        public int PendingOrders { get; set; }
+        public int ProcessingOrders { get; set; }
+        public int ShippedOrders { get; set; }
+        public int DeliveredOrders { get; set; }
+        public int CancelledOrders { get; set; }
+    }
+
+    private class ProductPerformance
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public int UnitsSold { get; set; }
+        public decimal ConversionRate { get; set; }
+    }
+
+    private class OrderSummary
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
+        public int ItemCount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            VendorId = await CurrentUser.GetIdAsync();
+            _isAuthenticated = VendorId != Guid.Empty;
+
+            if (_isAuthenticated)
+            {
+                await LoadAnalytics();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing analytics page");
+            Toast.Error("Failed to load analytics");
+        }
+    }
+
+    private async Task LoadAnalytics()
+    {
+        _isLoading = true;
+        try
+        {
+            var (startDate, endDate) = GetDateRangeForPeriod(_timePeriod);
+
+            // Load top products
+            _topProductsByRevenue = await Analytics.GetTopPerformersAsync(VendorId, "revenue", 10) ?? new();
+
+            // Calculate metrics
+            var orders = await OrderRepo.GetByDateRangeAsync(startDate, endDate);
+            _metrics.TotalOrders = orders.Count();
+            _metrics.TotalRevenue = orders.Sum(o => o.TotalAmount);
+            _metrics.AvgOrderValue = _metrics.TotalOrders > 0 ? _metrics.TotalRevenue / _metrics.TotalOrders : 0;
+
+            // Order status breakdown
+            _metrics.PendingOrders = orders.Count(o => o.Status == "Pending");
+            _metrics.ProcessingOrders = orders.Count(o => o.Status == "Processing");
+            _metrics.ShippedOrders = orders.Count(o => o.Status == "Shipped");
+            _metrics.DeliveredOrders = orders.Count(o => o.Status == "Delivered");
+            _metrics.CancelledOrders = orders.Count(o => o.Status == "Cancelled");
+
+            // Recent orders
+            _recentOrders = orders
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(10)
+                .Select(o => new OrderSummary
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    ItemCount = o.OrderItems?.Count() ?? 0,
+                    TotalAmount = o.TotalAmount,
+                    Status = o.Status,
+                    CreatedAt = o.CreatedAt
+                })
+                .ToList();
+
+            // Top categories (mock data for now)
+            _topCategories = new List<string> { "Food & Beverage", "Fashion", "Home" };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading analytics");
+            Toast.Error("Failed to load analytics");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SetTimePeriod(string period)
+    {
+        _timePeriod = period;
+        await LoadAnalytics();
+    }
+
+    private (DateTime start, DateTime end) GetDateRangeForPeriod(string period)
+    {
+        var end = DateTime.UtcNow;
+        var start = period switch
+        {
+            "7d" => end.AddDays(-7),
+            "30d" => end.AddDays(-30),
+            "90d" => end.AddDays(-90),
+            "1y" => end.AddYears(-1),
+            _ => end.AddDays(-30)
+        };
+        return (start, end);
+    }
+
+    private string GetOrderStatusClass(string status) => status switch
+    {
+        "Pending" => "badge badge-warning",
+        "Processing" => "badge badge-info",
+        "Shipped" => "badge badge-primary",
+        "Delivered" => "badge badge-success",
+        "Cancelled" => "badge badge-danger",
+        _ => "badge badge-secondary"
+    };
+}

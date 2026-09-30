@@ -1,125 +1,105 @@
 @page "/tenant/{TenantId}/dashboard/admin"
 @attribute [Authorize(Roles = "Administrator")]
-@implements IAsyncDisposable
 @inject IDashboardConfigService ConfigService
 @inject INavigationService NavigationService
 @inject ITenantContext TenantContext
+@inject IPlatformApiClient Api
+@inject NavigationManager Nav
 @inject ILogger<AdminDashboard> Logger
 
+@using HalalChain.Marketplace.Models
+@using HalalChain.Marketplace.Models.Dashboard
+@using HalalChain.Marketplace.Components.Admin
+
+<PageTitle>@PageTitle — HalalChain</PageTitle>
+
 <DashboardLayout PageTitle="@PageTitle" BreadcrumbItems="BreadcrumbItems">
-    <!-- Page Content using shared layout -->
-    @if (IsLoading)
-    {
-        <div class="page-loading">
-            <div class="loading-spinner"></div>
-            <p>Loading admin dashboard...</p>
-        </div>
-    }
-    else
-    {
-        <!-- Admin-specific widgets and content -->
-        <div class="admin-dashboard-content">
-            <!-- Key Metrics Row -->
-            <section class="dashboard-section">
-                <h2>Platform Overview</h2>
-                <div class="metrics-grid">
-                    <MetricCard Title="Total Vendors" 
-                               Value="@VendorCount.ToString()" 
-                               Icon="icon-building"
-                               TrendPercent="@VendorTrend"
-                               Color="primary" />
-                    
-                    <MetricCard Title="Active Products" 
-                               Value="@ProductCount.ToString()" 
-                               Icon="icon-package"
-                               TrendPercent="@ProductTrend"
-                               Color="success" />
-                    
-                    <MetricCard Title="Orders (24h)" 
-                               Value="@OrderCount.ToString()" 
-                               Icon="icon-shopping-cart"
-                               TrendPercent="@OrderTrend"
-                               Color="info" />
-                    
-                    <MetricCard Title="Compliance Score" 
-                               Value="@ComplianceScore.ToString(\"F1\") + \"%\"" 
-                               Icon="icon-shield"
-                               TrendPercent="@ComplianceTrend"
-                               Color="warning" />
-                </div>
-            </section>
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <div class="page-loading" role="status" aria-live="polite">
+                <div class="loading-spinner"></div>
+                <p>Loading admin dashboard…</p>
+            </div>
+        }
+        else if (ErrorMessage is not null)
+        {
+            <div class="dashboard-error" role="alert">
+                <p>@ErrorMessage</p>
+            </div>
+        }
+        else
+        {
+            <div class="admin-dashboard-content">
+                <section class="dashboard-section">
+                    <h2>Platform Overview</h2>
+                    <div class="metrics-grid">
+                        <MetricCard Label="Total Vendors" Value="@VendorCount" Icon="building" Accent="primary" />
+                        <MetricCard Label="Active Products" Value="@ProductCount" Icon="package" Accent="success" />
+                        <MetricCard Label="Orders (24h)" Value="@OrderCount" Icon="package" Accent="primary" />
+                        <MetricCard Label="Categories" Value="@CategoryCount" Icon="grid" Accent="warning" />
+                    </div>
+                </section>
 
-            <!-- Admin Vendor Grid -->
-            <section class="dashboard-section">
-                <h2>Vendor Management</h2>
-                <AdminVendorGrid Vendors="@Vendors" 
-                                OnVendorSelected="HandleVendorSelectedAsync"
-                                OnRefresh="RefreshVendorsAsync" />
-            </section>
+                <section class="dashboard-section">
+                    <h2>Vendor Management</h2>
+                    <AdminVendorGrid Vendors="@Vendors" OnRowSelected="HandleVendorSelectedAsync" />
+                </section>
 
-            <!-- Product Compliance Status -->
-            <section class="dashboard-section">
-                <h2>Product Compliance Status</h2>
-                <AdminProductGrid Products="@Products" 
-                                  OnProductSelected="HandleProductSelectedAsync"
-                                  OnRefresh="RefreshProductsAsync" />
-            </section>
+                <section class="dashboard-section">
+                    <h2>Product Compliance Status</h2>
+                    <AdminProductGrid Products="@Products" OnRowSelected="HandleProductSelectedAsync" />
+                </section>
 
-            <!-- Activity Feed -->
-            <section class="dashboard-section">
-                <h2>Recent Activity</h2>
-                <AdminActivityFeed Activities="@ActivityEvents" 
-                                  OnRefresh="RefreshActivityAsync" />
-            </section>
+                <section class="dashboard-section">
+                    <h2>Recent Activity</h2>
+                    <AdminActivityFeed Events="@ActivityEvents" OnRefresh="RefreshActivityAsync" />
+                </section>
 
-            <!-- Admin Actions Panel -->
-            <section class="dashboard-section admin-actions">
-                <h2>Administrator Actions</h2>
-                <div class="actions-grid">
-                    <button class="action-btn" @onclick="HandleOnboardVendorAsync">
-                        <i class="icon-plus" aria-hidden="true"></i>
-                        <span>Onboard Vendor</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleAuditLogsAsync">
-                        <i class="icon-log" aria-hidden="true"></i>
-                        <span>View Audit Logs</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleComplianceReportAsync">
-                        <i class="icon-report" aria-hidden="true"></i>
-                        <span>Generate Report</span>
-                    </button>
-                    <button class="action-btn" @onclick="HandleSystemSettingsAsync">
-                        <i class="icon-settings" aria-hidden="true"></i>
-                        <span>System Settings</span>
-                    </button>
-                </div>
-            </section>
-        </div>
-    }
+                <section class="dashboard-section admin-actions">
+                    <h2>Administrator Actions</h2>
+                    <div class="actions-grid">
+                        <button class="action-btn" @onclick="HandleOnboardVendorAsync">
+                            <i class="icon-plus" aria-hidden="true"></i>
+                            <span>Onboard Vendor</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleAuditLogsAsync">
+                            <i class="icon-log" aria-hidden="true"></i>
+                            <span>View Audit Logs</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleComplianceReportAsync">
+                            <i class="icon-report" aria-hidden="true"></i>
+                            <span>Generate Report</span>
+                        </button>
+                        <button class="action-btn" @onclick="HandleSystemSettingsAsync">
+                            <i class="icon-settings" aria-hidden="true"></i>
+                            <span>System Settings</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        }
+    </ChildContent>
 </DashboardLayout>
 
 @code {
     [Parameter]
     public string? TenantId { get; set; }
 
-    private string PageTitle { get; set; } = "Administrator Dashboard";
+    private const string PageTitle = "Administrator Dashboard";
+
     private List<BreadcrumbItem> BreadcrumbItems { get; set; } = new();
     private bool IsLoading { get; set; } = true;
+    private string? ErrorMessage { get; set; }
 
-    // Metrics
     private int VendorCount { get; set; }
     private int ProductCount { get; set; }
     private int OrderCount { get; set; }
-    private double ComplianceScore { get; set; }
-    private double VendorTrend { get; set; }
-    private double ProductTrend { get; set; }
-    private double OrderTrend { get; set; }
-    private double ComplianceTrend { get; set; }
+    private int CategoryCount { get; set; }
 
-    // Data collections
-    private List<VendorDto> Vendors { get; set; } = new();
-    private List<ProductDto> Products { get; set; } = new();
-    private List<ActivityEvent> ActivityEvents { get; set; } = new();
+    private IReadOnlyList<AdminVendorRow> Vendors { get; set; } = [];
+    private IReadOnlyList<AdminProductRow> Products { get; set; } = [];
+    private IReadOnlyList<ActivityEvent> ActivityEvents { get; set; } = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -129,183 +109,141 @@
                 "Initializing admin dashboard for tenant {TenantId}",
                 TenantContext.TenantId);
 
-            // Build breadcrumbs
             BreadcrumbItems = await NavigationService.GetBreadcrumbsAsync(
                 TenantContext,
                 $"/tenant/{TenantContext.TenantId}/dashboard/admin");
 
-            // Load dashboard data
             await LoadDashboardDataAsync();
-
-            IsLoading = false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing admin dashboard");
+            ErrorMessage = "Failed to load the admin dashboard. Please refresh the page.";
+        }
+        finally
+        {
             IsLoading = false;
         }
     }
 
     private async Task LoadDashboardDataAsync()
     {
-        try
+        var vendorsTask = Api.GetVendorsAsync();
+        var productsTask = Api.GetProductsAsync(pageSize: 100);
+        var ordersTask = Api.GetOrdersAsync();
+        var categoriesTask = Api.GetCategoriesAsync();
+
+        await Task.WhenAll(vendorsTask, productsTask, ordersTask, categoriesTask);
+
+        var vendorRows = ProjectVendors(vendorsTask.Result);
+        var productRows = ProjectProducts(productsTask.Result);
+        var orderRows = ordersTask.Result;
+        var categoryRows = categoriesTask.Result;
+
+        Vendors = vendorRows;
+        Products = productRows;
+        ActivityEvents = BuildRecentActivity(vendorRows, productRows);
+
+        VendorCount = vendorRows.Count;
+        ProductCount = productRows.Count(p => !p.IsOutOfStock);
+        OrderCount = orderRows.IsSuccess ? orderRows.Data?.Length ?? 0 : 0;
+        CategoryCount = categoryRows.IsSuccess ? categoryRows.Data?.Length ?? 0 : 0;
+    }
+
+    private static IReadOnlyList<AdminVendorRow> ProjectVendors(ApiResult<VendorDto[]> result)
+    {
+        if (!result.IsSuccess || result.Data is null)
         {
-            // Load metrics
-            await Task.WhenAll(
-                LoadMetricsAsync(),
-                LoadVendorsAsync(),
-                LoadProductsAsync(),
-                LoadActivityAsync()
-            );
+            return [];
         }
-        catch (Exception ex)
+
+        return result.Data
+            .Select(v => new AdminVendorRow(
+                v.Id,
+                v.Name,
+                v.Country,
+                v.Email,
+                v.Status,
+                string.Equals(v.Status, "Active", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<AdminProductRow> ProjectProducts(ApiResult<ProductDto[]> result)
+    {
+        if (!result.IsSuccess || result.Data is null)
         {
-            Logger.LogError(ex, "Error loading dashboard data");
+            return [];
         }
+
+        return result.Data
+            .Select(p => new AdminProductRow(
+                p.Id,
+                p.Title,
+                p.VendorName,
+                p.Price,
+                p.Currency,
+                p.HalalStatus?.Status ?? "Unknown")
+            {
+                StatusCode = p.HalalStatus?.Status switch
+                {
+                    "Certified" => 0,
+                    "VerifiedByPlatform" => 1,
+                    "MuslimFriendly" => 2,
+                    "NonCompliant" => 3,
+                    _ => 4
+                },
+                IsOutOfStock = p.Inventory <= 0
+            })
+            .ToList();
     }
 
-    private async Task LoadMetricsAsync()
+    private static IReadOnlyList<ActivityEvent> BuildRecentActivity(
+        IReadOnlyList<AdminVendorRow> vendors,
+        IReadOnlyList<AdminProductRow> products)
     {
-        // TODO: Load from API
-        VendorCount = 48;
-        VendorTrend = 12.5;
-        ProductCount = 1240;
-        ProductTrend = 8.3;
-        OrderCount = 392;
-        OrderTrend = -2.1;
-        ComplianceScore = 94.6;
-        ComplianceTrend = 1.2;
-        
-        await Task.Delay(300); // Simulate API call
-    }
+        var now = DateTimeOffset.UtcNow;
 
-    private async Task LoadVendorsAsync()
-    {
-        // TODO: Load from API
-        Vendors = new List<VendorDto>
-        {
-            new VendorDto { Id = "V001", Name = "Premium Halal Supplies", Status = "Active", ComplianceScore = 98 },
-            new VendorDto { Id = "V002", Name = "Ethically Sourced Foods", Status = "Active", ComplianceScore = 95 },
-            new VendorDto { Id = "V003", Name = "Certified Organic", Status = "Pending Review", ComplianceScore = 87 }
-        };
-        
-        await Task.Delay(300);
-    }
+        var events = vendors
+            .Select(v => new ActivityEvent(
+                $"{v.Name} {v.IsVerified ? "verified" : "pending verification"}",
+                v.CountryFilter,
+                now,
+                Category: "vendor"))
+            .Concat(products
+                .Select(p => new ActivityEvent(
+                    $"{p.Title} catalogued",
+                    p.VendorName,
+                    now,
+                    Category: "product")))
+            .ToList();
 
-    private async Task LoadProductsAsync()
-    {
-        // TODO: Load from API
-        Products = new List<ProductDto>
-        {
-            new ProductDto { Id = "P001", Name = "Halal Beef", Vendor = "Premium Halal Supplies", Status = "Verified", ComplianceLevel = "High" },
-            new ProductDto { Id = "P002", Name = "Organic Chicken", Vendor = "Ethically Sourced Foods", Status = "Verified", ComplianceLevel = "High" },
-            new ProductDto { Id = "P003", Name = "Date Syrup", Vendor = "Certified Organic", Status = "Under Review", ComplianceLevel = "Medium" }
-        };
-        
-        await Task.Delay(300);
-    }
-
-    private async Task LoadActivityAsync()
-    {
-        // TODO: Load from API/SignalR
-        ActivityEvents = new List<ActivityEvent>
-        {
-            new ActivityEvent { Timestamp = DateTime.UtcNow.AddMinutes(-5), Actor = "Admin User", Action = "Verified vendor V001", Type = "Vendor" },
-            new ActivityEvent { Timestamp = DateTime.UtcNow.AddMinutes(-15), Actor = "System", Action = "Compliance check passed", Type = "Compliance" },
-            new ActivityEvent { Timestamp = DateTime.UtcNow.AddHours(-1), Actor = "Admin User", Action = "Added new product", Type = "Product" }
-        };
-        
-        await Task.Delay(300);
-    }
-
-    private async Task RefreshVendorsAsync()
-    {
-        Logger.LogInformation("Refreshing vendors");
-        await LoadVendorsAsync();
-    }
-
-    private async Task RefreshProductsAsync()
-    {
-        Logger.LogInformation("Refreshing products");
-        await LoadProductsAsync();
+        return events;
     }
 
     private async Task RefreshActivityAsync()
     {
-        Logger.LogInformation("Refreshing activity");
-        await LoadActivityAsync();
+        Logger.LogInformation("Refreshing admin activity feed");
+        await LoadDashboardDataAsync();
     }
 
-    private async Task HandleVendorSelectedAsync(VendorDto vendor)
+    private void HandleVendorSelectedAsync(AdminVendorRow vendor)
     {
         Logger.LogInformation("Vendor selected: {VendorId}", vendor.Id);
-        // TODO: Navigate to vendor detail page
-        await Task.CompletedTask;
+        Nav.NavigateTo($"/vendors/{vendor.Id}");
     }
 
-    private async Task HandleProductSelectedAsync(ProductDto product)
+    private void HandleProductSelectedAsync(AdminProductRow product)
     {
         Logger.LogInformation("Product selected: {ProductId}", product.Id);
-        // TODO: Navigate to product detail page
-        await Task.CompletedTask;
+        Nav.NavigateTo($"/products/{product.Id}");
     }
 
-    private async Task HandleOnboardVendorAsync()
-    {
-        Logger.LogInformation("Onboard vendor action triggered");
-        // TODO: Open vendor onboarding modal
-        await Task.CompletedTask;
-    }
+    private void HandleOnboardVendorAsync() => Nav.NavigateTo("/vendors");
 
-    private async Task HandleAuditLogsAsync()
-    {
-        Logger.LogInformation("View audit logs action triggered");
-        // TODO: Navigate to audit logs page
-        await Task.CompletedTask;
-    }
+    private void HandleAuditLogsAsync() => Nav.NavigateTo("/verify");
 
-    private async Task HandleComplianceReportAsync()
-    {
-        Logger.LogInformation("Generate compliance report action triggered");
-        // TODO: Generate and download report
-        await Task.CompletedTask;
-    }
+    private void HandleComplianceReportAsync()
+        => Logger.LogInformation("Compliance report generation requested");
 
-    private async Task HandleSystemSettingsAsync()
-    {
-        Logger.LogInformation("System settings action triggered");
-        // TODO: Navigate to system settings page
-        await Task.CompletedTask;
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        await ValueTask.CompletedTask;
-    }
-
-    // DTOs for sample data
-    public class VendorDto
-    {
-        public string Id { get; set; } = null!;
-        public string Name { get; set; } = null!;
-        public string Status { get; set; } = null!;
-        public int ComplianceScore { get; set; }
-    }
-
-    public class ProductDto
-    {
-        public string Id { get; set; } = null!;
-        public string Name { get; set; } = null!;
-        public string Vendor { get; set; } = null!;
-        public string Status { get; set; } = null!;
-        public string ComplianceLevel { get; set; } = null!;
-    }
-
-    public class ActivityEvent
-    {
-        public DateTime Timestamp { get; set; }
-        public string Actor { get; set; } = null!;
-        public string Action { get; set; } = null!;
-        public string Type { get; set; } = null!;
-    }
+    private void HandleSystemSettingsAsync() => Nav.NavigateTo("/account");
 }

@@ -19,24 +19,24 @@
     else
     {
         <div class="activity-list" role="feed" aria-label="Recent marketplace events">
-            @foreach (var @event in Events)
+            @foreach (var item in Events)
             {
-                <div class="activity-item" role="article" aria-label="@event.Title: @event.Subject at @event.At.ToString("g")">
+                <div class="activity-item" role="article" aria-label="@item.Title: @item.Subject at @item.At.ToString("g")">
                     <div class="activity-icon" aria-hidden="true">
-                        @GetEventIcon(@event.Category)
+                        @GetEventIcon(item.Category)
                     </div>
                     <div class="activity-content">
                         <div class="activity-title">
-                            <strong>@event.Title</strong>
-                            <span class="activity-time">@FormatRelativeTime(@event.At)</span>
+                            <strong>@item.Title</strong>
+                            <span class="activity-time">@FormatRelativeTime(item.At)</span>
                         </div>
-                        <p class="activity-subject">@event.Subject</p>
-                        @if (!string.IsNullOrEmpty(@event.Category))
+                        <p class="activity-subject">@item.Subject</p>
+                        @if (!string.IsNullOrEmpty(item.Category))
                         {
-                            <span class="activity-badge">@event.Category</span>
+                            <span class="activity-badge">@item.Category</span>
                         }
                     </div>
-                    <button class="btn-icon-sm" @onclick="() => OnEventClick(@event)" aria-label="View details for @event.Title">
+                    <button class="btn-icon-sm" @onclick="() => OnEventClick(item)" aria-label="View details for @item.Title">
                         →
                     </button>
                 </div>
@@ -69,9 +69,9 @@
         await OnRefresh.InvokeAsync();
     }
 
-    private async Task OnEventClick(ActivityEvent @event)
+    private async Task OnEventClick(ActivityEvent item)
     {
-        await OnEventClicked.InvokeAsync(@event);
+        await OnEventClicked.InvokeAsync(item);
     }
 
     private async Task ViewAllActivity()

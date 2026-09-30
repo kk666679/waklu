@@ -1,0 +1,119 @@
+@* Real-time cart synchronization via SignalR *@
+@using HalalChain.Marketplace.Realtime
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.State.Cart
+@using Microsoft.AspNetCore.SignalR.Client
+@using HalalChain.Platform.Contracts.Auth
+@inject ICurrentUserAccessor CurrentUser
+@inject CartState CartState
+@inject NavigationManager Nav
+@inject ILogger<CartRealtimeBridge> Logger
+
+@implements IAsyncDisposable
+
+@code {
+    private HubConnection? _hubConnection;
+    private bool _isConnected = false;
+    private Guid _customerId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get current user
+            _customerId = await CurrentUser.GetIdAsync();
+            if (_customerId == Guid.Empty)
+            {
+                return; // Not authenticated
+            }
+
+            // Create hub connection
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Nav.ToAbsoluteUri("/hubs/cart"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Register event handlers for cart updates
+            _hubConnection.On<CartItemViewModel>("ItemAdded", OnItemAdded);
+            _hubConnection.On<Guid>("ItemRemoved", OnItemRemoved);
+            _hubConnection.On<CartSummaryViewModel>("CartUpdated", OnCartUpdated);
+            _hubConnection.On("CartCleared", OnCartCleared);
+            _hubConnection.On<Guid, int>("StockChanged", OnStockChanged);
+            _hubConnection.On<Guid, string>("ProductOutOfStock", OnProductOutOfStock);
+
+            // Start connection
+            await _hubConnection.StartAsync();
+            _isConnected = true;
+
+            // Join customer's cart group
+            await _hubConnection.SendAsync("JoinCartGroup", _customerId);
+
+            Logger.LogInformation("Connected to cart realtime hub for customer {CustomerId}", _customerId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error connecting to cart realtime hub");
+            // Continue gracefully - realtime updates are optional
+        }
+    }
+
+    private async Task OnItemAdded(CartItemViewModel item)
+    {
+        Logger.LogInformation("Item added notification received: {ItemId}", item.Id);
+        // Cart state is automatically updated by API/repository
+        // Just need to trigger UI update
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnItemRemoved(Guid itemId)
+    {
+        Logger.LogInformation("Item removed notification received: {ItemId}", itemId);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnCartUpdated(CartSummaryViewModel cartSummary)
+    {
+        Logger.LogInformation("Cart updated notification received: {ItemCount} items", cartSummary.ItemCount);
+        // Update cart state with new summary
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnCartCleared()
+    {
+        Logger.LogInformation("Cart cleared notification received");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnStockChanged(Guid productId, int newStockLevel)
+    {
+        Logger.LogInformation("Stock changed: Product {ProductId} now has {StockLevel} units", productId, newStockLevel);
+        // Notify about stock changes to products in cart
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnProductOutOfStock(Guid productId, string productName)
+    {
+        Logger.LogWarning("Product out of stock: {ProductName} ({ProductId})", productName, productId);
+        // Show toast notification or warning for customer
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                if (_isConnected && _customerId != Guid.Empty)
+                {
+                    await _hubConnection.SendAsync("LeaveCartGroup", _customerId);
+                }
+                await _hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error disposing cart realtime hub");
+            }
+        }
+    }
+}

@@ -113,7 +113,7 @@
                 <div class="sidebar-custom-item" id="sidebar-@customItem.Id">
                     @if (!string.IsNullOrEmpty(customItem.ComponentName))
                     {
-                        <DynamicComponent Type="Type.GetType($\"HalalChain.Marketplace.Components.{customItem.ComponentName}\")" />
+                        <DynamicComponent Type="ResolveComponent(customItem.ComponentName)" />
                     }
                     else if (!string.IsNullOrEmpty(customItem.ContentUrl))
                     {
@@ -133,13 +133,22 @@
     public List<NavigationItem>? NavigationItems { get; set; }
 
     [Parameter]
-    public DashboardLayout.BrandConfig? BrandConfig { get; set; }
+    public BrandConfig? BrandConfig { get; set; }
 
     [Inject]
     private NavigationManager? Navigation { get; set; }
 
     [Inject]
     private ILogger<DashboardSidebar>? InjectedLogger { get; set; }
+
+    /// <summary>
+    /// Resolves a custom sidebar item's component name to its Type. Kept as a
+    /// method rather than inlined in the attribute: an interpolated string
+    /// inside a razor attribute value is not parsed correctly by this
+    /// compiler version, and a method call is.
+    /// </summary>
+    private static Type? ResolveComponent(string? name) =>
+        string.IsNullOrEmpty(name) ? null : Type.GetType($"HalalChain.Marketplace.Components.{name}");
 
     private bool IsSidebarCollapsed { get; set; }
     private bool ShowTenantSwitcher { get; set; }

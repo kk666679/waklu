@@ -1,0 +1,185 @@
+@* ProductCard component updated to use ProductSummaryViewModel *@
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject ICartRepository CartRepo
+@inject IWishlistRepository WishlistRepo
+@inject IMapper Mapper
+@inject INotificationService Toast
+@inject ILogger<ProductCardViewModel> Logger
+
+<article class="product-card">
+    <a class="product-media" href="/products/@Product.Id" aria-label="@Product.Title">
+        <span class="ph" aria-hidden="true">@Initials</span>
+        <div class="product-tags">
+            @if (Product.HalalStatus == "Verified")
+            {
+                <span class="tag-float badge-halal" style="background:var(--color-halal-soft);color:var(--color-halal-ink)">✓ Halal</span>
+            }
+            else if (Product.HalalStatus == "Pending")
+            {
+                <span class="tag-float" style="background:var(--color-warning-soft);color:var(--color-warning)">Pending</span>
+            }
+        </div>
+    </a>
+
+    <button class="wishlist-btn @(IsInWishlist ? "is-active" : "")" 
+            @onclick="ToggleWishlist" 
+            aria-label="Save to wishlist" 
+            aria-pressed="@IsInWishlist">
+        <svg viewBox="0 0 24 24" fill="@(IsInWishlist ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>
+        </svg>
+    </button>
+
+    <div class="product-body">
+        <div class="product-vendor">
+            @if (Product.HalalStatus == "Verified")
+            {
+                <span class="halal-verified">
+                    <svg class="seal" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                        <path d="M12 2l2.2 4.6 5 .7-3.6 3.5.9 5L12 17.8 7.5 20.3l.9-5L4.8 12.3l5-.7z"/>
+                    </svg>Verified
+                </span>
+            }
+            else
+            {
+                <span class="muted">@(Product.HalalStatus == "Pending" ? "In review" : "Unverified")</span>
+            }
+            <span aria-hidden="true">·</span> 
+            <span>@Product.VendorName</span>
+        </div>
+
+        <a class="product-title" href="/products/@Product.Id">@Product.Title</a>
+
+        @if (!string.IsNullOrEmpty(Product.BrandName))
+        {
+            <div class="product-meta">
+                <span class="badge badge-neutral">@Product.BrandName</span>
+            </div>
+        }
+
+        <div class="product-price-row">
+            <span class="price">@Product.Currency @Product.Price.ToString("N2")</span>
+            @if (Product.CompareAtPrice.HasValue && Product.CompareAtPrice > Product.Price)
+            {
+                <span class="badge badge-info">-@((1 - (Product.Price / Product.CompareAtPrice.Value)) * 100).ToString("N0")%</span>
+            }
+        </div>
+
+        <button class="btn btn-primary btn-block btn-sm mt-2" 
+                @onclick="AddToCart" 
+                disabled="@(Product.IsOutOfStock || IsAdding)">
+            @if (IsAdding)
+            {
+                <span>Adding...</span>
+            }
+            else
+            {
+                <span>Add to cart</span>
+            }
+        </button>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] 
+    public ProductSummaryViewModel Product { get; set; } = default!;
+
+    [Parameter] 
+    public Guid CurrentUserId { get; set; }
+
+    [CascadingParameter] 
+    public EventCallback<ProductSummaryViewModel> OnProductAdded { get; set; }
+
+    private string Initials => string.Join("", Product.Title.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));
+    private bool IsInWishlist { get; set; }
+    private bool IsAdding { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (CurrentUserId != Guid.Empty)
+            {
+                IsInWishlist = await WishlistRepo.ExistsInWishlistAsync(CurrentUserId, Product.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking wishlist status for product {ProductId}", Product.Id);
+        }
+    }
+
+    private async Task AddToCart()
+    {
+        if (IsAdding || CurrentUserId == Guid.Empty) return;
+
+        IsAdding = true;
+        try
+        {
+            var cartItem = new HalalChain.Domain.Commerce.CartItem
+            {
+                Id = Guid.NewGuid(),
+                CustomerId = CurrentUserId,
+                ProductId = Product.Id,
+                Quantity = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await CartRepo.AddAsync(cartItem);
+            Toast.Success($"{Product.Title} added to cart");
+
+            if (OnProductAdded.HasDelegate)
+            {
+                await OnProductAdded.InvokeAsync(Product);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding product to cart: {ProductId}", Product.Id);
+            Toast.Error("Could not add to cart. Please try again.");
+        }
+        finally
+        {
+            IsAdding = false;
+        }
+    }
+
+    private async Task ToggleWishlist()
+    {
+        if (CurrentUserId == Guid.Empty) return;
+
+        try
+        {
+            if (IsInWishlist)
+            {
+                var item = await WishlistRepo.GetByCustomerAndProductAsync(CurrentUserId, Product.Id);
+                if (item != null)
+                {
+                    await WishlistRepo.DeleteAsync(item.Id);
+                    IsInWishlist = false;
+                    Toast.Success("Removed from wishlist");
+                }
+            }
+            else
+            {
+                var wishlistItem = new HalalChain.Domain.Commerce.WishlistItem
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = CurrentUserId,
+                    ProductId = Product.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await WishlistRepo.AddAsync(wishlistItem);
+                IsInWishlist = true;
+                Toast.Success("Added to wishlist");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling wishlist for product {ProductId}", Product.Id);
+            Toast.Error("Could not update wishlist");
+        }
+    }
+}

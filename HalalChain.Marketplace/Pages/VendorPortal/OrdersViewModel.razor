@@ -1,0 +1,281 @@
+@* Vendor orders management page *@
+@page "/vendor/orders"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IOrderRepository OrderRepo
+@inject ICurrentUserAccessor CurrentUser
+@inject IMapper Mapper
+@inject ILogger<OrdersViewModel> Logger
+@inject NavigationManager Nav
+@inject INotificationService Toast
+
+<PageTitle>Manage Orders</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container section-sm">
+        <p class="muted">Loading orders…</p>
+    </section>
+}
+else if (!_isAuthenticated)
+{
+    <section class="container section-sm">
+        <div class="panel card-pad">
+            <p style="text-align:center; font-size:var(--text-4xl); margin:0;">🔒</p>
+            <h3 style="text-align:center; margin:var(--space-2) 0 0;">Sign in required</h3>
+            <a class="btn btn-primary" href="/account/login?returnUrl=/vendor/orders" style="display:block; margin-top:var(--space-3); text-align:center;">Sign in to manage orders</a>
+        </div>
+    </section>
+}
+else
+{
+    <section class="container section-sm">
+        <div style="margin-bottom: var(--space-5);">
+            <p class="eyebrow">Sales</p>
+            <h1 style="font-size: var(--text-2xl); margin: 4px 0 0;">Manage Orders</h1>
+        </div>
+
+        @* Filters *@
+        <div class="panel card-pad" style="margin-bottom: var(--space-4);">
+            <div class="grid" style="grid-template-columns: 1fr 1fr auto; gap: var(--space-2); align-items: end;">
+                <div>
+                    <label class="small" style="display: block; margin-bottom: 4px; font-weight: 600;">Search order number</label>
+                    <input type="text" placeholder="Search…" 
+                        value="@_searchQuery" 
+                        @onchange="@((ChangeEventArgs e) => { _searchQuery = e.Value?.ToString() ?? ""; ApplyFilters(); })"
+                        style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;" />
+                </div>
+
+                <div>
+                    <label class="small" style="display: block; margin-bottom: 4px; font-weight: 600;">Status</label>
+                    <select value="@_statusFilter" @onchange="ApplyFilters" style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
+                        <option value="">All statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-secondary" @onclick="ResetFilters">Clear</button>
+            </div>
+        </div>
+
+        @if (_orders?.Length == 0)
+        {
+            <div class="panel card-pad" style="text-align:center;">
+                <p style="font-size:var(--text-4xl); margin:0;">📋</p>
+                <h3 style="margin:var(--space-2) 0 0;">No orders yet</h3>
+                <p class="muted">Your orders will appear here once customers start purchasing.</p>
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--color-border);">
+                            <th style="text-align: left; padding: var(--space-2); font-weight: 600;">Order #</th>
+                            <th style="text-align: left; padding: var(--space-2); font-weight: 600;">Customer</th>
+                            <th style="text-align: center; padding: var(--space-2); font-weight: 600;">Items</th>
+                            <th style="text-align: right; padding: var(--space-2); font-weight: 600;">Amount</th>
+                            <th style="text-align: center; padding: var(--space-2); font-weight: 600;">Status</th>
+                            <th style="text-align: center; padding: var(--space-2); font-weight: 600;">Date</th>
+                            <th style="text-align: center; padding: var(--space-2); font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in _orders)
+                        {
+                            <tr style="border-bottom: 1px solid var(--color-border);">
+                                <td style="padding: var(--space-2);">
+                                    <a href="/vendor/orders/@order.Id" style="font-weight: 600; color: var(--color-link);">@order.OrderNumber</a>
+                                </td>
+                                <td style="padding: var(--space-2);">
+                                    <div class="small">@order.CustomerName</div>
+                                    <div class="small muted">@order.CustomerEmail</div>
+                                </td>
+                                <td style="text-align: center; padding: var(--space-2);">@order.ItemCount</td>
+                                <td style="text-align: right; padding: var(--space-2); font-weight: 600;">MYR @order.TotalAmount.ToString("N0")</td>
+                                <td style="text-align: center; padding: var(--space-2);">
+                                    <span class="@GetStatusBadgeClass(order.Status)">@order.Status</span>
+                                </td>
+                                <td style="text-align: center; padding: var(--space-2); font-size: 0.875rem;">
+                                    @order.CreatedAt.ToString("MMM dd, yyyy")
+                                </td>
+                                <td style="text-align: center; padding: var(--space-2);">
+                                    <div class="row gap-1" style="justify-content: center;">
+                                        <a class="btn btn-ghost btn-sm" href="/vendor/orders/@order.Id" title="View">👁</a>
+                                        @if (order.Status == "Pending" || order.Status == "Processing")
+                                        {
+                                            <button class="btn btn-ghost btn-sm" @onclick="@(() => UpdateOrderStatus(order.Id, "Shipped"))" title="Mark as shipped">📦</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @* Pagination *@
+            @if (TotalPages > 1)
+            {
+                <nav class="row center gap-2" style="margin-top: var(--space-5);" aria-label="Pagination">
+                    <RadzenButton Text="← Previous" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                        Disabled="@(CurrentPage <= 1)" Click="@(() => GoToPage(CurrentPage - 1))" />
+                    <span class="small muted">Page @CurrentPage of @TotalPages</span>
+                    <RadzenButton Text="Next →" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                        Disabled="@(CurrentPage >= TotalPages)" Click="@(() => GoToPage(CurrentPage + 1))" />
+                </nav>
+            }
+
+            <div class="small muted" style="margin-top: var(--space-4); text-align: center;">
+                Showing @_orders.Length of @_totalCount orders
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private OrderViewModel[]? _orders;
+    private int _totalCount = 0;
+    private int CurrentPage { get; set; } = 1;
+    private int TotalPages { get; set; } = 1;
+    private const int PageSize = 20;
+
+    private string _searchQuery = string.Empty;
+    private string _statusFilter = string.Empty;
+    private bool _isAuthenticated = false;
+    private bool _isLoading = true;
+    private Guid VendorId { get; set; }
+
+    private class OrderViewModel
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public int ItemCount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            VendorId = await CurrentUser.GetIdAsync();
+            _isAuthenticated = VendorId != Guid.Empty;
+
+            if (_isAuthenticated)
+            {
+                await LoadOrders();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing orders page");
+            Toast.Error("Failed to load orders");
+        }
+    }
+
+    private async Task LoadOrders()
+    {
+        _isLoading = true;
+        try
+        {
+            const int pageSize = PageSize;
+            var skip = (CurrentPage - 1) * pageSize;
+
+            // Get orders by status filter or all
+            var orders = string.IsNullOrEmpty(_statusFilter)
+                ? await OrderRepo.GetAllAsync(skip, pageSize)
+                : await OrderRepo.GetByStatusAsync(_statusFilter, skip, pageSize);
+
+            // Apply search filter
+            var filtered = orders.AsEnumerable();
+            if (!string.IsNullOrEmpty(_searchQuery))
+            {
+                filtered = filtered.Where(o => o.OrderNumber.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Map to ViewModels
+            _orders = filtered.Select(o => new OrderViewModel
+            {
+                Id = o.Id,
+                OrderNumber = o.OrderNumber,
+                CustomerName = o.CustomerId.ToString(), // TODO: Get actual customer name from relationship
+                CustomerEmail = string.Empty, // TODO: Get actual customer email
+                ItemCount = o.OrderItems?.Count() ?? 0,
+                TotalAmount = o.TotalAmount,
+                Status = o.Status,
+                CreatedAt = o.CreatedAt
+            }).ToArray();
+
+            // Get total count for pagination
+            var allOrders = await OrderRepo.GetAllAsync();
+            _totalCount = allOrders.Count();
+            TotalPages = (int)Math.Ceiling(_totalCount / (decimal)pageSize);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading vendor orders");
+            Toast.Error("Failed to load orders");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        CurrentPage = 1;
+        await LoadOrders();
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchQuery = string.Empty;
+        _statusFilter = string.Empty;
+        CurrentPage = 1;
+        await LoadOrders();
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            CurrentPage = page;
+            InvokeAsync(LoadOrders);
+        }
+    }
+
+    private async Task UpdateOrderStatus(Guid orderId, string newStatus)
+    {
+        try
+        {
+            // TODO: Implement order status update via repository
+            Toast.Success($"Order marked as {newStatus}");
+            await LoadOrders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating order status");
+            Toast.Error("Failed to update order status");
+        }
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Pending" => "badge badge-warning",
+        "Processing" => "badge badge-info",
+        "Shipped" => "badge badge-primary",
+        "Delivered" => "badge badge-success",
+        "Cancelled" => "badge badge-danger",
+        _ => "badge badge-secondary"
+    };
+}

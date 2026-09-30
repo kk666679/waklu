@@ -1,0 +1,164 @@
+@* Halal verification details page *@
+@page "/verify"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IHalalVerificationRepository VerificationRepo
+@inject IProductRepository ProductRepo
+@inject IMapper Mapper
+@inject ILogger<IndexViewModel> Logger
+
+<PageTitle>Halal Verifications</PageTitle>
+
+<section class="container section-sm">
+    <div style="margin-bottom: var(--space-5);">
+        <p class="eyebrow">Compliance</p>
+        <h1 style="font-size: var(--text-2xl);">Halal Verification Status</h1>
+        <p class="muted">View the verification status and compliance details for all products.</p>
+    </div>
+
+    @if (_isLoading)
+    {
+        <p class="muted">Loading verifications…</p>
+    }
+    else if (_verifications?.Length == 0)
+    {
+        <div class="panel card-pad" style="text-align:center;">
+            <p style="font-size:var(--text-4xl); margin:0;">📋</p>
+            <h3 style="margin:var(--space-2) 0 0;">No verifications</h3>
+            <p class="muted">Check back soon for verification results.</p>
+        </div>
+    }
+    else
+    {
+        <div class="stack gap-3">
+            @foreach (var verification in _verifications)
+            {
+                <div class="panel card-pad">
+                    <div class="between" style="margin-bottom: var(--space-3); align-items: start;">
+                        <div>
+                            <a href="/products/@verification.ProductId" class="product-title">@verification.ProductName</a>
+                            <p class="small muted">Verified @verification.VerifiedAt.ToString("MMM dd, yyyy")</p>
+                        </div>
+                        <span class="@verification.StatusBadgeClass">@verification.DisplayStatus</span>
+                    </div>
+
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+                        <div>
+                            <span class="eyebrow">Policy Version</span>
+                            <p style="margin: 4px 0 0;">@verification.PolicyVersion</p>
+                        </div>
+                        <div>
+                            <span class="eyebrow">Jurisdiction</span>
+                            <p style="margin: 4px 0 0;">@verification.Jurisdiction</p>
+                        </div>
+                    </div>
+
+                    @if (verification.RequiresHumanReview)
+                    {
+                        <div class="alert alert-warning" style="margin-bottom: var(--space-3);">
+                            ⓘ This verification requires human review for final approval.
+                        </div>
+                    }
+
+                    @if (verification.ReasonCodes?.Length > 0)
+                    {
+                        <div style="margin-bottom: var(--space-2);">
+                            <strong class="small">Reason Codes</strong>
+                            <div class="row gap-1" style="margin-top: 4px; flex-wrap: wrap;">
+                                @foreach (var reason in verification.ReasonCodes)
+                                {
+                                    <span class="badge badge-neutral">@reason</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (verification.MissingEvidence?.Length > 0)
+                    {
+                        <div>
+                            <strong class="small" style="color: var(--color-warning);">⚠ Missing Evidence</strong>
+                            <ul style="margin: 4px 0 0; padding-left: 20px;">
+                                @foreach (var evidence in verification.MissingEvidence)
+                                {
+                                    <li class="small">@evidence</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <a href="/products/@verification.ProductId" class="btn btn-secondary btn-sm" style="margin-top: var(--space-2);">
+                        View product →
+                    </a>
+                    <a href="/verify/@verification.Id" class="btn btn-secondary btn-sm" style="margin-top: var(--space-2); margin-left: var(--space-2);">
+                        View details →
+                    </a>
+                </div>
+            }
+        </div>
+
+        @if (TotalPages > 1)
+        {
+            <nav class="row center gap-2" style="margin-top: var(--space-5);" aria-label="Pagination">
+                <RadzenButton Text="← Previous" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                    Disabled="@(CurrentPage <= 1)" Click="@(() => GoToPage(CurrentPage - 1))" />
+                <span class="small muted">Page @CurrentPage of @TotalPages</span>
+                <RadzenButton Text="Next →" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                    Disabled="@(CurrentPage >= TotalPages)" Click="@(() => GoToPage(CurrentPage + 1))" />
+            </nav>
+        }
+    }
+</section>
+
+@code {
+    private HalalVerificationViewModel[]? _verifications;
+    private int CurrentPage { get; set; } = 1;
+    private int TotalPages { get; set; } = 1;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadVerifications();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing verification page");
+        }
+    }
+
+    private async Task LoadVerifications()
+    {
+        _isLoading = true;
+        try
+        {
+            const int pageSize = 10;
+            var skip = (CurrentPage - 1) * pageSize;
+
+            // Get verified products (status: "Verified")
+            var verifications = await VerificationRepo.GetByComplianceStatusAsync("Verified", skip, pageSize);
+            _verifications = Mapper.Map<HalalVerificationViewModel[]>(verifications.ToArray());
+
+            // Calculate total pages
+            var totalCount = await VerificationRepo.GetCountAsync();
+            TotalPages = (int)Math.Ceiling(totalCount / (decimal)pageSize);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading verifications");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            CurrentPage = page;
+            InvokeAsync(LoadVerifications);
+        }
+    }
+}

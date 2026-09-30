@@ -1,0 +1,270 @@
+@* Catalog browse page updated to use repository layer *@
+@page "/browse"
+@using HalalChain.Marketplace.Models.ViewModels
+@using HalalChain.Marketplace.Repositories
+@inject IProductRepository ProductRepo
+@inject IDepartmentRepository DepartmentRepo
+@inject IProductTypeRepository ProductTypeRepo
+@inject IMapper Mapper
+@inject NavigationManager Nav
+@inject ILogger<IndexViewModel> Logger
+@inject ICurrentUserAccessor CurrentUser
+
+<PageTitle>Browse the marketplace</PageTitle>
+
+<section class="container section-sm">
+    <div class="between wrap" style="margin-bottom: var(--space-4); gap: var(--space-3);">
+        <div>
+            <p class="eyebrow">Marketplace</p>
+            <h1 style="font-size: var(--text-2xl);">@PageTitle</h1>
+        </div>
+        <div class="row gap-2 center">
+            <span class="small muted">@ProductCount product@(ProductCount == 1 ? "" : "s")</span>
+            <RadzenDropDown TValue="string" Value="@SortBy" Change="@OnSortChanged" Data="@_sortOptions" TextProperty="Text" ValueProperty="Value" Style="width:auto;" />
+        </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 260px 1fr; gap: var(--space-5); align-items:start;">
+        <aside class="panel card-pad" style="position:sticky; top: calc(var(--nav-height) + 12px);">
+            <div class="between" style="margin-bottom: var(--space-2);">
+                <strong class="small">Filters</strong>
+                <a class="small" href="/browse" style="color:var(--color-text-tertiary);">Reset</a>
+            </div>
+
+            <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                <legend class="small" style="font-weight:600; margin-bottom:8px;">Halal status</legend>
+                <div class="stack gap-1">
+                    <RadzenCheckBox TValue="bool?" Value="@FilterCertified" 
+                        Change="@(v => { FilterCertified = v; ApplyFilters(); })" 
+                        Text="Certified" />
+                    <RadzenCheckBox TValue="bool?" Value="@FilterVerified" 
+                        Change="@(v => { FilterVerified = v; ApplyFilters(); })" 
+                        Text="Platform verified" />
+                    <RadzenCheckBox TValue="bool?" Value="@FilterMuslimFriendly" 
+                        Change="@(v => { FilterMuslimFriendly = v; ApplyFilters(); })" 
+                        Text="Muslim-friendly" />
+                </div>
+            </fieldset>
+
+            <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                <legend class="small" style="font-weight:600; margin-bottom:8px;">Price range</legend>
+                <div class="row gap-2">
+                    <RadzenNumeric TValue="decimal?" Placeholder="Min" Value="@MinPrice" Change="@(v => MinPrice = v)" />
+                    <RadzenNumeric TValue="decimal?" Placeholder="Max" Value="@MaxPrice" Change="@(v => MaxPrice = v)" />
+                </div>
+                <RadzenButton Text="Apply" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" 
+                    Click="@ApplyFilters" Style="width:100%; margin-top:8px;" />
+            </fieldset>
+
+            @if (Departments.Any())
+            {
+                <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
+                    <legend class="small" style="font-weight:600; margin-bottom:8px;">Department</legend>
+                    <RadzenDropDown TValue="Guid?" Value="@SelectedDepartmentId" 
+                        Change="@(v => { SelectedDepartmentId = v; ApplyFilters(); })" 
+                        Data="@Departments" 
+                        TextProperty="Name" ValueProperty="Id" 
+                        Placeholder="Any department" 
+                        AllowClear="true" />
+                </fieldset>
+            }
+        </aside>
+
+        <div>
+            @if (_loading)
+            {
+                <p class="muted">Loading products…</p>
+            }
+            else if (Products.Length == 0)
+            {
+                <div class="panel card-pad" style="text-align:center;">
+                    <p style="font-size:var(--text-4xl); margin:0;">🔍</p>
+                    <h3 style="margin:var(--space-2) 0 0;">No products match your filters</h3>
+                    <p class="muted">Try removing a filter or broadening your search.</p>
+                    <a class="btn btn-primary" href="/browse">Clear filters</a>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-products">
+                    @foreach (var p in Products)
+                    {
+                        <ProductCardViewModel Product="@p" CurrentUserId="@CurrentUserId" OnProductAdded="@OnProductAdded" />
+                    }
+                </div>
+
+                @if (TotalPages > 1)
+                {
+                    <nav class="row center gap-2" style="margin-top: var(--space-5);" aria-label="Pagination">
+                        <RadzenButton Text="← Prev" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                            Disabled="@(CurrentPage <= 1)" Click="@(() => GoToPage(CurrentPage - 1))" />
+                        <span class="small muted">Page @CurrentPage of @TotalPages</span>
+                        <RadzenButton Text="Next →" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" 
+                            Disabled="@(CurrentPage >= TotalPages)" Click="@(() => GoToPage(CurrentPage + 1))" />
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "page")] 
+    public int CurrentPage { get; set; } = 1;
+
+    [Parameter, SupplyParameterFromQuery] 
+    public string? Search { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "sortBy")] 
+    public string SortBy { get; set; } = "newest";
+
+    private ProductSummaryViewModel[] Products = [];
+    private DepartmentViewModel[] Departments = [];
+    private int ProductCount { get; set; }
+    private int TotalPages { get; set; }
+    private bool _loading = true;
+    private Guid CurrentUserId { get; set; }
+
+    // Filters
+    private bool? FilterCertified { get; set; }
+    private bool? FilterVerified { get; set; }
+    private bool? FilterMuslimFriendly { get; set; }
+    private decimal? MinPrice { get; set; }
+    private decimal? MaxPrice { get; set; }
+    private Guid? SelectedDepartmentId { get; set; }
+
+    private List<(string Text, string Value)> _sortOptions = new()
+    {
+        ("Newest", "newest"),
+        ("Price ↑", "price-asc"),
+        ("Price ↓", "price-desc"),
+        ("Name", "name"),
+        ("Highest rated", "rated")
+    };
+
+    private string PageTitle => !string.IsNullOrEmpty(Search) ? $"Results for \"{Search}\"" : "All products";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            CurrentUserId = await CurrentUser.GetIdAsync();
+            await LoadDepartments();
+            await LoadProducts();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing catalog page");
+        }
+    }
+
+    private async Task LoadDepartments()
+    {
+        try
+        {
+            var depts = await DepartmentRepo.GetActiveAsync();
+            Departments = Mapper.Map<DepartmentViewModel[]>(depts.ToArray());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading departments");
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        _loading = true;
+        try
+        {
+            IEnumerable<Product> products;
+            const int pageSize = 24;
+
+            // Query based on filters
+            if (SelectedDepartmentId.HasValue)
+            {
+                products = await ProductRepo.GetByDepartmentAsync(SelectedDepartmentId.Value, 
+                    (CurrentPage - 1) * pageSize, pageSize);
+            }
+            else if (!string.IsNullOrEmpty(Search))
+            {
+                products = await ProductRepo.SearchAsync(Search, 
+                    (CurrentPage - 1) * pageSize, pageSize);
+            }
+            else
+            {
+                products = await ProductRepo.GetAllAsync((CurrentPage - 1) * pageSize, pageSize);
+            }
+
+            // Apply price filter
+            if (MinPrice.HasValue || MaxPrice.HasValue)
+            {
+                products = products.Where(p => 
+                    (!MinPrice.HasValue || p.Price >= MinPrice.Value) &&
+                    (!MaxPrice.HasValue || p.Price <= MaxPrice.Value)
+                );
+            }
+
+            // Apply halal status filter
+            if (FilterCertified.HasValue || FilterVerified.HasValue || FilterMuslimFriendly.HasValue)
+            {
+                products = products.Where(p => 
+                    p.HalalProfile != null && (
+                        (FilterCertified.HasValue && p.HalalProfile.Status.ToString() == "Certified") ||
+                        (FilterVerified.HasValue && p.HalalProfile.Status.ToString() == "VerifiedByPlatform") ||
+                        (FilterMuslimFriendly.HasValue && p.HalalProfile.Status.ToString() == "MuslimFriendly")
+                    )
+                );
+            }
+
+            // Sort
+            products = products.OrderByDescending(p => SortBy switch
+            {
+                "price-asc" => -p.Price,
+                "price-desc" => p.Price,
+                "name" => 0,
+                "rated" => -p.AverageRating,
+                _ => -p.UpdatedAt.Ticks
+            });
+
+            Products = Mapper.Map<ProductSummaryViewModel[]>(products.ToArray());
+            ProductCount = Products.Length;
+            TotalPages = (int)Math.Ceiling(ProductCount / (decimal)pageSize);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnSortChanged(object? value)
+    {
+        SortBy = value?.ToString() ?? "newest";
+        CurrentPage = 1;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        CurrentPage = 1;
+        InvokeAsync(LoadProducts);
+    }
+
+    private void GoToPage(int page)
+    {
+        CurrentPage = page;
+        var qs = new List<string> { $"page={page}" };
+        if (!string.IsNullOrEmpty(Search)) qs.Add($"search={Uri.EscapeDataString(Search)}");
+        if (SortBy != "newest") qs.Add($"sortBy={SortBy}");
+        Nav.NavigateTo("/browse?" + string.Join("&", qs));
+    }
+
+    private async Task OnProductAdded(ProductSummaryViewModel product)
+    {
+        // Optional: trigger cart update notification
+        InvokeAsync(StateHasChanged);
+    }
+}
