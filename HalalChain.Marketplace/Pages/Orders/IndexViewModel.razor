@@ -82,7 +82,7 @@
     {
         try
         {
-            CurrentUserId = await CurrentUser.GetIdAsync();
+            CurrentUserId = CurrentUser.UserId ?? Guid.Empty;
             if (CurrentUserId != Guid.Empty)
             {
                 await LoadOrders();
@@ -110,7 +110,7 @@
                 Total = o.Total,
                 Currency = o.Currency,
                 ItemCount = o.VendorOrders?.Sum(vo => vo.Items?.Sum(oi => oi.Quantity) ?? 0) ?? 0,
-                CreatedAt = o.CreatedAt
+                CreatedAt = o.CreatedAt.UtcDateTime
             }).ToArray();
 
             // Calculate total pages

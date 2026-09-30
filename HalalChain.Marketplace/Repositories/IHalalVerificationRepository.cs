@@ -15,7 +15,7 @@ public interface IHalalVerificationRepository
     Task<HalalVerification?> GetByProductAsync(Guid productId, CancellationToken ct = default);
 
     /// <summary>Get verifications by compliance status (Verified, ManualReview, Incomplete, Hold, NonCompliant, Unverified).</summary>
-    Task<IEnumerable<HalalVerification>> GetByComplianceStatusAsync(string status, int skip = 0, int take = 50, CancellationToken ct = default);
+    Task<IEnumerable<HalalVerification>> GetByComplianceStatusAsync(ComplianceStatus status, int skip = 0, int take = 50, CancellationToken ct = default);
 
     /// <summary>Get verifications requiring human review.</summary>
     Task<IEnumerable<HalalVerification>> GetRequiringReviewAsync(int skip = 0, int take = 50, CancellationToken ct = default);

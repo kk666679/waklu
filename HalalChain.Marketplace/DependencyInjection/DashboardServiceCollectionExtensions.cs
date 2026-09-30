@@ -77,10 +77,12 @@ public static class DashboardServiceCollectionExtensions
     public static WebApplication MapDashboardEndpoints(
         this WebApplication app)
     {
+// Each endpoint below opts in to OpenAPI individually; the group only
+        // carries the shared name and prefix.
         var group = app.MapGroup("/api/v1/dashboard")
-            .WithName("Dashboard API")
-            .WithOpenApi();
+            .WithName("Dashboard API");
 
+#pragma warning disable ASPDEPR002
         // Configuration endpoints
         group.MapGet("/config", GetDashboardConfig)
             .WithName("GetDashboardConfig")
@@ -132,6 +134,7 @@ public static class DashboardServiceCollectionExtensions
             .Produces<List<DashboardConfigAuditEntity>>(StatusCodes.Status200OK)
             .WithSummary("Get configuration audit log")
             .RequireAuthorization("Administrator");
+#pragma warning restore ASPDEPR002
 
         return app;
     }

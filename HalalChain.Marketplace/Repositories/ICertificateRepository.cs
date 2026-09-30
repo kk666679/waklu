@@ -21,7 +21,7 @@ public interface ICertificateRepository
     Task<IEnumerable<Certificate>> GetByCertificationBodyAsync(string certificationBody, int skip = 0, int take = 50, CancellationToken ct = default);
 
     /// <summary>Get certificates by status (Submitted, DocumentReview, Verification, Verified, etc.).</summary>
-    Task<IEnumerable<Certificate>> GetByStatusAsync(string status, int skip = 0, int take = 50, CancellationToken ct = default);
+    Task<IEnumerable<Certificate>> GetByStatusAsync(CertificateStatus status, int skip = 0, int take = 50, CancellationToken ct = default);
 
     /// <summary>Get certificates expiring soon (within 90 days).</summary>
     Task<IEnumerable<Certificate>> GetExpiringAsync(CancellationToken ct = default);

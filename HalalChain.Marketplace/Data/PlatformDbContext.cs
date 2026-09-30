@@ -160,6 +160,9 @@ public class PlatformDbContext : DbContext
         ConfigureCategory(modelBuilder);
         ConfigureTaxonomy(modelBuilder);
         ConfigureDynamicPricingRule(modelBuilder);
+        ConfigureCertificationBody(modelBuilder);
+        ConfigureFacility(modelBuilder);
+        ConfigureCountry(modelBuilder);
 
         // ── HALAL DOMAIN ────────────────────────────────────────────────────
         ConfigureCertificate(modelBuilder);
@@ -207,29 +210,34 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.AllergenWarnings).HasMaxLength(1000);
         entity.Property(e => e.RecommendationReason).HasMaxLength(500);
 
-        // JSONB for HalalProfile (PostgreSQL)
+        // JSONB for HalalProfile (PostgreSQL). A POCO record has no built-in
+        // Npgsql mapping, so it is serialized to a JSON string; Npgsql maps
+        // string -> jsonb natively.
         entity.Property(e => e.HalalProfile)
-            .HasColumnType("jsonb")
-            .IsRequired(false);
+            .HasConversion(
+                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<HalalProfile>(v, (System.Text.Json.JsonSerializerOptions?)null)
+            )
+            .HasColumnType("jsonb");
 
         // Store SecondaryCategories as JSON array
         entity.Property(e => e.SecondaryCategories)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<Guid>()
             );
 
         // Store Tags and Ingredients as JSON arrays
         entity.Property(e => e.Tags)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
             );
 
         entity.Property(e => e.Ingredients)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
             );
 
         entity.HasOne(e => e.Vendor).WithMany(v => v.Products).HasForeignKey(e => e.VendorId).IsRequired();
@@ -245,7 +253,9 @@ public class PlatformDbContext : DbContext
         entity.HasMany(e => e.CartItems).WithOne().HasForeignKey(e => e.ProductId).IsRequired();
         entity.HasMany(e => e.OrderItems).WithOne().HasForeignKey(e => e.ProductId).IsRequired();
         entity.HasMany(e => e.WishlistItems).WithOne().HasForeignKey(e => e.ProductId).IsRequired();
-        entity.HasMany(e => e.PricingRules).WithOne().HasForeignKey(e => e.ProductId).IsRequired();
+
+        // Pricing rules are vendor-scoped and name their products by ID in a
+        // JSON column, so they are not a Product-owned navigation.
 
         // Indexes for common queries
         entity.HasIndex(e => e.Slug).IsUnique();
@@ -272,7 +282,7 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.WholesaleTiers)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<WholesalePriceTier>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<WholesalePriceTier>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<WholesalePriceTier>()
             );
 
         entity.HasIndex(e => e.Sku).IsUnique();
@@ -313,7 +323,7 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.OptionValues)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
             );
     }
 
@@ -340,9 +350,12 @@ public class PlatformDbContext : DbContext
 
         entity.Property(e => e.Model).IsRequired().HasMaxLength(100);
 
-        // Embedding as vector (pgvector in PostgreSQL)
+        // Embedding as a float array. Mirrors the Platform.Api mapping
+        // (HalalChainDbContext uses real[] on PostgreSQL): Npgsql has no
+        // built-in float[] -> vector mapping, and the pgvector extension
+        // is not enabled on any database in this stack.
         entity.Property(e => e.Embedding)
-            .HasColumnType("vector(256)")
+            .HasColumnType("real[]")
             .IsRequired();
 
         entity.HasIndex(e => e.ProductId).IsUnique();
@@ -362,7 +375,7 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.Certifications)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
             );
 
         entity.HasIndex(e => e.ProductId).IsUnique();
@@ -452,7 +465,7 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.ProductIds)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<Guid>()
             );
 
         // Conditions as JSON
@@ -462,12 +475,65 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.CustomerSegments)
             .HasConversion(
                 v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
             );
 
         entity.Property(e => e.AdjustmentType).IsRequired().HasMaxLength(50);
 
         entity.HasIndex(e => e.VendorId);
+    }
+
+    private static void ConfigureCertificationBody(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<CertificationBody>();
+
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).ValueGeneratedNever();
+
+        entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+        entity.Property(e => e.Slug).IsRequired().HasMaxLength(255);
+        entity.Property(e => e.Country).IsRequired().HasMaxLength(2);
+
+        entity.HasIndex(e => e.Slug).IsUnique();
+        entity.HasIndex(e => e.Country);
+    }
+
+    private static void ConfigureFacility(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Facility>();
+
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).ValueGeneratedNever();
+
+        entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+        entity.Property(e => e.Address).HasMaxLength(500);
+        entity.Property(e => e.City).IsRequired().HasMaxLength(255);
+        entity.Property(e => e.Country).IsRequired().HasMaxLength(2);
+
+        // CertificationBodyIds as JSON array
+        entity.Property(e => e.CertificationBodyIds)
+            .HasConversion(
+                v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                v => System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<Guid>()
+            );
+
+        entity.HasIndex(e => new { e.VendorId, e.Country });
+    }
+
+    private static void ConfigureCountry(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Country>();
+
+        // Natural key: the ISO 2-letter code. The entity has no surrogate Id.
+        entity.HasKey(e => e.Iso2);
+
+        entity.Property(e => e.Iso2).IsRequired().HasMaxLength(2);
+        entity.Property(e => e.Iso3).IsRequired().HasMaxLength(3);
+        entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+        entity.Property(e => e.Region).HasMaxLength(255);
+
+        entity.HasIndex(e => e.Iso3).IsUnique();
+        entity.HasIndex(e => e.Name);
     }
 
     private static void ConfigureCertificate(ModelBuilder modelBuilder)
@@ -504,13 +570,13 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.ReasonCodes)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<string[]>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<string[]>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new string[0]
             );
 
         entity.Property(e => e.MissingEvidence)
             .HasConversion(
                 v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<string[]>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? []
+                v => System.Text.Json.JsonSerializer.Deserialize<string[]>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new string[0]
             );
 
         entity.HasMany(e => e.Evidences).WithOne().HasForeignKey(e => e.VerificationId).IsRequired();
@@ -725,7 +791,6 @@ public class PlatformDbContext : DbContext
         entity.Property(e => e.LocationCid).IsRequired().HasMaxLength(100);
         entity.Property(e => e.EvidenceCid).IsRequired().HasMaxLength(100);
         entity.Property(e => e.NotesCid).IsRequired().HasMaxLength(100);
-        entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
         entity.Property(e => e.TxHash).HasMaxLength(66);
 
         entity.HasIndex(e => e.ProductId);

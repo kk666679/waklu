@@ -88,7 +88,7 @@
     [Parameter] 
     public Guid CurrentUserId { get; set; }
 
-    [CascadingParameter] 
+    [Parameter] 
     public EventCallback<ProductSummaryViewModel> OnProductAdded { get; set; }
 
     private string Initials => string.Join("", Product.Title.Split(' ').Take(2).Select(s => s.Length > 0 ? s[0].ToString().ToUpper() : ""));

@@ -30,8 +30,9 @@
     }
     else
     {
+        var verifications = _verifications ?? [];
         <div class="stack gap-3">
-            @foreach (var verification in _verifications)
+            @foreach (var verification in verifications)
             {
                 <div class="panel card-pad">
                     <div class="between" style="margin-bottom: var(--space-3); align-items: start;">
@@ -135,8 +136,9 @@
             const int pageSize = 10;
             var skip = (CurrentPage - 1) * pageSize;
 
-            // Get verified products (status: "Verified")
-            var verifications = await VerificationRepo.GetByComplianceStatusAsync("Verified", skip, pageSize);
+            // Get verified products
+            var verifications = await VerificationRepo.GetByComplianceStatusAsync(
+                HalalChain.Domain.Halal.ComplianceStatus.Verified, skip, pageSize);
             _verifications = Mapper.Map<HalalVerificationViewModel[]>(verifications.ToArray());
 
             // Calculate total pages

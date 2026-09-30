@@ -4,14 +4,14 @@
     <div class="header-container">
         <!-- Logo and Organization Name -->
         <div class="header-brand">
-            @if (!string.IsNullOrEmpty(BrandConfig?.LogoUrl))
+            @if (!string.IsNullOrEmpty(Brand?.LogoUrl))
             {
-                <img src="@BrandConfig.LogoUrl" 
-                     alt="@BrandConfig.OrganizationName logo" 
+                <img src="@Brand.LogoUrl" 
+                     alt="@Brand.OrganizationName logo" 
                      class="header-logo"
                      loading="lazy" />
             }
-            <span class="header-org-name">@BrandConfig?.OrganizationName</span>
+            <span class="header-org-name">@Brand?.OrganizationName</span>
         </div>
 
         <!-- Spacer -->
@@ -106,7 +106,7 @@
     public HeaderConfig? Config { get; set; }
 
     [Parameter]
-    public BrandConfig? BrandConfig { get; set; }
+    public BrandConfig? Brand { get; set; }
 
     [Parameter]
     public List<HeaderItem>? CustomItems { get; set; } = new();

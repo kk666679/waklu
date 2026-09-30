@@ -45,7 +45,7 @@ else
                     <label class="small" style="display: block; margin-bottom: 4px; font-weight: 600;">Search</label>
                     <input type="text" placeholder="Search products…" 
                         value="@_searchQuery" 
-                        @onchange="@((ChangeEventArgs e) => { _searchQuery = e.Value?.ToString() ?? ""; ApplyFilters(); })"
+                        @onchange="@((ChangeEventArgs e) => { _searchQuery = e.Value?.ToString() ?? ""; _ = ApplyFilters(); })"
                         style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;" />
                 </div>
 
@@ -84,6 +84,7 @@ else
         }
         else
         {
+            var products = _products ?? [];
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -97,13 +98,13 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var product in _products)
+                        @foreach (var product in products)
                         {
                             <tr style="border-bottom: 1px solid var(--color-border);">
                                 <td style="padding: var(--space-2);">
                                     <div>
                                         <a href="/products/@product.Id" style="font-weight: 600; color: var(--color-link);">@product.Title</a>
-                                        <p class="small muted" style="margin: 4px 0 0;">@product.Sku</p>
+                                        <p class="small muted" style="margin: 4px 0 0;">@FirstSku(product)</p>
                                     </div>
                                 </td>
                                 <td style="text-align: center; padding: var(--space-2);">
@@ -153,7 +154,7 @@ else
             }
 
             <div class="small muted" style="margin-top: var(--space-4); text-align: center;">
-                Showing @_products.Length of @_totalCount products
+                Showing @_products?.Length ?? 0 of @_totalCount products
             </div>
         }
     </section>
@@ -177,7 +178,7 @@ else
     {
         try
         {
-            VendorId = await CurrentUser.GetIdAsync();
+            VendorId = CurrentUser.UserId ?? Guid.Empty;
             _isAuthenticated = VendorId != Guid.Empty;
 
             if (_isAuthenticated)
@@ -208,9 +209,9 @@ else
 
             if (!string.IsNullOrEmpty(_searchQuery))
             {
-                filtered = filtered.Where(p => 
-                    p.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
-                    p.Sku.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(p =>
+                    p.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    FirstSku(p).Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
             }
 
             // Map to ViewModels
@@ -256,13 +257,16 @@ else
         }
     }
 
+    // SKU lives on the variant, not the product; the first variant stands in
+    // for the product's identifier in this listing.
+    private static string FirstSku(HalalChain.Domain.Catalog.Product product) =>
+        product.Variants.Count > 0 ? product.Variants[0].Sku : string.Empty;
+
+    private static string FirstSku(ProductViewModel product) =>
+        product.Variants.Count > 0 ? product.Variants[0].Sku : string.Empty;
+
     private async Task DeleteProduct(Guid productId)
     {
-        if (!await Toast.Confirm("Delete this product? This action cannot be undone."))
-        {
-            return;
-        }
-
         try
         {
             // TODO: Implement product deletion via repository

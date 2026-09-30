@@ -115,7 +115,7 @@
     {
         try
         {
-            CurrentUserId = await CurrentUser.GetIdAsync();
+            CurrentUserId = CurrentUser.UserId ?? Guid.Empty;
             if (CurrentUserId != Guid.Empty)
             {
                 await LoadCart();

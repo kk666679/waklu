@@ -67,7 +67,7 @@
                 {
                     @foreach (var vendor in _paginatedVendors)
                     {
-                        <tr role="row" class="table-row" @onclick="() => SelectVendor(vendor)" tabindex="0" @onkeydown="(e) => HandleRowKeydown(e, vendor)">
+                        <tr role="row" class="table-row" @onclick="async () => await SelectVendor(vendor)" tabindex="0" @onkeydown="(e) => HandleRowKeydown(e, vendor)">
                             <td role="gridcell">
                                 <strong>@vendor.Name</strong>
                             </td>
@@ -81,7 +81,7 @@
                                 <span class="text-muted text-sm">@(string.IsNullOrEmpty(vendor.Email) ? "—" : vendor.Email)</span>
                             </td>
                             <td role="gridcell">
-                                <button class="btn-icon" @onclick="() => SelectVendor(vendor)" @onclick:stopPropagation aria-label="View details for @vendor.Name">
+                                <button class="btn-icon" @onclick="async () => await SelectVendor(vendor)" @onclick:stopPropagation aria-label="View details for @vendor.Name">
                                     →
                                 </button>
                             </td>
@@ -247,7 +247,7 @@
     {
         if (e.Key == "Enter" || e.Key == " ")
         {
-            SelectVendor(vendor);
+            _ = SelectVendor(vendor);
         }
     }
 

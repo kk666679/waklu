@@ -1,5 +1,6 @@
 @* Catalog browse page updated to use repository layer *@
 @page "/browse"
+@using HalalChain.Domain.Catalog
 @using HalalChain.Marketplace.Models.ViewModels
 @using HalalChain.Marketplace.Repositories
 @inject IProductRepository ProductRepo
@@ -61,7 +62,7 @@
                 <fieldset style="border:0; padding:0; margin:0 0 var(--space-4);">
                     <legend class="small" style="font-weight:600; margin-bottom:8px;">Department</legend>
                     <RadzenDropDown TValue="Guid?" Value="@SelectedDepartmentId" 
-                        Change="@(v => { SelectedDepartmentId = v; ApplyFilters(); })" 
+                        Change="@(v => { SelectedDepartmentId = (Guid?)v; ApplyFilters(); })" 
                         Data="@Departments" 
                         TextProperty="Name" ValueProperty="Id" 
                         Placeholder="Any department" 
@@ -148,7 +149,7 @@
     {
         try
         {
-            CurrentUserId = await CurrentUser.GetIdAsync();
+            CurrentUserId = CurrentUser.UserId ?? Guid.Empty;
             await LoadDepartments();
             await LoadProducts();
         }
@@ -216,15 +217,16 @@
                 );
             }
 
-            // Sort
-            products = products.OrderByDescending(p => SortBy switch
+            // Sort. Each branch keys on a different member, so the key selectors are
+            // projected to a common comparable type before ordering.
+            products = SortBy switch
             {
-                "price-asc" => -p.Price,
-                "price-desc" => p.Price,
-                "name" => 0,
-                "rated" => -p.AverageRating,
-                _ => -p.UpdatedAt.Ticks
-            });
+                "price-asc" => products.OrderBy(p => p.Price),
+                "price-desc" => products.OrderByDescending(p => p.Price),
+                "name" => products.OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase),
+                "rated" => products.OrderByDescending(p => p.AverageRating),
+                _ => products.OrderByDescending(p => p.UpdatedAt)
+            };
 
             Products = Mapper.Map<ProductSummaryViewModel[]>(products.ToArray());
             ProductCount = Products.Length;
@@ -250,7 +252,7 @@
     private void ApplyFilters()
     {
         CurrentPage = 1;
-        InvokeAsync(LoadProducts);
+        _ = InvokeAsync(LoadProducts);
     }
 
     private void GoToPage(int page)
@@ -259,12 +261,12 @@
         var qs = new List<string> { $"page={page}" };
         if (!string.IsNullOrEmpty(Search)) qs.Add($"search={Uri.EscapeDataString(Search)}");
         if (SortBy != "newest") qs.Add($"sortBy={SortBy}");
-        Nav.NavigateTo("/browse?" + string.Join("&", qs));
+        _ = InvokeAsync(() => Nav.NavigateTo("/browse?" + string.Join("&", qs)));
     }
 
     private async Task OnProductAdded(ProductSummaryViewModel product)
     {
         // Optional: trigger cart update notification
-        InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(StateHasChanged);
     }
 }

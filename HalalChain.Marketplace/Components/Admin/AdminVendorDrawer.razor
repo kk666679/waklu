@@ -4,6 +4,8 @@
 
 @if (Vendor != null)
 {
+    var facilities = Vendor.Facilities ?? [];
+
     <div class="drawer-overlay" @onclick="OnClose" aria-hidden="true"></div>
     <aside class="drawer drawer-right" role="complementary" aria-label="Vendor details">
         <div class="drawer-header">
@@ -21,14 +23,14 @@
                     <div class="detail-item">
                         <span class="detail-label">Status</span>
                         <span class="detail-value">
-                            <span class="badge @(Vendor.IsVerified ? "badge-success" : "badge-warning")">
-                                @(Vendor.IsVerified ? "Verified" : "Pending Verification")
+                            <span class="badge @(IsActive(Vendor.Status) ? "badge-success" : "badge-warning")">
+                                @StatusLabel(Vendor.Status)
                             </span>
                         </span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Country</span>
-                        <span class="detail-value">@Vendor.Country</span>
+                        <span class="detail-value">@(Vendor.Country ?? "—")</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Email</span>
@@ -59,21 +61,19 @@
                 </div>
             </section>
 
-            <!-- Business Information Section -->
-            @if (!string.IsNullOrEmpty(Vendor.BusinessRegistrationNumber))
+            <!-- Facilities Section -->
+            @if (facilities.Length > 0)
             {
-                <section class="drawer-section" aria-labelledby="business-info-heading">
-                    <h3 id="business-info-heading" class="section-heading">Business Information</h3>
+                <section class="drawer-section" aria-labelledby="facilities-heading">
+                    <h3 id="facilities-heading" class="section-heading">Facilities</h3>
                     <div class="detail-grid">
-                        <div class="detail-item">
-                            <span class="detail-label">Registration</span>
-                            <span class="detail-value text-mono">@Vendor.BusinessRegistrationNumber</span>
-                        </div>
-                        @if (!string.IsNullOrEmpty(Vendor.TaxId))
+                        @foreach (var facility in facilities)
                         {
                             <div class="detail-item">
-                                <span class="detail-label">Tax ID</span>
-                                <span class="detail-value text-mono">@Vendor.TaxId</span>
+                                <span class="detail-label">@facility.Name</span>
+                                <span class="detail-value">
+                                    @facility.City@(string.IsNullOrEmpty(facility.Country) ? "" : $", {facility.Country}")
+                                </span>
                             </div>
                         }
                     </div>
@@ -85,17 +85,7 @@
             {
                 <section class="drawer-section" aria-labelledby="address-heading">
                     <h3 id="address-heading" class="section-heading">Address</h3>
-                    <address class="detail-value">
-                        @Vendor.Address
-                        @if (!string.IsNullOrEmpty(Vendor.City))
-                        {
-                            <br /> @Vendor.City
-                        }
-                        @if (!string.IsNullOrEmpty(Vendor.PostalCode))
-                        {
-                            <br /> @Vendor.PostalCode
-                        }
-                    </address>
+                    <address class="detail-value">@Vendor.Address</address>
                 </section>
             }
 
@@ -113,27 +103,8 @@
                             </div>
                         </div>
                     }
-                    @if (Vendor.UpdatedAt != default && Vendor.UpdatedAt > Vendor.CreatedAt)
-                    {
-                        <div class="timeline-item">
-                            <span class="timeline-dot"></span>
-                            <div class="timeline-content">
-                                <p class="text-sm text-muted">Last Updated</p>
-                                <time>@Vendor.UpdatedAt.ToString("MMM d, yyyy")</time>
-                            </div>
-                        </div>
-                    }
                 </div>
             </section>
-
-            <!-- Description Section -->
-            @if (!string.IsNullOrEmpty(Vendor.Description))
-            {
-                <section class="drawer-section" aria-labelledby="description-heading">
-                    <h3 id="description-heading" class="section-heading">About</h3>
-                    <p class="detail-value">@Vendor.Description</p>
-                </section>
-            }
 
             <!-- Actions Section -->
             <section class="drawer-section drawer-actions" aria-labelledby="actions-heading">
@@ -141,7 +112,7 @@
                 <button class="btn btn-primary btn-block" @onclick="() => ViewProducts(Vendor)">
                     View Products
                 </button>
-                @if (!Vendor.IsVerified)
+                @if (!IsActive(Vendor.Status))
                 {
                     <button class="btn btn-success btn-block" @onclick="() => ApproveVendor(Vendor)">
                         Approve Vendor
@@ -167,6 +138,12 @@
 
     [Parameter]
     public EventCallback<VendorDto> OnApprove { get; set; }
+
+    private static bool IsActive(string? status) =>
+        string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase);
+
+    private static string StatusLabel(string? status) =>
+        string.IsNullOrWhiteSpace(status) ? "Unknown" : status;
 
     private async Task ViewProducts(VendorDto vendor)
     {

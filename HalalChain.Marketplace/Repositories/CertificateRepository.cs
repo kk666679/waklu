@@ -79,7 +79,7 @@ public class CertificateRepository : ICertificateRepository
         }
     }
 
-    public async Task<IEnumerable<Certificate>> GetByStatusAsync(string status, int skip = 0, int take = 50, CancellationToken ct = default)
+    public async Task<IEnumerable<Certificate>> GetByStatusAsync(CertificateStatus status, int skip = 0, int take = 50, CancellationToken ct = default)
     {
         try
         {

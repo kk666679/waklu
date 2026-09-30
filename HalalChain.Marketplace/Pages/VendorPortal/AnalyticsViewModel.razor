@@ -133,7 +133,7 @@ else
                     <h3 style="margin: 4px 0 0;">@_metrics.PendingOrders</h3>
                 </div>
                 <div>
-                    <p class="small muted">Processing</p>
+                    <p class="small muted">Paid</p>
                     <h3 style="margin: 4px 0 0;">@_metrics.ProcessingOrders</h3>
                 </div>
                 <div>
@@ -243,7 +243,7 @@ else
     {
         try
         {
-            VendorId = await CurrentUser.GetIdAsync();
+            VendorId = CurrentUser.UserId ?? Guid.Empty;
             _isAuthenticated = VendorId != Guid.Empty;
 
             if (_isAuthenticated)
@@ -266,17 +266,26 @@ else
             var (startDate, endDate) = GetDateRangeForPeriod(_timePeriod);
 
             // Load top products
-            _topProductsByRevenue = await Analytics.GetTopPerformersAsync(VendorId, "revenue", 10) ?? new();
+            _topProductsByRevenue = (await Analytics.GetTopPerformersAsync(VendorId, "revenue", 10))
+                .Select(p => new ProductPerformance
+                {
+                    ProductId = p.ProductId,
+                    ProductName = p.ProductName,
+                    Revenue = p.Revenue,
+                    UnitsSold = p.UnitsSold,
+                    ConversionRate = p.ConversionRate
+                })
+                .ToList();
 
             // Calculate metrics
-            var orders = await OrderRepo.GetByDateRangeAsync(startDate, endDate);
-            _metrics.TotalOrders = orders.Count();
-            _metrics.TotalRevenue = orders.Sum(o => o.TotalAmount);
+            var orders = (await OrderRepo.GetByDateRangeAsync(startDate, endDate)).ToList();
+            _metrics.TotalOrders = orders.Count;
+            _metrics.TotalRevenue = orders.Sum(o => o.Total);
             _metrics.AvgOrderValue = _metrics.TotalOrders > 0 ? _metrics.TotalRevenue / _metrics.TotalOrders : 0;
 
             // Order status breakdown
             _metrics.PendingOrders = orders.Count(o => o.Status == "Pending");
-            _metrics.ProcessingOrders = orders.Count(o => o.Status == "Processing");
+            _metrics.ProcessingOrders = orders.Count(o => o.Status == "Paid");
             _metrics.ShippedOrders = orders.Count(o => o.Status == "Shipped");
             _metrics.DeliveredOrders = orders.Count(o => o.Status == "Delivered");
             _metrics.CancelledOrders = orders.Count(o => o.Status == "Cancelled");
@@ -288,11 +297,11 @@ else
                 .Select(o => new OrderSummary
                 {
                     Id = o.Id,
-                    OrderNumber = o.OrderNumber,
-                    ItemCount = o.OrderItems?.Count() ?? 0,
-                    TotalAmount = o.TotalAmount,
+                    OrderNumber = o.Id.ToString(),
+                    ItemCount = o.VendorOrders?.Sum(vo => vo.Items?.Count() ?? 0) ?? 0,
+                    TotalAmount = o.Total,
                     Status = o.Status,
-                    CreatedAt = o.CreatedAt
+                    CreatedAt = o.CreatedAt.UtcDateTime
                 })
                 .ToList();
 
@@ -333,7 +342,7 @@ else
     private string GetOrderStatusClass(string status) => status switch
     {
         "Pending" => "badge badge-warning",
-        "Processing" => "badge badge-info",
+        "Paid" => "badge badge-info",
         "Shipped" => "badge badge-primary",
         "Delivered" => "badge badge-success",
         "Cancelled" => "badge badge-danger",

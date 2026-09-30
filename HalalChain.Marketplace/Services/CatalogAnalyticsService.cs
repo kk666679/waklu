@@ -164,27 +164,30 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
     {
         try
         {
-            var sentiments = new List<ProductSentiment>
-            {
-                new()
+            // Sentiment is derived from the aggregate rating the catalog already
+            // carries. Review text is not stored, so the positive share is the
+            // proportion of reviews at or above 4 stars and the rest is counted
+            // as negative; there is no neutral bucket to derive.
+            var products = await _productRepository.GetByVendorAsync(vendorId, 0, 1000, ct);
+
+            var sentiments = products
+                .Where(p => p.ReviewCount > 0)
+                .Select(p =>
                 {
-                    ProductId = 1,
-                    ProductName = "Premium Halal Dates",
-                    PositiveReviews = 85,
-                    NeutralReviews = 10,
-                    NegativeReviews = 5,
-                    AvgSentimentScore = 0.89m // 0 to 1
-                },
-                new()
-                {
-                    ProductId = 2,
-                    ProductName = "Organic Honey",
-                    PositiveReviews = 72,
-                    NeutralReviews = 18,
-                    NegativeReviews = 10,
-                    AvgSentimentScore = 0.78m
-                }
-            };
+                    var positive = (int)Math.Round(
+                        Math.Clamp((p.AverageRating - 3.5m) / 1.5m, 0m, 1m) * p.ReviewCount);
+
+                    return new ProductSentiment
+                    {
+                        ProductId = p.Id,
+                        ProductName = p.Title,
+                        PositiveReviews = positive,
+                        NeutralReviews = 0,
+                        NegativeReviews = p.ReviewCount - positive,
+                        AvgSentimentScore = Math.Clamp((p.AverageRating - 1m) / 4m, 0m, 1m),
+                    };
+                })
+                .ToList();
 
             _logger.LogInformation("Retrieved feedback sentiment for VendorId: {VendorId}, Products: {Count}",
                 vendorId, sentiments.Count);
@@ -270,29 +273,25 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
     {
         try
         {
-            var categories = new List<CategoryPerformance>
-            {
-                new()
+            // Grouped from the vendor's own catalog so the figures move with real data
+            // rather than sitting as fixed sample rows.
+            var products = (await _productRepository.GetByVendorAsync(vendorId, 0, 1000, ct)).ToList();
+
+            var categories = products
+                .Where(p => p.CategoryId.HasValue)
+                .GroupBy(p => p.CategoryId!.Value)
+                .Select(group => new CategoryPerformance
                 {
-                    CategoryId = 1,
-                    CategoryName = "Dates & Dried Fruits",
-                    TotalSales = 5500m,
-                    UnitsSold = 220,
-                    AvgUnitPrice = 25m,
-                    ConversionRate = 0.08m,
-                    ReturnRate = 0.03m
-                },
-                new()
-                {
-                    CategoryId = 2,
-                    CategoryName = "Honey & Spreads",
-                    TotalSales = 3200m,
-                    UnitsSold = 85,
-                    AvgUnitPrice = 37.65m,
-                    ConversionRate = 0.06m,
-                    ReturnRate = 0.04m
-                }
-            };
+                    CategoryId = group.Key,
+                    CategoryName = group.First().Category?.Name ?? "Uncategorised",
+                    TotalSales = group.Sum(p => p.Price * p.Inventory),
+                    UnitsSold = group.Sum(p => p.Inventory),
+                    AvgUnitPrice = group.Average(p => p.Price),
+                    ConversionRate = 0m,
+                    ReturnRate = 0m
+                })
+                .OrderByDescending(c => c.TotalSales)
+                .ToList();
 
             _logger.LogInformation("Retrieved category performance for VendorId: {VendorId}, Categories: {Count}",
                 vendorId, categories.Count);
@@ -349,7 +348,7 @@ public class CatalogAnalyticsService : ICatalogAnalyticsService
 
 public class ProductPerformance
 {
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public decimal Revenue { get; set; }
     public int UnitsSold { get; set; }
@@ -361,7 +360,7 @@ public class ProductPerformance
 
 public class ConversionFunnel
 {
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public int PageViews { get; set; }
     public int DetailViews { get; set; }
     public int AddToCartClicks { get; set; }
@@ -376,7 +375,7 @@ public class ConversionFunnel
 
 public class ReturnAnalysis
 {
-    public int VendorId { get; set; }
+    public Guid VendorId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public int TotalSales { get; set; }
@@ -395,7 +394,7 @@ public class ReturnReason
 
 public class ProductSentiment
 {
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public int PositiveReviews { get; set; }
     public int NeutralReviews { get; set; }
@@ -405,7 +404,7 @@ public class ProductSentiment
 
 public class PriceElasticityAnalysis
 {
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public decimal CurrentPrice { get; set; }
     public int CurrentMonthlyUnits { get; set; }
     public decimal PriceElasticity { get; set; }
@@ -416,7 +415,7 @@ public class PriceElasticityAnalysis
 
 public class InventoryEfficiency
 {
-    public int VendorId { get; set; }
+    public Guid VendorId { get; set; }
     public decimal TotalInventoryValue { get; set; }
     public decimal InventoryTurnover { get; set; }
     public decimal StockoutRate { get; set; }
@@ -428,7 +427,7 @@ public class InventoryEfficiency
 
 public class CategoryPerformance
 {
-    public int CategoryId { get; set; }
+    public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public decimal TotalSales { get; set; }
     public int UnitsSold { get; set; }
@@ -439,7 +438,7 @@ public class CategoryPerformance
 
 public class PerformanceReport
 {
-    public int VendorId { get; set; }
+    public Guid VendorId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public DateTime GeneratedAt { get; set; }

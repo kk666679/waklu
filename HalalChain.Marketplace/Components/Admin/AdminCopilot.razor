@@ -26,13 +26,13 @@
                 <h3>Admin Copilot</h3>
                 <p class="text-sm text-muted">Ask me about vendors, products, verification status, or recent activity.</p>
                 <div class="copilot-suggestions">
-                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"Show me unverified vendors\")">
+                    <button class="suggestion-pill" @onclick="SendUnverifiedVendorsAsync">
                         Unverified vendors
                     </button>
-                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"What are the recent policy changes?\")">
+                    <button class="suggestion-pill" @onclick="SendPolicyChangesAsync">
                         Recent policy changes
                     </button>
-                    <button class="suggestion-pill" @onclick="() => SendMessage(@\"Summarize verification status\")">
+                    <button class="suggestion-pill" @onclick="SendVerificationSummaryAsync">
                         Verification summary
                     </button>
                 </div>
@@ -114,6 +114,15 @@
             await SendMessage(_inputText);
         }
     }
+
+    private Task SendUnverifiedVendorsAsync() =>
+        SendMessage("Show me unverified vendors");
+
+    private Task SendPolicyChangesAsync() =>
+        SendMessage("What are the recent policy changes?");
+
+    private Task SendVerificationSummaryAsync() =>
+        SendMessage("Summarize verification status");
 
     private async Task SendMessage(string message)
     {

@@ -51,7 +51,7 @@ public sealed record AdminViewModel(
     int TotalProducts,
     int VerifiedProducts,
     int TotalCategories,
-    ActivityEvent[] RecentActivity = null)
+    ActivityEvent[]? RecentActivity = null)
 {
     public ActivityEvent[] RecentActivity { get; } = RecentActivity ?? [];
 }

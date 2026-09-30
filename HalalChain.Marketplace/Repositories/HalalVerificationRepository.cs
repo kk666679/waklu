@@ -48,7 +48,7 @@ public class HalalVerificationRepository : IHalalVerificationRepository
         }
     }
 
-    public async Task<IEnumerable<HalalVerification>> GetByComplianceStatusAsync(string status, int skip = 0, int take = 50, CancellationToken ct = default)
+    public async Task<IEnumerable<HalalVerification>> GetByComplianceStatusAsync(ComplianceStatus status, int skip = 0, int take = 50, CancellationToken ct = default)
     {
         try
         {
@@ -194,7 +194,7 @@ public class HalalVerificationRepository : IHalalVerificationRepository
         {
             return await _context.VerificationAudits
                 .Where(a => a.VerificationId == verificationId)
-                .OrderByDescending(a => a.CreatedAt)
+                .OrderByDescending(a => a.OccurredAt)
                 .ToListAsync(ct);
         }
         catch (Exception ex)

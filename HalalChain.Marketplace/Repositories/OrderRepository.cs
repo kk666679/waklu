@@ -227,7 +227,8 @@ public class OrderRepository : IOrderRepository
         {
             return await _context.Orders
                 .Where(o => o.CreatedAt >= startDate && o.CreatedAt <= endDate)
-                .Include(o => o.OrderItems)
+                .Include(o => o.VendorOrders)
+                .ThenInclude(vo => vo.Items)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync(ct);
         }

@@ -6,7 +6,7 @@
 <div class="dashboard-container" data-tenant="@TenantContext.TenantId" data-theme="@Config?.Theme">
     <!-- Header -->
     <DashboardHeader Config="Config?.Header" 
-                     BrandConfig="new BrandConfig { 
+                     Brand="new BrandConfig { 
                          OrganizationName = Config?.OrganizationName,
                          LogoUrl = Config?.LogoUrl,
                          PrimaryColor = Config?.PrimaryColor }" 
@@ -17,7 +17,7 @@
         <aside class="dashboard-sidebar" role="navigation" aria-label="Main navigation">
             <DashboardSidebar Config="Config?.Sidebar" 
                              NavigationItems="NavigationItems" 
-                             BrandConfig="new BrandConfig { OrganizationName = Config?.OrganizationName }" />
+                             Brand="new BrandConfig { OrganizationName = Config?.OrganizationName }" />
         </aside>
 
         <!-- Main Content -->

@@ -42,7 +42,7 @@ else
                     <label class="small" style="display: block; margin-bottom: 4px; font-weight: 600;">Search order number</label>
                     <input type="text" placeholder="Search…" 
                         value="@_searchQuery" 
-                        @onchange="@((ChangeEventArgs e) => { _searchQuery = e.Value?.ToString() ?? ""; ApplyFilters(); })"
+                        @onchange="@((ChangeEventArgs e) => { _searchQuery = e.Value?.ToString() ?? ""; _ = ApplyFilters(); })"
                         style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;" />
                 </div>
 
@@ -51,7 +51,7 @@ else
                     <select value="@_statusFilter" @onchange="ApplyFilters" style="width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px;">
                         <option value="">All statuses</option>
                         <option value="Pending">Pending</option>
-                        <option value="Processing">Processing</option>
+                        <option value="Paid">Paid</option>
                         <option value="Shipped">Shipped</option>
                         <option value="Delivered">Delivered</option>
                         <option value="Cancelled">Cancelled</option>
@@ -72,6 +72,7 @@ else
         }
         else
         {
+            var orders = _orders ?? [];
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -86,7 +87,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var order in _orders)
+                        @foreach (var order in orders)
                         {
                             <tr style="border-bottom: 1px solid var(--color-border);">
                                 <td style="padding: var(--space-2);">
@@ -132,7 +133,7 @@ else
             }
 
             <div class="small muted" style="margin-top: var(--space-4); text-align: center;">
-                Showing @_orders.Length of @_totalCount orders
+                Showing @_orders?.Length ?? 0 of @_totalCount orders
             </div>
         }
     </section>
@@ -167,7 +168,7 @@ else
     {
         try
         {
-            VendorId = await CurrentUser.GetIdAsync();
+            VendorId = CurrentUser.UserId ?? Guid.Empty;
             _isAuthenticated = VendorId != Guid.Empty;
 
             if (_isAuthenticated)
@@ -199,20 +200,21 @@ else
             var filtered = orders.AsEnumerable();
             if (!string.IsNullOrEmpty(_searchQuery))
             {
-                filtered = filtered.Where(o => o.OrderNumber.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(o =>
+                    o.Id.ToString().Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
             }
 
             // Map to ViewModels
             _orders = filtered.Select(o => new OrderViewModel
             {
                 Id = o.Id,
-                OrderNumber = o.OrderNumber,
+                OrderNumber = o.Id.ToString(),
                 CustomerName = o.CustomerId.ToString(), // TODO: Get actual customer name from relationship
                 CustomerEmail = string.Empty, // TODO: Get actual customer email
-                ItemCount = o.OrderItems?.Count() ?? 0,
-                TotalAmount = o.TotalAmount,
+                ItemCount = o.VendorOrders?.Sum(vo => vo.Items?.Count() ?? 0) ?? 0,
+                TotalAmount = o.Total,
                 Status = o.Status,
-                CreatedAt = o.CreatedAt
+                CreatedAt = o.CreatedAt.UtcDateTime
             }).ToArray();
 
             // Get total count for pagination
@@ -272,7 +274,7 @@ else
     private string GetStatusBadgeClass(string status) => status switch
     {
         "Pending" => "badge badge-warning",
-        "Processing" => "badge badge-info",
+        "Paid" => "badge badge-info",
         "Shipped" => "badge badge-primary",
         "Delivered" => "badge badge-success",
         "Cancelled" => "badge badge-danger",

@@ -133,7 +133,7 @@ else
     {
         try
         {
-            VendorId = await CurrentUser.GetIdAsync();
+            VendorId = CurrentUser.UserId ?? Guid.Empty;
             _isAuthenticated = VendorId != Guid.Empty;
 
             if (_isAuthenticated)

@@ -21,7 +21,7 @@
         try
         {
             // Get current user
-            _customerId = await CurrentUser.GetIdAsync();
+            _customerId = CurrentUser.UserId ?? Guid.Empty;
             if (_customerId == Guid.Empty)
             {
                 return; // Not authenticated

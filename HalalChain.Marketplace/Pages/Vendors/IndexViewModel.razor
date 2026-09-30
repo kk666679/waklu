@@ -31,8 +31,9 @@
     }
     else
     {
+        var vendors = _vendors ?? [];
         <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4);">
-            @foreach (var vendor in _vendors)
+            @foreach (var vendor in vendors)
             {
                 <a href="/vendors/@vendor.Slug" class="panel card-pad" style="text-decoration: none; color: inherit; transition: all 200ms;">
                     <div style="text-align: center; margin-bottom: var(--space-3);">

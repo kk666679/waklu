@@ -230,7 +230,7 @@ public class DynamicPricingRulesEngine : IDynamicPricingRulesEngine
                 {
                     var now = DateTime.UtcNow;
                     var dateMatch = r.StartDate <= now && (r.EndDate == null || r.EndDate >= now);
-                    var segmentMatch = r.CustomerSegments == null || r.CustomerSegments.Contains(customerSegment);
+                    var segmentMatch = r.CustomerSegments == null || r.CustomerSegments.Contains(customerSegment ?? string.Empty);
                     return dateMatch && segmentMatch;
                 })
                 .ToList();

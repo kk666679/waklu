@@ -259,7 +259,7 @@ else
     {
         try
         {
-            CurrentUserId = await CurrentUser.GetIdAsync();
+            CurrentUserId = CurrentUser.UserId ?? Guid.Empty;
             await LoadProduct();
         }
         catch (Exception ex)

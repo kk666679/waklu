@@ -166,12 +166,12 @@
                             @switch (_activeTab)
                             {
                                 case AdminTab.Vendors:
-                                    <AdminVendorGrid Vendors="@_model.Vendors"
+                                    <AdminVendorGrid Vendors="@VendorRows"
                                                      OnRowSelected="OnVendorSelected" />
                                     break;
 
                                 case AdminTab.Products:
-                                    <AdminProductGrid Products="@_model.Products"
+                                    <AdminProductGrid Products="@ProductRows"
                                                       OnRowSelected="OnProductSelected" />
                                     break;
 
@@ -186,7 +186,7 @@
 
                     <!-- Sidebar: Activity feed -->
                     <aside class="panel panel-sidebar" aria-label="Activity feed sidebar">
-                        <AdminActivityFeed Events="@(_model.RecentActivity.Take(5).ToArray())"
+                        <AdminActivityFeed Events="@_model.RecentActivity.Take(5).ToArray()"
                                            OnRefresh="RefreshAll"
                                            OnEventClicked="OnActivityEventClicked" />
                     </aside>
@@ -249,6 +249,38 @@
         _model is null || _model.TotalProducts == 0
             ? 0
             : (double)_model.VerifiedProducts / _model.TotalProducts;
+
+    // The grids render dashboard rows, not platform contract DTOs. Projection
+    // happens here so the grids stay free of API-layer types.
+    private IReadOnlyList<AdminVendorRow> VendorRows =>
+        _model is null
+            ? []
+            : _model.Vendors
+                .Select(v => new AdminVendorRow(
+                    v.Id,
+                    v.Name,
+                    v.Country,
+                    v.Email,
+                    v.Status,
+                    string.Equals(v.Status, "Active", StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+    private IReadOnlyList<AdminProductRow> ProductRows =>
+        _model is null
+            ? []
+            : _model.Products
+                .Select(p => new AdminProductRow(
+                    p.Id,
+                    p.Title,
+                    p.VendorName,
+                    p.Price,
+                    p.Currency,
+                    p.Profile?.StatusName ?? "Unknown")
+                {
+                    StatusCode = p.Profile?.Status ?? 0,
+                    IsOutOfStock = p.Inventory <= 0,
+                })
+                .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -356,15 +388,17 @@
 
     private void CloseCopilot() => _copilotOpen = false;
 
-    private void OnVendorSelected(VendorDto vendor)
+    private void OnVendorSelected(AdminVendorRow row)
     {
-        _selectedVendor = vendor;
-        _copilotContext = $"vendor: {vendor.Name} ({vendor.Country})";
+        // The drawer renders the platform contract, so resolve the row back to
+        // the DTO it was projected from.
+        _selectedVendor = _model?.Vendors.FirstOrDefault(v => v.Id == row.Id);
+        _copilotContext = $"vendor: {row.Name} ({row.Country})";
     }
 
-    private void OnProductSelected(EnrichedProductDto product)
+    private void OnProductSelected(AdminProductRow row)
     {
-        _copilotContext = $"product: {product.Title} by {product.VendorName}";
+        _copilotContext = $"product: {row.Title} by {row.VendorName}";
         OpenCopilot();
     }
 
@@ -394,7 +428,7 @@
         }
     }
 
-    private static IReadOnlyList<ActivityEvent> BuildRecentActivity(
+    private static ActivityEvent[] BuildRecentActivity(
         IReadOnlyList<VendorDto> vendors,
         IReadOnlyList<EnrichedProductDto> products)
     {

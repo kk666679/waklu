@@ -2,7 +2,6 @@ namespace HalalChain.Marketplace.Services.Dashboard.CacheStrategies;
 
 using HalalChain.Marketplace.Models.Dashboard;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

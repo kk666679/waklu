@@ -24,10 +24,12 @@ public class HybridCacheStrategy : IDashboardCacheStrategy
     public HybridCacheStrategy(
         IMemoryCache memoryCache,
         IDistributedCache distributedCache,
-        ILogger<HybridCacheStrategy> logger)
+        ILogger<HybridCacheStrategy> logger,
+        ILogger<InMemoryCacheStrategy> l1Logger,
+        ILogger<DistributedCacheStrategy> l2Logger)
     {
-        _l1Cache = new InMemoryCacheStrategy(memoryCache, logger);
-        _l2Cache = new DistributedCacheStrategy(distributedCache, logger);
+        _l1Cache = new InMemoryCacheStrategy(memoryCache, l1Logger);
+        _l2Cache = new DistributedCacheStrategy(distributedCache, l2Logger);
         _logger = logger;
     }
 

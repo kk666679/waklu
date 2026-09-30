@@ -44,7 +44,7 @@
         </div>
     }
 
-    @if (Events.Length > 5)
+    @if (Events.Count > 5)
     {
         <div class="activity-footer">
             <button class="btn-link" @onclick="ViewAllActivity" aria-label="View all activity">
@@ -56,7 +56,7 @@
 
 @code {
     [Parameter]
-    public required ActivityEvent[] Events { get; set; }
+    public required IReadOnlyList<ActivityEvent> Events { get; set; }
 
     [Parameter]
     public EventCallback OnRefresh { get; set; }

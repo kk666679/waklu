@@ -2,7 +2,6 @@ namespace HalalChain.Marketplace.Services.Dashboard.CacheStrategies;
 
 using HalalChain.Marketplace.Models.Dashboard;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -28,44 +27,39 @@ public class InMemoryCacheStrategy : IDashboardCacheStrategy
         _metadata = new ConcurrentDictionary<string, CacheEntryMetadata>();
     }
 
-    public async Task<TenantDashboardConfig?> GetAsync(string cacheKey)
+    public Task<TenantDashboardConfig?> GetAsync(string cacheKey)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            if (_cache.TryGetValue(cacheKey, out TenantDashboardConfig? config))
             {
-                if (_cache.TryGetValue(cacheKey, out TenantDashboardConfig? config))
+                _hits++;
+                if (_metadata.TryGetValue(cacheKey, out var meta))
                 {
-                    _hits++;
-                    if (_metadata.TryGetValue(cacheKey, out var meta))
-                    {
-                        meta.LastAccessTime = DateTime.UtcNow;
-                        meta.AccessCount++;
-                    }
-
-                    _logger.LogDebug("In-memory cache hit: {CacheKey}", cacheKey);
-                    return config;
+                    meta.LastAccessTime = DateTime.UtcNow;
+                    meta.AccessCount++;
                 }
 
-                _misses++;
-                _logger.LogDebug("In-memory cache miss: {CacheKey}", cacheKey);
-                return null;
+                _logger.LogDebug("In-memory cache hit: {CacheKey}", cacheKey);
+                return Task.FromResult<TenantDashboardConfig?>(config);
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error retrieving from memory cache: {CacheKey}", cacheKey);
-                _misses++;
-                return null;
-            }
-        });
+
+            _misses++;
+            _logger.LogDebug("In-memory cache miss: {CacheKey}", cacheKey);
+            return Task.FromResult<TenantDashboardConfig?>(null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving from memory cache: {CacheKey}", cacheKey);
+            _misses++;
+            return Task.FromResult<TenantDashboardConfig?>(null);
+        }
     }
 
-    public async Task SetAsync(string cacheKey, TenantDashboardConfig config, TimeSpan? expiration = null)
+    public Task SetAsync(string cacheKey, TenantDashboardConfig config, TimeSpan? expiration = null)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
                 var cacheOptions = new MemoryCacheEntryOptions();
 
                 if (expiration.HasValue)
@@ -99,117 +93,109 @@ public class InMemoryCacheStrategy : IDashboardCacheStrategy
                     Expiration = expiration ?? TimeSpan.FromHours(1),
                     SizeBytes = EstimateSize(config)
                 };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error setting memory cache: {CacheKey}", cacheKey);
-            }
-        });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting memory cache: {CacheKey}", cacheKey);
+        }
+
+        return Task.CompletedTask;
     }
 
-    public async Task RemoveAsync(string cacheKey)
+    public Task RemoveAsync(string cacheKey)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                _cache.Remove(cacheKey);
-                _metadata.TryRemove(cacheKey, out _);
-                _logger.LogDebug("Removed memory cache entry: {CacheKey}", cacheKey);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error removing from memory cache: {CacheKey}", cacheKey);
-            }
-        });
+            _cache.Remove(cacheKey);
+            _metadata.TryRemove(cacheKey, out _);
+            _logger.LogDebug("Removed memory cache entry: {CacheKey}", cacheKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error removing from memory cache: {CacheKey}", cacheKey);
+        }
+
+        return Task.CompletedTask;
     }
 
-    public async Task RemoveByTenantAsync(string tenantId)
+    public Task RemoveByTenantAsync(string tenantId)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                var prefix = $"dashboard:config:{tenantId}";
-                var keysToRemove = _metadata.Keys
-                    .Where(k => k.StartsWith(prefix))
-                    .ToList();
+            var prefix = $"dashboard:config:{tenantId}";
+            var keysToRemove = _metadata.Keys
+                .Where(k => k.StartsWith(prefix))
+                .ToList();
 
-                foreach (var key in keysToRemove)
-                {
-                    _cache.Remove(key);
-                    _metadata.TryRemove(key, out _);
-                }
-
-                _logger.LogInformation(
-                    "Invalidated memory cache for tenant {TenantId}: removed {Count} entries",
-                    tenantId, keysToRemove.Count);
-            }
-            catch (Exception ex)
+            foreach (var key in keysToRemove)
             {
-                _logger.LogError(ex, "Error invalidating tenant cache: {TenantId}", tenantId);
+                _cache.Remove(key);
+                _metadata.TryRemove(key, out _);
             }
-        });
+
+            _logger.LogInformation(
+                "Invalidated memory cache for tenant {TenantId}: removed {Count} entries",
+                tenantId, keysToRemove.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invalidating tenant cache: {TenantId}", tenantId);
+        }
+
+        return Task.CompletedTask;
     }
 
-    public async Task<bool> ExistsAsync(string cacheKey)
+    public Task<bool> ExistsAsync(string cacheKey)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                return _cache.TryGetValue(cacheKey, out _);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error checking cache existence: {CacheKey}", cacheKey);
-                return false;
-            }
-        });
+            return Task.FromResult(_cache.TryGetValue(cacheKey, out _));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error checking cache existence: {CacheKey}", cacheKey);
+            return Task.FromResult(false);
+        }
     }
 
-    public async Task<TimeSpan?> GetTtlAsync(string cacheKey)
+    public Task<TimeSpan?> GetTtlAsync(string cacheKey)
     {
-        return await Task.Run(() =>
+        try
         {
-            try
+            if (_metadata.TryGetValue(cacheKey, out var meta))
             {
-                if (_metadata.TryGetValue(cacheKey, out var meta))
-                {
-                    var expiresAt = meta.CreatedTime.Add(meta.Expiration);
-                    var remaining = expiresAt - DateTime.UtcNow;
-                    return remaining > TimeSpan.Zero ? remaining : null;
-                }
+                var expiresAt = meta.CreatedTime.Add(meta.Expiration);
+                var remaining = expiresAt - DateTime.UtcNow;
+                return Task.FromResult<TimeSpan?>(remaining > TimeSpan.Zero ? remaining : null);
+            }
 
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error getting cache TTL: {CacheKey}", cacheKey);
-                return null;
-            }
-        });
+            return Task.FromResult<TimeSpan?>(null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting cache TTL: {CacheKey}", cacheKey);
+            return Task.FromResult<TimeSpan?>(null);
+        }
     }
 
-    public async Task ClearAllAsync()
+    public Task ClearAllAsync()
     {
-        return await Task.Run(() =>
+        try
         {
-            try
-            {
-                // IMemoryCache doesn't support clearing all entries
-                // We can only track and log what we know about
-                var count = _metadata.Count;
-                _metadata.Clear();
-                _logger.LogWarning(
-                    "Memory cache clear requested - cleared {Count} tracked entries (total may be higher)",
-                    count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error clearing memory cache");
-            }
-        });
+            // IMemoryCache doesn't support clearing all entries
+            // We can only track and log what we know about
+            var count = _metadata.Count;
+            _metadata.Clear();
+            _logger.LogWarning(
+                "Memory cache clear requested - cleared {Count} tracked entries (total may be higher)",
+                count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing memory cache");
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task<CacheStrategyStats> GetStatsAsync()

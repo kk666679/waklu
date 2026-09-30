@@ -8,10 +8,10 @@
 
     <!-- Sidebar Header -->
     <div class="sidebar-header">
-        @if (!string.IsNullOrEmpty(BrandConfig?.OrganizationName))
+        @if (!string.IsNullOrEmpty(Brand?.OrganizationName))
         {
             <div class="sidebar-brand">
-                <span class="sidebar-org-name">@BrandConfig.OrganizationName</span>
+                <span class="sidebar-org-name">@Brand.OrganizationName</span>
             </div>
         }
 
@@ -133,7 +133,7 @@
     public List<NavigationItem>? NavigationItems { get; set; }
 
     [Parameter]
-    public BrandConfig? BrandConfig { get; set; }
+    public BrandConfig? Brand { get; set; }
 
     [Inject]
     private NavigationManager? Navigation { get; set; }

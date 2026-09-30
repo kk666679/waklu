@@ -24,7 +24,7 @@ namespace HalalChain.Marketplace;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorPages();
@@ -53,7 +53,9 @@ public class Program
         });
 
         // ── AutoMapper for domain → ViewModel mapping ──────────────────────
-        builder.Services.AddAutoMapper(typeof(MappingProfile));
+        // Scanning by assembly marker type picks up MappingProfile and any other
+// profile defined in this assembly.
+builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(MappingProfile).Assembly));
 
         // ── Repository Registrations (all catalog, commerce, halal, etc.) ──
         builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -80,6 +82,21 @@ public class Program
 
         // Shared API client with resilience & correlation ID
         builder.Services.AddHalalChainApiClient(builder.Configuration);
+
+        // Shared Platform API transport (typed HttpClient + PlatformApiSender).
+        // AddHalalChainApiClient registers IApiClient, not IPlatformApiClient, so
+        // without these two lines CartState and the routed cart/wishlist services
+        // have no IPlatformApiClient to resolve and host validation fails at startup.
+        // IPlatformTokenAccessor is registered as AuthService further down.
+        builder.Services.AddPlatformHttpClient(client =>
+        {
+            var platformApiBaseUrl = builder.Configuration["PlatformApi:BaseUrl"]
+                ?? builder.Configuration["Api:BaseUrl"]
+                ?? throw new InvalidOperationException("PlatformApi:BaseUrl or Api:BaseUrl is required.");
+            client.BaseAddress = new Uri(platformApiBaseUrl);
+        });
+        builder.Services.AddPlatformApiClient();
+
         builder.Services.AddScoped<IApiNotifier, MarketplaceApiNotifier>();
         builder.Services.AddScoped<ICurrentUserAccessor, HttpContextUserAccessor>();
 
@@ -172,6 +189,6 @@ public class Program
         app.MapHealthChecks("/health");
         app.MapHealthChecks("/health/live");
         app.MapHealthChecks("/health/ready");
-        app.Run();
+        await app.RunAsync();
     }
 }

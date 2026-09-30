@@ -205,7 +205,7 @@
 
         var events = vendors
             .Select(v => new ActivityEvent(
-                $"{v.Name} {v.IsVerified ? "verified" : "pending verification"}",
+                $"{v.Name} {(v.IsVerified ? "verified" : "pending verification")}",
                 v.CountryFilter,
                 now,
                 Category: "vendor"))
