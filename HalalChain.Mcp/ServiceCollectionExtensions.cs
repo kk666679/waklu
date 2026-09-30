@@ -63,10 +63,13 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IPlatformDataService, PlatformDataService>();
         services.AddSingleton<IHealthCheckService, HealthCheckService>();
+        services.AddSingleton<ICodeIntrospectionService, CodeIntrospectionService>();
+        services.AddSingleton<IGovernanceService, GovernanceService>();
         services.AddSingleton<IToolRegistry, ToolRegistry>();
         services.AddSingleton<IResourceRegistry, ResourceRegistry>();
         services.AddSingleton<IPromptRegistry, PromptRegistry>();
 
+        // The original eight tools.
         RegisterTool<ProjectStatusTool>(services);
         RegisterTool<ListProjectsTool>(services);
         RegisterTool<ListPagesTool>(services);
@@ -75,6 +78,27 @@ public static class ServiceCollectionExtensions
         RegisterTool<PlatformOverviewTool>(services);
         RegisterTool<GetArchitectureTool>(services);
         RegisterTool<HealthTool>(services);
+
+        // Wave 1: code introspection (8 read-only tools).
+        RegisterTool<ListEndpointsTool>(services);
+        RegisterTool<ListMediatrHandlersTool>(services);
+        RegisterTool<ListDomainEventsTool>(services);
+        RegisterTool<ListAggregateRootsTool>(services);
+        RegisterTool<ListValueObjectsTool>(services);
+        RegisterTool<ListMigrationsTool>(services);
+        RegisterTool<TestInventoryTool>(services);
+        RegisterTool<FindTypeTool>(services);
+
+        // Wave 2: governance introspection (9 read-only tools).
+        RegisterTool<GetPrinciplesTool>(services);
+        RegisterTool<ListAdrsTool>(services);
+        RegisterTool<GetAdrTool>(services);
+        RegisterTool<ListSkillsTool>(services);
+        RegisterTool<GetSkillTool>(services);
+        RegisterTool<GetControlsTool>(services);
+        RegisterTool<GetServiceManifestTool>(services);
+        RegisterTool<VerifyNoVerdictAuthorityTool>(services);
+        RegisterTool<ListGovernanceWorkflowsTool>(services);
 
         return services;
     }
