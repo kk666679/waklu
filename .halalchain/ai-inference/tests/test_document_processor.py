@@ -64,7 +64,13 @@ def test_symlink_is_rejected(processor, root, tmp_path):
     link = root / "link.txt"
     os.symlink(str(target), str(link))
     result = processor.process_file(str(link))
-    assert "symlink" in result["metadata"]["error"].lower()
+    # process_file() resolves the candidate before validating it, so a link that
+    # escapes the root is refused by the containment check rather than by the
+    # is_symlink() guard in _validate. Either way the read must be refused and
+    # no content may leak, so assert the outcome rather than the guard.
+    error = result["metadata"]["error"].lower()
+    assert "refusing" in error
+    assert result["content"] == ""
 
 
 def test_nonexistent_file_is_reported(processor, root):

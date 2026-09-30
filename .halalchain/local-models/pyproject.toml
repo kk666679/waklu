@@ -49,3 +49,12 @@ asyncio_mode = "auto"
 
 [tool.uv]
 exclude-newer-package = { mcp = false, "mcp-types" = false }
+
+[tool.uv.sources]
+# halalchain-shared lives in this repo, not on PyPI, so every member that depends
+# on it must declare where to find it. A relative path source works regardless of
+# uv's workspace discovery; without it `uv pip compile` fails with
+# "halalchain-shared was not found in the package registry".
+# The emitted lock omits this package (--no-emit-package) because pip cannot
+# hash-check a local requirement; its dependencies stay pinned in the output.
+halalchain-shared = { path = "../_shared" }

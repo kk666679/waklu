@@ -1,5 +1,13 @@
 # Entry point for convenience only.
 # Real lock lives in .halalchain/requirements/dev.txt
+# (pytest, pytest-asyncio, pytest-httpx, ruff, mypy).
+# pip resolves this include relative to this file, so it works from any of the
+# .halalchain/<service>/ working directories CI installs from.
+#
+# This file used to be comments only, which is why CI failed with
+# `pytest: command not found`: nothing installed the test runner.
+-r requirements/dev.txt
+
 # Regenerate with:
 #   uv pip compile .halalchain/_shared/pyproject.toml \
 #     --extra dev --generate-hashes -o .halalchain/requirements/dev.txt

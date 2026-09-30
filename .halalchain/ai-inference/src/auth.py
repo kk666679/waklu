@@ -5,7 +5,7 @@ import hashlib
 import logging
 from typing import Optional
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
 from .config import Settings
@@ -72,16 +72,35 @@ def ensure_auth_configured(settings: Settings) -> None:
         )
 
 
-def verify_api_key(api_key: Optional[str] = None, settings: Optional[Settings] = None) -> bool:
+def _default_settings() -> Settings:
+    """Supply the process-wide settings singleton to FastAPI."""
+    from .config import settings as _settings
+    return _settings
+
+
+def verify_api_key(
+    api_key: Optional[str] = Depends(api_key_header),
+    settings: Optional[Settings] = Depends(_default_settings),
+) -> bool:
     """Verify the API key on an incoming request.
 
-    ``api_key`` is resolved by FastAPI from the ``X-API-Key`` header via
-    :data:`api_key_header`. The parameter is exposed for direct testability.
-    ``settings`` is resolved for the same reason; callers normally rely on
-    the singleton from :mod:`.config` but tests can inject a fresh
-    instance.
+    ``api_key`` is bound to the ``X-API-Key`` header through :data:`api_key_header`
+    and ``settings`` through :func:`_default_settings`. Both bindings are load
+    bearing: without them FastAPI classifies the two parameters by their
+    annotations alone, so ``api_key: Optional[str]`` became a *query* parameter
+    (forcing the secret into URLs, where it leaks into logs and referrers, and
+    making the X-API-Key header be ignored) and ``settings: Optional[Settings]``
+    became a *body* field, which swallowed the request body and made every
+    authenticated endpoint answer 422 "Field required: body.req".
+
+    The parameters keep plain defaults so the function stays directly callable
+    from tests; anything that is not a real value falls back to the defaults.
     """
-    if settings is None:
+    # A Depends() default is a marker object, not a value. Direct callers either
+    # pass these explicitly or rely on the fallbacks below.
+    if not isinstance(api_key, str):
+        api_key = None
+    if not isinstance(settings, Settings):
         from .config import settings as _settings
         settings = _settings
 

@@ -1,5 +1,11 @@
 # Entry point for convenience only.
-# Real lock lives in .halalchain/requirements/tawheed.txt
+# Real lock lives in .halalchain/requirements/tawheed.txt.
+# pip resolves this include relative to this file.
+#
+# This file used to be comments only, which made `pip install -r requirements.txt`
+# a silent no-op in CI.
+-r ../requirements/tawheed.txt
+
 # Regenerate with:
 #   uv pip compile .halalchain/tawheed/pyproject.toml \
-#     --generate-hashes -o .halalchain/requirements/tawheed.txt
+#     --extra dev --generate-hashes -o .halalchain/requirements/tawheed.txt

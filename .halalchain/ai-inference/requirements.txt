@@ -1,2 +1,11 @@
-# This file is replaced at build time by the lock file.
-# See .halalchain/requirements/ai-inference.txt
+# Entry point for local development and CI. The pinned, hashed lock lives in
+# .halalchain/requirements/ai-inference.txt. pip resolves this include relative
+# to this file, so the path holds no matter which directory it is run from.
+#
+# This file used to be comments only, which made `pip install -r requirements.txt`
+# a silent no-op in CI.
+-r ../requirements/ai-inference.txt
+
+# Regenerate with:
+#   uv pip compile .halalchain/ai-inference/pyproject.toml \
+#     --extra dev --generate-hashes -o .halalchain/requirements/ai-inference.txt

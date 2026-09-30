@@ -12,6 +12,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+observability = [
+    # src/observability.py imports these at module scope and src/main.py imports
+    # that module unconditionally, so they are required to boot the service, not
+    # an optional add-on. Keep in step with ai-inference's observability extra.
+    "prometheus-client==0.21.1",
+    "opentelemetry-api==1.29.0",
+    "opentelemetry-sdk==1.29.0",
+    "opentelemetry-exporter-otlp==1.29.0",
+    "python-json-logger==4.0.0",
+]
 dev = [
     "pytest==8.4.0",
     "pytest-asyncio==0.24.0",
@@ -30,3 +40,12 @@ asyncio_mode = "auto"
 
 [tool.uv]
 exclude-newer-package = { mcp = false, "mcp-types" = false }
+
+[tool.uv.sources]
+# halalchain-shared lives in this repo, not on PyPI, so every member that depends
+# on it must declare where to find it. A relative path source works regardless of
+# uv's workspace discovery; without it `uv pip compile` fails with
+# "halalchain-shared was not found in the package registry".
+# The emitted lock omits this package (--no-emit-package) because pip cannot
+# hash-check a local requirement; its dependencies stay pinned in the output.
+halalchain-shared = { path = "../_shared" }

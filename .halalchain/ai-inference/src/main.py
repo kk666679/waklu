@@ -19,6 +19,9 @@ from .observability import (
     init_tracing, setup_logging, get_metrics,
     measure_request, record_llm_tokens, record_cache_hit, record_cache_miss,
 )
+# record_request/record_duration live in .metrics, not .observability. Without this
+# import every endpoint raised NameError on its first real request.
+from .metrics import record_request, record_duration
 from .llm import get_llm_provider
 from .vector_store import get_vector_store
 from .document_processor import processor

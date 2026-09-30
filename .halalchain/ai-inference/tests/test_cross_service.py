@@ -30,7 +30,7 @@ def test_ai_inference_with_local_models_backend(mock_local_models):
     }):
         # Reload modules to pick up new env vars
         import importlib
-        from ai_inference.src import embeddings
+        from src import embeddings
         importlib.reload(embeddings)
 
         # Test embedding generation
@@ -46,7 +46,7 @@ def client():
         "ENVIRONMENT": "development",
         "AI_BACKEND": "local",
     }):
-        from ai_inference.src.main import app
+        from src.main import app
         return TestClient(app)
 
 

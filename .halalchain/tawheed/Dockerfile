@@ -16,7 +16,10 @@ COPY _shared /tmp/_shared
 RUN pip install --no-cache-dir /tmp/_shared \
     && rm -rf /tmp/_shared
 
-COPY tawheed/requirements.txt ./requirements.txt
+# Install the pinned, hashed lock — NOT tawheed/requirements.txt, which is only a
+# convenience include pointing at ../requirements/tawheed.txt and resolves to a
+# path that does not exist inside this image.
+COPY requirements/tawheed.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY tawheed/src ./src
