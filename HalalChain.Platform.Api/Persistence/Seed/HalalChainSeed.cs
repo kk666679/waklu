@@ -6,6 +6,19 @@ namespace HalalChain.Platform.Api.Persistence.Seed;
 
 public static class HalalChainSeed
 {
+    /// <summary>
+    /// Fixed timestamp stamped onto every seeded row.
+    /// <para>
+    /// EF Core diffs <c>HasData</c> values against the model snapshot on every
+    /// build. A non-deterministic default (<c>DateTimeOffset.UtcNow</c>) makes
+    /// the snapshot differ from the seed on each run, which is what produced the
+    /// pure-timestamp churn migrations and forced
+    /// <c>PendingModelChangesWarning</c> to be suppressed. Seeded timestamps are
+    /// therefore fixed constants.
+    /// </para>
+    /// </summary>
+    private static readonly DateTimeOffset SeedEpoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     public static void Seed(ModelBuilder modelBuilder)
     {
         // Categories
@@ -22,18 +35,18 @@ public static class HalalChainSeed
         modelBuilder.Entity<Category>().HasData(foodCat, snackCat, drinkCat, meatCat, spiceCat, bakeryCat, cosCat, skinCat, hairCat, suppCat);
 
         // Vendors
-        var v1 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000001"), Name = "Selera Masak", Slug = "selera-masak", Status = "Active", Country = "MY" };
-        var v2 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000002"), Name = "Al-Barakah Foods", Slug = "al-barakah", Status = "Active", Country = "MY" };
-        var v3 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000003"), Name = "Nusantara Herbal", Slug = "nusantara", Status = "Active", Country = "ID" };
-        var v4 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000004"), Name = "PureBite SG", Slug = "purebite", Status = "Active", Country = "SG" };
-        var v5 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000005"), Name = "Gulf Halal Trading", Slug = "gulf-halal", Status = "Active", Country = "AE" };
+        var v1 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000001"), Name = "Selera Masak", Slug = "selera-masak", Status = "Active", Country = "MY", CreatedAt = SeedEpoch };
+        var v2 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000002"), Name = "Al-Barakah Foods", Slug = "al-barakah", Status = "Active", Country = "MY", CreatedAt = SeedEpoch };
+        var v3 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000003"), Name = "Nusantara Herbal", Slug = "nusantara", Status = "Active", Country = "ID", CreatedAt = SeedEpoch };
+        var v4 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000004"), Name = "PureBite SG", Slug = "purebite", Status = "Active", Country = "SG", CreatedAt = SeedEpoch };
+        var v5 = new Vendor { Id = Guid.Parse("A0000000-0000-0000-0000-000000000005"), Name = "Gulf Halal Trading", Slug = "gulf-halal", Status = "Active", Country = "AE", CreatedAt = SeedEpoch };
         modelBuilder.Entity<Vendor>().HasData(v1, v2, v3, v4, v5);
         // Products (50)
         var products = new List<Product>();
         var now = new DateTimeOffset(2026, 8, 25, 0, 0, 0, TimeSpan.Zero);
         int idx = 0;
         void AddProduct(string title, string slug, string desc, Guid catId, Guid vendorId, decimal price, string currency, int inv, string origin)
-        { idx++; products.Add(new Product { Id = Guid.Parse($"B{idx:D3}0000-0000-0000-0000-000000000000"), Title = title, Slug = slug, Description = desc, CategoryId = catId, VendorId = vendorId, Price = price, Currency = currency, Inventory = inv, Origin = origin, CreatedAt = now.AddDays(-idx) }); }
+        { idx++; products.Add(new Product { Id = Guid.Parse($"B{idx:D3}0000-0000-0000-0000-000000000000"), Title = title, Slug = slug, Description = desc, CategoryId = catId, VendorId = vendorId, Price = price, Currency = currency, Inventory = inv, Origin = origin, CreatedAt = now.AddDays(-idx), UpdatedAt = now.AddDays(-idx) }); }
         // Snacks
         AddProduct("Keropok Lekor Original","keropok-lekor","Traditional fish cracker",snackCat.Id,v1.Id,8.50m,"MYR",500,"Malaysia");
         AddProduct("Keropok Lekor Spicy","keropok-spicy","Spicy variant with chili",snackCat.Id,v1.Id,9.00m,"MYR",300,"Malaysia");

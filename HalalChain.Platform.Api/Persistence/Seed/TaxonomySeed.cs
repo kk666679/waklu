@@ -11,6 +11,20 @@ namespace HalalChain.Platform.Api.Persistence.Seed;
 /// </summary>
 public static class TaxonomySeed
 {
+    /// <summary>
+    /// Fixed timestamp stamped onto every seeded row.
+    /// <para>
+    /// EF Core diffs <c>HasData</c> values against the model snapshot on every
+    /// build. A non-deterministic default (<c>DateTimeOffset.UtcNow</c>) makes
+    /// the snapshot differ from the seed on each run, which is what produced
+    /// the pure-timestamp churn migrations
+    /// (<c>MoveToDomain</c>, <c>MoveBlockchainToDomain</c>, <c>MoveHalalToDomain</c>)
+    /// and forced <c>PendingModelChangesWarning</c> to be suppressed.
+    /// Seeded timestamps are therefore fixed constants.
+    /// </para>
+    /// </summary>
+    private static readonly DateTimeOffset SeedEpoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     public static void Seed(ModelBuilder modelBuilder)
     {
         SeedCountries(modelBuilder);
@@ -65,11 +79,11 @@ public static class TaxonomySeed
     private static void SeedBrands(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Brand>().HasData(
-            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000001"), Name = "Selera Masak",       Slug = "selera-masak",    CountryOfOrigin = "MY" },
-            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000002"), Name = "Al-Barakah Foods",   Slug = "al-barakah",      CountryOfOrigin = "MY" },
-            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000003"), Name = "Nusantara Herbal",   Slug = "nusantara",       CountryOfOrigin = "ID" },
-            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000004"), Name = "PureBite SG",        Slug = "purebite",        CountryOfOrigin = "SG" },
-            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000005"), Name = "Gulf Halal Trading", Slug = "gulf-halal",      CountryOfOrigin = "AE" }
+            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000001"), Name = "Selera Masak",       Slug = "selera-masak",    CountryOfOrigin = "MY", CreatedAt = SeedEpoch },
+            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000002"), Name = "Al-Barakah Foods",   Slug = "al-barakah",      CountryOfOrigin = "MY", CreatedAt = SeedEpoch },
+            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000003"), Name = "Nusantara Herbal",   Slug = "nusantara",       CountryOfOrigin = "ID", CreatedAt = SeedEpoch },
+            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000004"), Name = "PureBite SG",        Slug = "purebite",        CountryOfOrigin = "SG", CreatedAt = SeedEpoch },
+            new Brand { Id = Guid.Parse("10000020-0000-0000-0000-000000000005"), Name = "Gulf Halal Trading", Slug = "gulf-halal",      CountryOfOrigin = "AE", CreatedAt = SeedEpoch }
         );
     }
 

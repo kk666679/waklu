@@ -78,6 +78,22 @@ public sealed class EfProductRepository(HalalChainDbContext db) : IProductReposi
         return product is null ? null : ToDto(product);
     }
 
+    public async Task<Product?> GetAsync(Guid id, CancellationToken ct = default)
+    {
+        return await db.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.Vendor)
+            .Include(p => p.Certificates)
+            .Include(p => p.HalalProfile)
+            .Include(p => p.ProductType)
+            .Include(p => p.Brand)
+            .Include(p => p.Variants)
+            .Include(p => p.MediaAssets)
+            .Include(p => p.SecondaryCategories)
+            .SingleOrDefaultAsync(p => p.Id == id, ct);
+    }
+
     public async Task<PagedResult<ProductDto>> ListAsync(
         string? category, string? halalStatus, decimal? minPrice, decimal? maxPrice,
         string? vendor, string? search, string? sortBy, string? sortOrder,
