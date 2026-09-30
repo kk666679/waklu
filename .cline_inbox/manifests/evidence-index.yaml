@@ -1,0 +1,171 @@
+# Evidence index — every artifact produced by every phase, indexed for audit.
+# G1.9 requires >= 9 entries, each with a named owner.
+#
+# created: a real date means the artifact exists. "pending" means the phase
+# has not produced it yet. A gate must not pass while an entry it depends on
+# is still "pending".
+version: 1
+last_updated: 2026-09-26
+
+entries:
+  - id: E-001
+    phase: ENT-001
+    artifact: Architecture document
+    location: docs/ARCHITECTURE.md
+    owner: platform-architecture
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-004, C-005, C-006]
+
+  - id: E-002
+    phase: ENT-001
+    artifact: ADR set 001-005
+    location: docs/adr/
+    owner: platform-architecture
+    created: 2026-09-26
+    retention_years: 7
+    controls: []
+
+  - id: E-003
+    phase: ENT-001
+    artifact: ADR-006 chain network selection
+    location: docs/adr/006-chain-network-selection.md
+    owner: platform-architecture
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-007]
+
+  - id: E-004
+    phase: ENT-001
+    artifact: ADR-007 payment provider selection
+    location: docs/adr/007-payment-provider-selection.md
+    owner: finance
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-011]
+
+  - id: E-005
+    phase: ENT-001
+    artifact: ADR-008 registrar key custody
+    location: docs/adr/008-registrar-key-custody.md
+    owner: security
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-007]
+
+  - id: E-006
+    phase: ENT-001
+    artifact: ADR-009 multi-tenancy model
+    location: docs/adr/009-multi-tenancy-model.md
+    owner: platform-architecture
+    created: 2026-09-26
+    retention_years: 7
+    controls: []
+
+  - id: E-007
+    phase: ENT-001
+    artifact: Service manifest
+    location: service-manifest.yaml
+    owner: platform-ops
+    created: 2026-09-26
+    retention_years: 7
+    controls: []
+
+  - id: E-008
+    phase: ENT-001
+    artifact: Architecture guard test suite
+    location: HalalChain.Architecture.Tests/
+    owner: platform-engineering
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-001, C-004, C-006]
+
+  - id: E-009
+    phase: ENT-001
+    artifact: Agent contract tests
+    location: HalalChain.Agents.Tests/
+    owner: platform-engineering
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-001, C-014]
+
+  - id: E-010
+    phase: ENT-001
+    artifact: Solidity contracts (registry, access control, traceability)
+    location: HalalChain.Platform.Contracts/contracts/src/
+    owner: platform-engineering
+    created: 2026-09-26
+    retention_years: 7
+    controls: [C-005, C-006]
+
+  - id: E-011
+    phase: ENT-002
+    artifact: Contract test suite
+    location: HalalChain.Platform.Contracts/contracts/test/
+    owner: platform-engineering
+    created: pending
+    retention_years: 7
+    controls: [C-005, C-006]
+
+  - id: E-012
+    phase: ENT-002
+    artifact: Storage adapter suite (filesystem)
+    location: HalalChain.Storage/Adapters/FileSystem/
+    owner: platform-engineering
+    created: pending
+    retention_years: 7
+    controls: [C-003]
+
+  - id: E-013
+    phase: ENT-003
+    artifact: SOC 2 Type II report
+    location: .cline_inbox/bau/COMPLIANCE/evidence/soc2-type2-signed.pdf
+    owner: security-compliance
+    created: pending
+    retention_years: 7
+    controls: [C-009]
+
+  - id: E-014
+    phase: ENT-003
+    artifact: External penetration test findings
+    location: .cline_inbox/bau/COMPLIANCE/evidence/pentest-findings.yaml
+    owner: security
+    created: pending
+    retention_years: 7
+    controls: [C-002, C-006]
+
+  - id: E-015
+    phase: ENT-004
+    artifact: First incident postmortem
+    location: .cline_inbox/bau/INCIDENT-MANAGEMENT/postmortems/
+    owner: sre
+    created: pending
+    retention_years: 7
+    controls: [C-015]
+
+  - id: E-016
+    phase: ENT-005
+    artifact: Cost model and variance report
+    location: .cline_inbox/bau/COST/cost-model.md
+    owner: finance
+    created: 2026-09-26
+    retention_years: 7
+    controls: []
+
+  - id: E-017
+    phase: ENT-007
+    artifact: Node palette
+    location: HalalChain.Web/Components/Workflow/Nodes/
+    owner: ui-platform
+    created: pending
+    retention_years: 7
+    controls: [C-001]
+
+  - id: E-018
+    phase: ENT-009
+    artifact: Continuous assurance dashboard
+    location: .cline_inbox/bau/COMPLIANCE/evidence/
+    owner: internal-audit
+    created: pending
+    retention_years: 7
+    controls: [C-001, C-002, C-003, C-008]

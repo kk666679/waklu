@@ -47,7 +47,7 @@ by an independent reviewer.
 
 ## Falsification requirement
 
-For every control in `bau/COMPLIANCE/controls-matrix.md`, an independent
+For every control in `.cline_inbox/bau/COMPLIANCE/controls-matrix.md`, an independent
 reviewer documents:
 
 1. The claim ("control X prevents Y")
@@ -68,7 +68,7 @@ Every control requires:
 - A **test** or process that produces evidence
 - An **automated or manual capture**
 - A **retention schedule** meeting audit requirements
-- A **location** in `bau/COMPLIANCE/evidence/`
+- A **location** in `.cline_inbox/bau/COMPLIANCE/evidence/`
 
 Target: **80% of controls produce automated evidence** by end of phase.
 Below 80%, the phase does not close.
@@ -77,18 +77,18 @@ Below 80%, the phase does not close.
 
 | # | Deliverable | Location | Owner |
 |---|---|---|---|
-| D1 | SOC 2 Type II report | `bau/COMPLIANCE/evidence/soc2-type2-signed.pdf` | Security |
-| D2 | ISO 27001 certificate | `bau/COMPLIANCE/evidence/iso27001-cert.pdf` | Security |
-| D3 | GDPR compliance pack (DPIA, RoPA, DPA) | `bau/COMPLIANCE/gdpr/` | DPO |
-| D4 | PCI DSS SAQ-A | `bau/COMPLIANCE/evidence/pci-saq-a.pdf` | Security |
-| D5 | Halal assurance certificate | `bau/COMPLIANCE/evidence/halal-cert.pdf` | Compliance |
-| D6 | External pentest report | `bau/COMPLIANCE/evidence/pentest-findings.yaml` | Security |
-| D7 | Red team report (agent exploit) | `bau/COMPLIANCE/evidence/red-team-agent.pdf` | Security |
-| D8 | Verdict-leak fuzz report | `bau/COMPLIANCE/evidence/verdict-fuzz-report.yaml` | Security |
-| D9 | Registrar key compromise drill log | `bau/COMPLIANCE/evidence/registrar-drill-log.md` | Security |
-| D10 | Supply chain audit | `bau/COMPLIANCE/evidence/supply-chain-audit.pdf` | Platform |
+| D1 | SOC 2 Type II report | `.cline_inbox/bau/COMPLIANCE/evidence/soc2-type2-signed.pdf` | Security |
+| D2 | ISO 27001 certificate | `.cline_inbox/bau/COMPLIANCE/evidence/iso27001-cert.pdf` | Security |
+| D3 | GDPR compliance pack (DPIA, RoPA, DPA) | `.cline_inbox/bau/COMPLIANCE/gdpr/` | DPO |
+| D4 | PCI DSS SAQ-A | `.cline_inbox/bau/COMPLIANCE/evidence/pci-saq-a.pdf` | Security |
+| D5 | Halal assurance certificate | `.cline_inbox/bau/COMPLIANCE/evidence/halal-cert.pdf` | Compliance |
+| D6 | External pentest report | `.cline_inbox/bau/COMPLIANCE/evidence/pentest-findings.yaml` | Security |
+| D7 | Red team report (agent exploit) | `.cline_inbox/bau/COMPLIANCE/evidence/red-team-agent.pdf` | Security |
+| D8 | Verdict-leak fuzz report | `.cline_inbox/bau/COMPLIANCE/evidence/verdict-fuzz-report.yaml` | Security |
+| D9 | Registrar key compromise drill log | `.cline_inbox/bau/COMPLIANCE/evidence/registrar-drill-log.md` | Security |
+| D10 | Supply chain audit | `.cline_inbox/bau/COMPLIANCE/evidence/supply-chain-audit.pdf` | Platform |
 | D11 | Falsification report | `.cline_inbox/phases/ENT-003-certify/falsification-report.md` | Independent reviewer |
-| D12 | Control evidence index | `bau/COMPLIANCE/evidence/index.yaml` | Compliance |
+| D12 | Control evidence index | `.cline_inbox/bau/COMPLIANCE/evidence/index.yaml` | Compliance |
 
 ## Exit gate criteria
 

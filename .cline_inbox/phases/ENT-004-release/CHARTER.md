@@ -43,17 +43,17 @@ Completion within 15 minutes is verified by drill before each stage.
 
 | # | Deliverable | Location | Owner |
 |---|---|---|---|
-| D1 | BAU operating model | `bau/` (this scaffold) | SRE Lead |
-| D2 | On-call rotation live and staffed | `bau/INCIDENT-MANAGEMENT/on-call-rotation.md` | SRE Lead |
-| D3 | SLOs instrumented and alerting | `bau/SLOS/` | SRE |
-| D4 | Error budget policy in effect | `bau/SLOS/error-budget-policy.md` | SRE |
-| D5 | Change Advisory Board in session | `bau/CHANGE-MANAGEMENT/CAB.md` | Release Mgmt |
-| D6 | First incident postmortem filed | `bau/INCIDENT-MANAGEMENT/postmortems/` | IC |
-| D7 | Cost baseline established | `bau/COST/cost-model.md` | Finance |
-| D8 | All runbooks walked through | `bau/RUNBOOKS/` | SRE |
-| D9 | Rollback drill logged | `bau/RUNBOOKS/infra/rollback-drill.md` | SRE |
-| D10 | BAU handover sign-off | `bau/GOVERNANCE/handover-signoff.md` | SRE Lead + Product |
-| D11 | Decision log maintained | `bau/GOVERNANCE/decision-log.md` | Governance |
+| D1 | BAU operating model | `.cline_inbox/bau/` (this scaffold) | SRE Lead |
+| D2 | On-call rotation live and staffed | `.cline_inbox/bau/INCIDENT-MANAGEMENT/on-call-rotation.md` | SRE Lead |
+| D3 | SLOs instrumented and alerting | `.cline_inbox/bau/SLOS/` | SRE |
+| D4 | Error budget policy in effect | `.cline_inbox/bau/SLOS/error-budget-policy.md` | SRE |
+| D5 | Change Advisory Board in session | `.cline_inbox/bau/CHANGE-MANAGEMENT/CAB.md` | Release Mgmt |
+| D6 | First incident postmortem filed | `.cline_inbox/bau/INCIDENT-MANAGEMENT/postmortems/` | IC |
+| D7 | Cost baseline established | `.cline_inbox/bau/COST/cost-model.md` | Finance |
+| D8 | All runbooks walked through | `.cline_inbox/bau/RUNBOOKS/` | SRE |
+| D9 | Rollback drill logged | `.cline_inbox/bau/RUNBOOKS/infra/rollback-drill.md` | SRE |
+| D10 | BAU handover sign-off | `.cline_inbox/bau/GOVERNANCE/handover-signoff.md` | SRE Lead + Product |
+| D11 | Decision log maintained | `.cline_inbox/bau/GOVERNANCE/decision-log.md` | Governance |
 
 ## BAU handover requirements
 

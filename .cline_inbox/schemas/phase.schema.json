@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halalchain.dev/schemas/phase.schema.json",
+  "title": "Enterprise Phase",
+  "type": "object",
+  "required": ["id", "name", "role", "owner", "approver", "charter"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^ENT-[0-9]{3}$" },
+    "name": { "type": "string", "minLength": 10 },
+    "role": {
+      "type": "string",
+      "enum": [
+        "Define",
+        "Build",
+        "Certify",
+        "Release",
+        "Scale",
+        "Govern",
+        "Author",
+        "Complete",
+        "CLOSE"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "active", "complete", "FINAL"]
+    },
+    "owner": { "type": "string", "minLength": 1 },
+    "approver": { "type": "string", "minLength": 1 },
+    "duration_weeks": {
+      "oneOf": [{ "type": "integer", "minimum": 1 }, { "const": "continuous" }]
+    },
+    "exit_gate": {
+      "type": ["string", "null"],
+      "pattern": "^gate-[0-9]{3}-[0-9]{3}(-final)?$"
+    },
+    "charter": {
+      "type": "string",
+      "pattern": "^phases/ENT-[0-9]{3}-[a-z-]+/CHARTER\\.md$"
+    },
+    "criteria": { "type": "string" }
+  },
+  "additionalProperties": false
+}

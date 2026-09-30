@@ -63,9 +63,9 @@ without UI Platform intervention.**
 |---|---|---|---|
 | D1 | Auto-layout implementation | `HalalChain.Web/Services/Workflow/Layout/` | UI Platform |
 | D2 | Layout determinism test | `HalalChain.Platform.Tests/Unit/Workflow/Layout/` | UI Platform |
-| D3 | Accessibility audit | `bau/COMPLIANCE/evidence/wcag-aa-audit.pdf` | UI Platform |
-| D4 | Editor runbook | `bau/RUNBOOKS/editor/` | UI Platform |
-| D5 | Handover sign-off | `bau/GOVERNANCE/handover-signoff.md` | SRE Lead + Product |
+| D3 | Accessibility audit | `.cline_inbox/bau/COMPLIANCE/evidence/wcag-aa-audit.pdf` | UI Platform |
+| D4 | Editor runbook | `.cline_inbox/bau/RUNBOOKS/editor/` | UI Platform |
+| D5 | Handover sign-off | `.cline_inbox/bau/GOVERNANCE/handover-signoff.md` | SRE Lead + Product |
 | D6 | Simulation mode | `HalalChain.Web/Services/Workflow/Simulation/` | UI Platform |
 | D7 | Python import/export | `HalalChain.Web/Services/Workflow/Codec/` | UI Platform |
 

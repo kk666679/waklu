@@ -17,7 +17,7 @@ end. This phase starts when ENT-005 hands off and never closes.
 - **P1–P10** are permanent. No governance decision overrides them.
 - **Halal evidence retention (C-008) is 7 years minimum**, non-negotiable,
   and supersedes cost optimization, privacy requests, and business decisions.
-- **Every governance decision is logged** in `bau/GOVERNANCE/decision-log.md`.
+- **Every governance decision is logged** in `.cline_inbox/bau/GOVERNANCE/decision-log.md`.
   The log is append-only and immutable.
 - **No decommission of a service holding halal evidence** without Shariah
   Advisor sign-off.
@@ -47,7 +47,7 @@ end. This phase starts when ENT-005 hands off and never closes.
 
 ## Data retention schedule
 
-See `bau/LIFECYCLE/data-retention.md` for the full table. Key points:
+See `.cline_inbox/bau/LIFECYCLE/data-retention.md` for the full table. Key points:
 
 | Data class | Retention | Override |
 |---|---|---|
@@ -75,7 +75,7 @@ Every decommission requires, in order:
 11. **DNS / routing removal**
 12. **Credential rotation / revocation**
 13. **Cost closure** — no orphaned resources
-14. **Certificate of closure** filed in `bau/GOVERNANCE/`
+14. **Certificate of closure** filed in `.cline_inbox/bau/GOVERNANCE/`
 
 ## Deliverables (continuous)
 

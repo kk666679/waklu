@@ -1,0 +1,97 @@
+# Phase registry — machine-readable. Read by CI and the gate script.
+# Durations and owners mirror the ratified CHARTER.md files. Do not diverge.
+version: 1
+program: halalchain-enterprise
+last_updated: 2026-09-26
+
+phases:
+  - id: ENT-001
+    name: Enterprise specification & plan
+    role: Define
+    status: active
+    owner: platform-architecture
+    approver: enterprise-steering-committee
+    duration_weeks: 3
+    exit_gate: gate-001-002
+    charter: phases/ENT-001-specify/CHARTER.md
+    criteria: phases/ENT-001-specify/GATE-CRITERIA.md
+
+  - id: ENT-002
+    name: Enterprise implementation
+    role: Build
+    status: planned
+    owner: platform-engineering
+    approver: platform-architecture
+    duration_weeks: 20
+    exit_gate: gate-002-003
+    charter: phases/ENT-002-build/CHARTER.md
+
+  - id: ENT-003
+    name: Production readiness, security & compliance certification
+    role: Certify
+    status: planned
+    owner: security-compliance
+    approver: ciso-external-auditor
+    duration_weeks: 8
+    exit_gate: gate-003-004
+    charter: phases/ENT-003-certify/CHARTER.md
+
+  - id: ENT-004
+    name: Governed production rollout, operations & continuous improvement
+    role: Release
+    status: planned
+    owner: sre-release-management
+    approver: change-advisory-board
+    duration_weeks: 6
+    exit_gate: gate-004-005
+    charter: phases/ENT-004-release/CHARTER.md
+
+  - id: ENT-005
+    name: Scale-out, multi-region/multi-tenant & cost optimization
+    role: Scale
+    status: planned
+    owner: platform-sre-finance
+    approver: steering-committee
+    duration_weeks: 12
+    exit_gate: gate-005-006
+    charter: phases/ENT-005-scale/CHARTER.md
+
+  - id: ENT-006
+    name: Governance, lifecycle management & decommissioning
+    role: Govern
+    status: planned
+    owner: enterprise-governance
+    approver: steering-committee-legal
+    duration_weeks: continuous
+    exit_gate: null
+    charter: phases/ENT-006-govern/CHARTER.md
+
+  - id: ENT-007
+    name: Enterprise Node Palette (@xyflow/react)
+    role: Author
+    status: planned
+    owner: ui-platform
+    approver: architecture-review-board
+    duration_weeks: 8
+    exit_gate: gate-007-008
+    charter: phases/ENT-007-author/CHARTER.md
+
+  - id: ENT-008
+    name: Editor completion, auto-layout & platform handover
+    role: Complete
+    status: planned
+    owner: ui-platform-sre
+    approver: product-architecture-review-board
+    duration_weeks: 6
+    exit_gate: gate-008-009
+    charter: phases/ENT-008-complete/CHARTER.md
+
+  - id: ENT-009
+    name: Continuous assurance, audit automation & benefits realization
+    role: CLOSE
+    status: planned
+    owner: enterprise-governance-internal-audit
+    approver: board-audit-committee
+    duration_weeks: continuous
+    exit_gate: null
+    charter: phases/ENT-009-close/CHARTER.md

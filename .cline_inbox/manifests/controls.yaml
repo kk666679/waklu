@@ -1,0 +1,186 @@
+# Control registry — every control maps to SOC 2 / ISO 27001 / GDPR / halal.
+# The human-readable view is .cline_inbox/bau/COMPLIANCE/controls-matrix.md.
+# This file is the machine-readable source consumed by gate-009-final.
+version: 1
+last_updated: 2026-09-26
+
+controls:
+  - id: C-001
+    name: Agent output declares no verdict field
+    principle: P1
+    soc2: CC7.2
+    iso27001: A.8.28
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: node .cline_inbox/hooks/principles.mjs P1
+
+  - id: C-002
+    name: Blob write credentials restricted to tawheed
+    principle: P2
+    soc2: CC6.1
+    iso27001: A.5.15
+    gdpr: Art.32
+    halal: false
+    evidence_type: automated
+    frequency: per-commit
+    check: CI config-lint asserts ai-inference and agents hold READONLY only
+
+  - id: C-003
+    name: Evidence append-only, IBlobStore has no Delete
+    principle: P3
+    soc2: CC7.2
+    iso27001: A.8.16
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: node .cline_inbox/hooks/principles.mjs P3
+
+  - id: C-004
+    name: Only Compliance mutates ProductStatus
+    principle: P4
+    soc2: CC8.1
+    iso27001: A.8.32
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: dotnet test HalalChain.Architecture.Tests
+
+  - id: C-005
+    name: Keccak256 for Merkle internal nodes, no Sha256MerkleTree
+    principle: P5
+    soc2: CC7.1
+    iso27001: A.8.24
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: node .cline_inbox/hooks/principles.mjs P5
+
+  - id: C-006
+    name: No verdict type on-chain
+    principle: P6
+    soc2: CC7.2
+    iso27001: A.8.28
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: node .cline_inbox/hooks/principles.mjs P6
+
+  - id: C-007
+    name: Registrar key KMS-backed in production
+    principle: P7
+    soc2: CC6.1
+    iso27001: A.5.17
+    gdpr: Art.32
+    halal: false
+    evidence_type: semi-automated
+    frequency: quarterly
+    check: docs/adr/008-registrar-key-custody.md plus key custody attestation
+
+  - id: C-008
+    name: Evidence retention >= 7 years
+    soc2: CC7.4
+    iso27001: A.5.33
+    gdpr: Art.5(1)(e)
+    halal: true
+    evidence_type: automated
+    frequency: monthly
+    check: RetentionEvaluator logs plus the monthly retention report
+
+  - id: C-009
+    name: Access review completed quarterly
+    soc2: CC6.2
+    iso27001: A.5.18
+    gdpr: Art.32
+    halal: false
+    evidence_type: manual
+    frequency: quarterly
+    check: Signed access review attestation
+
+  - id: C-010
+    name: Vendor onboarding evidence verified
+    soc2: CC9.2
+    iso27001: A.5.19
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: continuous
+    check: Every vendor holds a valid VerdictBinding before activation
+
+  - id: C-011
+    name: Payment flow free of riba
+    soc2: null
+    iso27001: null
+    gdpr: null
+    halal: true
+    evidence_type: semi-automated
+    frequency: annual
+    check: Shariah board attestation plus the no-interest-type arch test
+
+  - id: C-012
+    name: Zakat and sadaqah pass-through, never commingled
+    soc2: null
+    iso27001: null
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: daily
+    check: Daily financial reconciliation
+
+  - id: C-013
+    name: Checkout re-verifies compliance, not cacheable
+    principle: P9
+    soc2: CC7.2
+    iso27001: A.8.28
+    gdpr: null
+    halal: true
+    evidence_type: automated
+    frequency: per-commit
+    check: Integration test proves a cached compliance rejection is not served
+
+  - id: C-014
+    name: Agent workflow budget enforced
+    principle: P8
+    soc2: CC7.4
+    iso27001: A.8.16
+    gdpr: null
+    halal: false
+    evidence_type: automated
+    frequency: per-commit
+    check: Budget exhaustion integration test
+
+  - id: C-015
+    name: Postmortem filed within 5 business days
+    soc2: CC7.5
+    iso27001: A.5.27
+    gdpr: null
+    halal: false
+    evidence_type: semi-automated
+    frequency: per-incident
+    check: Postmortem tracker
+
+# Not waivable for cost or schedule.
+halal_controls:
+  - id: H-001
+    name: No LLM or agent assigns a halal verdict
+    controls: [C-001, C-004]
+  - id: H-002
+    name: Evidence is append-only and content-addressed
+    controls: [C-003]
+  - id: H-003
+    name: Every verdict is traceable to its evidence
+    controls: [C-005, C-010]
+  - id: H-004
+    name: Certificate validity is a deterministic fact
+    controls: [C-006, C-010]
+  - id: H-005
+    name: Payment flows respect halal finance
+    controls: [C-011]
+  - id: H-006
+    name: Zakat and sadaqah are pass-through only
+    controls: [C-012]

@@ -38,7 +38,7 @@ When this phase is fully operating, the enterprise is:
 
 | Function | Cadence | Owner | Output |
 |---|---|---|---|
-| Control testing (automated) | Daily | Platform | Pass/fail in `bau/COMPLIANCE/evidence/` |
+| Control testing (automated) | Daily | Platform | Pass/fail in `.cline_inbox/bau/COMPLIANCE/evidence/` |
 | Control testing (manual) | Quarterly | Internal Audit | Signed attestation |
 | SLO review | Monthly | SRE | Error budget report |
 | Cost review | Monthly | Finance | Variance report |
@@ -49,7 +49,7 @@ When this phase is fully operating, the enterprise is:
 
 ## Audit automation
 
-Every control in `bau/COMPLIANCE/controls-matrix.md` has one of:
+Every control in `.cline_inbox/bau/COMPLIANCE/controls-matrix.md` has one of:
 
 - **Automated evidence** — CI job produces artifacts on schedule
 - **Semi-automated** — system produces, human attests
@@ -73,7 +73,7 @@ Current status tracked in `.cline_inbox/manifests/controls.yaml` via the
 ## Benefits realization
 
 Track against business case in
-`bau/CONTINUOUS-IMPROVEMENT/benefits-realization.md`.
+`.cline_inbox/bau/CONTINUOUS-IMPROVEMENT/benefits-realization.md`.
 
 | Benefit | Baseline | Target | Measurement |
 |---|---|---|---|
@@ -161,7 +161,7 @@ This declaration is signed by:
 - Compliance Lead
 - Shariah Advisor
 
-And filed at `bau/GOVERNANCE/enterprise-grade-declaration.md`.
+And filed at `.cline_inbox/bau/GOVERNANCE/enterprise-grade-declaration.md`.
 
 **This is CLOSE ✅ FINAL.**
 

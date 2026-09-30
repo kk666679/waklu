@@ -55,7 +55,7 @@ Different halal standards apply in different markets. This is handled by
 A vendor's certificate is validated against **every market it ships to**.
 Multi-market vendors require multi-standard validation.
 
-**Regulatory watch** (see `bau/COMPLIANCE/regulatory-watch.md`) monitors
+**Regulatory watch** (see `.cline_inbox/bau/COMPLIANCE/regulatory-watch.md`) monitors
 for standard changes. A change to any standard triggers a policy review
 within 30 days.
 
@@ -113,15 +113,15 @@ Capacity plan reviewed quarterly. Projections update with actuals.
 | # | Deliverable | Location | Owner |
 |---|---|---|---|
 | D1 | Region topology design | `docs/REGIONS.md` | Platform Arch |
-| D2 | Regional failover runbook | `bau/RUNBOOKS/infra/region-failover.md` | SRE |
-| D3 | Data residency policy | `bau/LIFECYCLE/data-residency.md` | DPO + Legal |
+| D2 | Regional failover runbook | `.cline_inbox/bau/RUNBOOKS/infra/region-failover.md` | SRE |
+| D3 | Data residency policy | `.cline_inbox/bau/LIFECYCLE/data-residency.md` | DPO + Legal |
 | D4 | Tenant isolation test suite | `HalalChain.Platform.Tests/TenantIsolation/` | Platform Eng |
 | D5 | Jurisdictional policy overlays | `.halalchain/tawheed/policy/overlays/` | Compliance |
-| D6 | Cost attribution model | `bau/COST/cost-attribution.md` | Finance |
-| D7 | Cost optimization backlog | `bau/COST/optimization-backlog.md` | Finance + Platform |
-| D8 | Capacity plan (12-month) | `bau/CAPACITY/plan.md` | SRE |
-| D9 | Multi-region certification | `bau/COMPLIANCE/evidence/multi-region-audit.pdf` | Security |
-| D10 | Region failover drill log | `bau/RUNBOOKS/infra/region-failover-drill.md` | SRE |
+| D6 | Cost attribution model | `.cline_inbox/bau/COST/cost-attribution.md` | Finance |
+| D7 | Cost optimization backlog | `.cline_inbox/bau/COST/optimization-backlog.md` | Finance + Platform |
+| D8 | Capacity plan (12-month) | `.cline_inbox/bau/CAPACITY/plan.md` | SRE |
+| D9 | Multi-region certification | `.cline_inbox/bau/COMPLIANCE/evidence/multi-region-audit.pdf` | Security |
+| D10 | Region failover drill log | `.cline_inbox/bau/RUNBOOKS/infra/region-failover-drill.md` | SRE |
 
 ## Exit gate criteria
 

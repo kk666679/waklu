@@ -6,6 +6,12 @@
 **Duration:** 3 weeks
 **Exit:** Gate `gate-001-002`
 
+> **Path relocation, 2026-09-30.** The `bau/` tree moved to
+> `.cline_inbox/bau/`, so the `bau/...` paths in this charter were rewritten
+> to `.cline_inbox/bau/...`. This is a filesystem relocation only - no
+> deliverable, owner, approver or exit criterion changed, and nothing was
+> rewritten to make a gate pass.
+
 ## Objective
 
 Lock every decision that constrains the platform's implementation. No code
@@ -52,7 +58,7 @@ A decision is locked when all five hold:
 | D12 | Service manifest updated | `service-manifest.yaml` | Platform Ops | Platform Arch |
 | D13 | Image tags pinned | `docker-compose.yml` | Platform Ops | Platform Arch |
 | D14 | Evidence index seeded | `.cline_inbox/manifests/evidence-index.yaml` | Program Mgmt | Steering |
-| D15 | Baseline metrics captured | `bau/CONTINUOUS-IMPROVEMENT/benefits-realization.md` | Product | Steering |
+| D15 | Baseline metrics captured | `.cline_inbox/bau/CONTINUOUS-IMPROVEMENT/benefits-realization.md` | Product | Steering |
 | D16 | Phase charter reviewed and signed | this file | Program Mgmt | Steering |
 
 ## ADR required contents

@@ -1,0 +1,185 @@
+# ENT-001 deliverable index — closes G1.9 and cross-references G1.1..G1.10.
+#
+# This is the ENT-001 *view* of the deliverables. The program-wide artifact
+# index is `evidence-index.yaml`; the two are cross-referenced by location and
+# must not be allowed to drift. See ../README.md.
+#
+# status vocabulary:
+#   complete  - the artifact exists and its gate criterion is satisfied
+#   written   - the artifact exists, but the criterion is not yet satisfied
+#              (ratification, signature, or a human decision is outstanding)
+#   template  - a blank form awaiting an author
+#   pending   - the artifact has not been produced
+#   provisional - written and explicitly allowed to stand in for a decision
+version: 1
+phase: ENT-001
+last_updated: 2026-09-30
+
+deliverables:
+  - id: D1
+    name: Architecture document, ratified
+    location: docs/ARCHITECTURE.md
+    owner: platform-architecture
+    approver: enterprise-steering-committee
+    gate: G1.1
+    evidence: signed-steering-minutes.pdf
+    # Document exists. Ratification minutes do not exist yet.
+    status: pending
+
+  - id: D2
+    name: ADR-001 Vertical slice modular monolith
+    location: docs/adr/001-vertical-slice-modular-monolith.md
+    owner: platform-architecture
+    approver: architecture-review-board
+    gate: G1.3
+    evidence: git-commit-hash
+    status: written
+
+  - id: D3
+    name: ADR-002 Storage port/adapter split and hashers
+    location: docs/adr/002-storage-port-adapter-and-hashers.md
+    owner: platform-architecture
+    approver: architecture-review-board
+    gate: G1.3
+    evidence: git-commit-hash
+    status: written
+
+  - id: D4
+    name: ADR-003 MCP v2 stateless transport
+    location: docs/adr/003-mcp-v2-stateless-transport.md
+    owner: platform-architecture
+    approver: architecture-review-board
+    gate: G1.3
+    evidence: git-commit-hash
+    status: written
+
+  - id: D5
+    name: ADR-004 HybridCache default
+    location: docs/adr/004-hybridcache-default.md
+    owner: platform-architecture
+    approver: architecture-review-board
+    gate: G1.3
+    evidence: git-commit-hash
+    status: written
+
+  - id: D6
+    name: ADR-005 VerdictBinding not boolean
+    location: docs/adr/005-verdict-binding-not-boolean.md
+    owner: compliance
+    approver: architecture-review-board
+    gate: G1.3
+    evidence: git-commit-hash
+    status: written
+
+  - id: D7
+    name: ADR-006 Chain network selection
+    location: docs/adr/006-chain-network-selection.md
+    owner: platform-architecture
+    approver: enterprise-steering-committee
+    gate: G1.4
+    evidence: shariah-memo + signed-adr
+    # Status: Accepted. Steering sign-off and the Shariah memo are not in the
+    # repo, so G1.4 is not yet evidenced.
+    status: written
+
+  - id: D8
+    name: ADR-007 Payment provider selection
+    location: docs/adr/007-payment-provider-selection.md
+    owner: finance
+    approver: enterprise-steering-committee
+    gate: G1.5
+    evidence: vendor-confirmation-letter
+    # Status: "Accepted - vendor TBD pending procurement". The vendor
+    # confirmation letter does not exist, so G1.5 cannot be satisfied.
+    status: provisional
+
+  - id: D9
+    name: ADR-008 Registrar key custody
+    location: docs/adr/008-registrar-key-custody.md
+    owner: security
+    approver: enterprise-steering-committee
+    gate: G1.6
+    evidence: security-review-signoff
+    status: written
+
+  - id: D10
+    name: ADR-009 Multi-tenancy model
+    location: docs/adr/009-multi-tenancy-model.md
+    owner: platform-architecture
+    approver: enterprise-steering-committee
+    gate: G1.7
+    evidence: signed-adr
+    # Status: "Accepted - provisional, with documented upgrade path". G1.7
+    # explicitly allows a provisional model, so this is acceptable for the gate.
+    status: provisional
+
+  - id: D11
+    name: Project inventory reconciled
+    location: AGENTS.md
+    owner: platform-engineering
+    approver: platform-architecture
+    gate: G1.2
+    evidence: dotnet-sln-list-output
+    # `dotnet build` resolves 18 projects and AGENTS.md documents 18.
+    status: complete
+
+  - id: D12
+    name: Service manifest updated
+    location: service-manifest.yaml
+    owner: platform-ops
+    approver: platform-architecture
+    gate: G1.8
+    evidence: audit-image-tags-output
+    # All 15 references are pinned to patch-level tags.
+    status: complete
+
+  - id: D13
+    name: Image tags pinned
+    location: docker-compose.yml
+    owner: platform-ops
+    approver: platform-architecture
+    gate: G1.8
+    evidence: audit-image-tags-output
+    status: complete
+
+  - id: D14
+    name: Evidence index seeded
+    location: .cline_inbox/manifests/evidence-index.yaml
+    owner: program-management
+    approver: enterprise-steering-committee
+    gate: G1.9
+    evidence: file-exists
+    # 18 entries, each with a named owner. G1.9 needs >= 9.
+    status: complete
+
+  - id: D15
+    name: Baseline metrics captured
+    location: .cline_inbox/bau/CONTINUOUS-IMPROVEMENT/benefits-realization.md
+    owner: product
+    approver: enterprise-steering-committee
+    gate: G1.10
+    evidence: filled-table
+    # Engineering and assurance baselines are measured. The six business
+    # targets (B1-B6) have no pre-program measurement and are recorded as
+    # not-yet-baselined with owners and due dates, because inventing a
+    # baseline would make the benefit unprovable at ENT-009.
+    status: complete
+
+  - id: D16
+    name: Falsification report
+    location: .cline_inbox/phases/ENT-001-specify/falsification-report.md
+    owner: independent-reviewer
+    approver: enterprise-steering-committee
+    gate: pre-ratification
+    evidence: signed-report
+    # Blank form. Requires a reviewer who authored none of ADR-001..009.
+    status: template
+
+  - id: D17
+    name: Phase charter signed
+    location: .cline_inbox/phases/ENT-001-specify/CHARTER.md
+    owner: program-management
+    approver: enterprise-steering-committee
+    gate: none (charter)
+    evidence: signoff
+    status: written
