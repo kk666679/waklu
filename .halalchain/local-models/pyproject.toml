@@ -22,12 +22,21 @@ inference = [
 ]
 quantization = [
     "bitsandbytes>=0.50,<1.0.0",
-    "auto-gptq>=0.8,<1.0.0",
+    # 0.8.x was never published; the resolver only finds <=0.7.1, which is what
+    # the previous ">=0.8,<1.0" range was silently excluding. Resolves to 0.7.1.
+    "auto-gptq>=0.7,<1.0.0",
 ]
 gguf = [
     "llama-cpp-python>=0.3,<0.4.0",
 ]
 optimized = [
+    # UNRESOLVABLE against this project as pinned: vllm>=0.30 requires
+    # starlette>=1.0.1, while halalchain-shared pins fastapi==0.120.0, which caps
+    # starlette below 0.49. Only vllm 0.11.x resolves, which is far below the
+    # intended floor. This extra is therefore excluded from the image lock and
+    # the container build. Making it installable needs either a fastapi/starlette
+    # upgrade across all services or an agreed vllm downgrade - both are
+    # dependency-policy decisions, not CI fixes.
     "vllm>=0.30,<1.0.0",
 ]
 dev = [
