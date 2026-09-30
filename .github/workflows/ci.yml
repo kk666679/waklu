@@ -11,6 +11,9 @@ env:
   NODE_VERSION: '22'
   SOLUTION: 'HalalChain.Platform.sln'
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build & Test
@@ -47,27 +50,41 @@ jobs:
         run: dotnet test ${{ env.SOLUTION }} --no-build -c Release --verbosity normal
 
   python-tests:
-    name: Python Tests
+    name: Python Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ai-inference, tawheed]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install ai-inference deps
-        working-directory: .halalchain/ai-inference
+      # requirements.txt and ../requirements-test.txt are thin -r includes into
+      # .halalchain/requirements/*.txt; the lock itself carries halalchain-shared's
+      # dependencies, and the package itself is installed separately because pip
+      # cannot hash-check a local requirement.
+      - name: Install ${{ matrix.service }} dependencies
+        working-directory: .halalchain/${{ matrix.service }}
         run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
-          pip install ../_shared
-          pytest
-      - name: Install tawheed deps
-        working-directory: .halalchain/tawheed
+          pip install --disable-pip-version-check -r requirements.txt
+          pip install --disable-pip-version-check -r ../requirements-test.txt
+          pip install --disable-pip-version-check ../_shared
+      # Fails loudly instead of the way a comment-only requirements file failed
+      # before: a no-op install used to surface much later as a confusing
+      # "pytest: command not found". These imports are exactly what
+      # src/observability.py and src/main.py need at module scope.
+      - name: Verify the runtime and test dependencies are importable
+        working-directory: .halalchain/${{ matrix.service }}
         run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
-          pip install ../_shared
-          pytest
+          python -c "import pytest, fastapi, prometheus_client; \
+            from opentelemetry.sdk.trace import TracerProvider; \
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter; \
+            print('dependencies importable')"
+      - name: Run pytest
+        working-directory: .halalchain/${{ matrix.service }}
+        run: python -m pytest
 
   security-scan:
     name: Security Scan

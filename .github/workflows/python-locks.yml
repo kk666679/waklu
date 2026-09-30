@@ -4,104 +4,109 @@ on:
   push:
     branches: [main]
     paths:
+      - '.halalchain/pyproject.toml'
       - '.halalchain/**/pyproject.toml'
       - '.halalchain/requirements/*.txt'
   pull_request:
     paths:
+      - '.halalchain/pyproject.toml'
       - '.halalchain/**/pyproject.toml'
       - '.halalchain/requirements/*.txt'
+
+# Each matrix entry mirrors the command recorded in that lock's own header; the
+# check is a byte-for-byte diff, so the two must stay in step.
+#
+# Resolution is pinned (--python-version / --python-platform) so the result does
+# not depend on whichever interpreter the runner happens to have.
+#
+# --no-emit-package halalchain-shared is required, not cosmetic: uv resolves it
+# from the member's local path source, and a local/editable requirement inside a
+# hash-pinned file makes pip abort with "cannot be installed when requiring
+# hashes, because there is no single file to hash". Its dependencies stay pinned
+# in the output; the package itself is installed separately (Dockerfile / CI).
+#
+# Deliberately NOT verified, because the declared ranges cannot resolve today:
+#   skills.txt                     agent-skills/haiku-skills[signing] pull in
+#                                  pydantic-ai-slim, which needs starlette>=1.0.1,
+#                                  while _shared pins fastapi==0.120.0 (starlette
+#                                  <0.49); haiku-skills also needs Python>=3.12.
+#   local-models-quantization.txt  only auto-gptq<=0.7.1 is published, but the
+#                                  range asks for >=0.8,<1.0.
+#   local-models-optimized.txt     vllm>=0.30 needs starlette>=1.0.1, which
+#                                  conflicts with the pinned fastapi.
+# Making any of these resolve means changing a declared version range, which is
+# a dependency-policy decision rather than a CI fix.
 
 jobs:
   verify-locks:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lock: base.txt
+            source: _shared/pyproject.toml
+            extras: '--extra base'
+          - lock: mcp.txt
+            source: _shared/pyproject.toml
+            extras: '--extra mcp'
+          - lock: dev.txt
+            source: _shared/pyproject.toml
+            extras: '--extra dev'
+          - lock: llm.txt
+            source: ai-inference/pyproject.toml
+            extras: '--extra llm'
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: vector.txt
+            source: ai-inference/pyproject.toml
+            extras: '--extra vector'
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: ai-inference.txt
+            source: ai-inference/pyproject.toml
+            extras: '--extra llm --extra vector --extra doc-processing --extra auth --extra observability'
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: tawheed.txt
+            source: tawheed/pyproject.toml
+            extras: '--extra observability'
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: agents.txt
+            source: agents/pyproject.toml
+            extras: ''
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: local-models.txt
+            source: local-models/pyproject.toml
+            extras: '--extra inference'
+            no_emit: '--no-emit-package halalchain-shared'
+          - lock: local-models-gguf.txt
+            source: local-models/pyproject.toml
+            extras: '--extra gguf'
+            no_emit: '--no-emit-package halalchain-shared'
     steps:
       - uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
-          version: "latest"
+          # Pinned on purpose: uv rewrites the lock wholesale, so an unpinned
+          # version turns this byte-for-byte check into a coin flip.
+          version: "0.12.9"
 
-      - name: Verify shared base lock
+      # uv must run from the workspace root. That is where .halalchain/pyproject.toml
+      # declares the workspace and where each member's relative path source
+      # (../_shared) resolves. Run from the repository root instead and uv looks
+      # for halalchain-shared on PyPI and fails to resolve it.
+      - name: Verify ${{ matrix.lock }}
+        working-directory: .halalchain
         run: |
-          uv pip compile .halalchain/_shared/pyproject.toml --extra base --generate-hashes \
-            -o /tmp/base.expected
-          diff -u .halalchain/requirements/base.txt /tmp/base.expected \
-            || (echo "base.txt is stale. Regenerate with: uv pip compile .halalchain/_shared/pyproject.toml --extra base --generate-hashes -o .halalchain/requirements/base.txt" && exit 1)
-
-      - name: Verify shared skills lock
-        run: |
-          uv pip compile .halalchain/_shared/pyproject.toml --extra skills --generate-hashes \
-            -o /tmp/skills.expected
-          diff -u .halalchain/requirements/skills.txt /tmp/skills.expected \
-            || (echo "skills.txt is stale. Regenerate with: uv pip compile .halalchain/_shared/pyproject.toml --extra skills --generate-hashes -o .halalchain/requirements/skills.txt" && exit 1)
-
-      - name: Verify shared mcp lock
-        run: |
-          uv pip compile .halalchain/_shared/pyproject.toml --extra mcp --generate-hashes \
-            -o /tmp/mcp.expected
-          diff -u .halalchain/requirements/mcp.txt /tmp/mcp.expected \
-            || (echo "mcp.txt is stale. Regenerate with: uv pip compile .halalchain/_shared/pyproject.toml --extra mcp --generate-hashes -o .halalchain/requirements/mcp.txt" && exit 1)
-
-      - name: Verify ai-inference llm lock
-        run: |
-          uv pip compile .halalchain/ai-inference/pyproject.toml --extra llm --generate-hashes \
-            -o /tmp/llm.expected
-          diff -u .halalchain/requirements/llm.txt /tmp/llm.expected \
-            || (echo "llm.txt is stale. Regenerate with: uv pip compile .halalchain/ai-inference/pyproject.toml --extra llm --generate-hashes -o .halalchain/requirements/llm.txt" && exit 1)
-
-      - name: Verify ai-inference vector lock
-        run: |
-          uv pip compile .halalchain/ai-inference/pyproject.toml --extra vector --generate-hashes \
-            -o /tmp/vector.expected
-          diff -u .halalchain/requirements/vector.txt /tmp/vector.expected \
-            || (echo "vector.txt is stale. Regenerate with: uv pip compile .halalchain/ai-inference/pyproject.toml --extra vector --generate-hashes -o .halalchain/requirements/vector.txt" && exit 1)
-
-      - name: Verify ai-inference service lock
-        run: |
-          uv pip compile .halalchain/ai-inference/pyproject.toml --extra llm --extra vector --extra doc-processing --extra auth --extra observability --generate-hashes \
-            -o /tmp/ai-inference.expected
-          diff -u .halalchain/requirements/ai-inference.txt /tmp/ai-inference.expected \
-            || (echo "ai-inference.txt is stale. Regenerate with: uv pip compile .halalchain/ai-inference/pyproject.toml --extra llm --extra vector --extra doc-processing --extra auth --extra observability --generate-hashes -o .halalchain/requirements/ai-inference.txt" && exit 1)
-
-      - name: Verify tawheed service lock
-        run: |
-          uv pip compile .halalchain/tawheed/pyproject.toml --generate-hashes \
-            -o /tmp/tawheed.expected
-          diff -u .halalchain/requirements/tawheed.txt /tmp/tawheed.expected \
-            || (echo "tawheed.txt is stale. Regenerate with: uv pip compile .halalchain/tawheed/pyproject.toml --generate-hashes -o .halalchain/requirements/tawheed.txt" && exit 1)
-
-      - name: Verify dev lock
-        run: |
-          uv pip compile .halalchain/_shared/pyproject.toml --extra dev --generate-hashes \
-            -o /tmp/dev.expected
-          diff -u .halalchain/requirements/dev.txt /tmp/dev.expected \
-            || (echo "dev.txt is stale. Regenerate with: uv pip compile .halalchain/_shared/pyproject.toml --extra dev --generate-hashes -o .halalchain/requirements/dev.txt" && exit 1)
-
-      - name: Verify local-models inference lock
-        run: |
-          uv pip compile .halalchain/local-models/pyproject.toml --extra inference --generate-hashes \
-            -o /tmp/local-models.expected
-          diff -u .halalchain/requirements/local-models.txt /tmp/local-models.expected \
-            || (echo "local-models.txt is stale. Regenerate with: uv pip compile .halalchain/local-models/pyproject.toml --extra inference --generate-hashes -o .halalchain/requirements/local-models.txt" && exit 1)
-
-      - name: Verify local-models quantization lock
-        run: |
-          uv pip compile .halalchain/local-models/pyproject.toml --extra quantization --generate-hashes \
-            -o /tmp/local-models-quantization.expected
-          diff -u .halalchain/requirements/local-models-quantization.txt /tmp/local-models-quantization.expected \
-            || (echo "local-models-quantization.txt is stale. Regenerate with: uv pip compile .halalchain/local-models/pyproject.toml --extra quantization --generate-hashes -o .halalchain/requirements/local-models-quantization.txt" && exit 1)
-
-      - name: Verify local-models gguf lock
-        run: |
-          uv pip compile .halalchain/local-models/pyproject.toml --extra gguf --generate-hashes \
-            -o /tmp/local-models-gguf.expected
-          diff -u .halalchain/requirements/local-models-gguf.txt /tmp/local-models-gguf.expected \
-            || (echo "local-models-gguf.txt is stale. Regenerate with: uv pip compile .halalchain/local-models/pyproject.toml --extra gguf --generate-hashes -o .halalchain/requirements/local-models-gguf.txt" && exit 1)
-
-      - name: Verify local-models optimized lock
-        run: |
-          uv pip compile .halalchain/local-models/pyproject.toml --extra optimized --generate-hashes \
-            -o /tmp/local-models-optimized.expected
-          diff -u .halalchain/requirements/local-models-optimized.txt /tmp/local-models-optimized.expected \
-            || (echo "local-models-optimized.txt is stale. Regenerate with: uv pip compile .halalchain/local-models/pyproject.toml --extra optimized --generate-hashes -o .halalchain/requirements/local-models-optimized.txt" && exit 1)
+          uv pip compile "${{ matrix.source }}" \
+            --python-version 3.11 \
+            --python-platform x86_64-unknown-linux-gnu \
+            ${{ matrix.extras }} \
+            --generate-hashes \
+            ${{ matrix.no_emit }} \
+            -o /tmp/expected.txt
+          # uv echoes the -o target into the lock header, so normalise it before
+          # diffing or the header line alone would always mismatch.
+          sed -i "s|-o /tmp/expected.txt|-o requirements/${{ matrix.lock }}|" /tmp/expected.txt
+          diff -u "requirements/${{ matrix.lock }}" /tmp/expected.txt \
+            || (echo "::error::${{ matrix.lock }} is stale. Regenerate with: uv pip compile ${{ matrix.source }} --python-version 3.11 --python-platform x86_64-unknown-linux-gnu ${{ matrix.extras }} --generate-hashes ${{ matrix.no_emit }} -o requirements/${{ matrix.lock }}" && exit 1)

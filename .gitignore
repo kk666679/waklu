@@ -21,6 +21,13 @@ dist/
 .env.local
 .env.*.local
 
+# ─── Python ─────────────────────────────────────────────────────────────────
+# The .halalchain/* services are FastAPI apps, so running any of them (or
+# check-docs.py) drops __pycache__ next to the source. Without these rules the
+# compiled .pyc files get committed.
+__pycache__/
+*.py[cod]
+
 # ─── Local runtime state ─────────────────────────────────────────────────────
 .data/
 *.ndjson
