@@ -55,6 +55,35 @@ Start the stack with `docker compose up --build`.
 | `summarize` | Summarise text or a file | no |
 | `vector` | Semantic search and index stats | no |
 | `skills` | List / validate / install the CLI skills | local only |
+| `sandbox` | Run a script under the Node permission model | local only |
+
+## Sandbox
+
+`sandbox` runs a script with Node's permission model enabled. Verified
+behaviour:
+
+- the filesystem is confined to a throwaway temp directory plus roots you
+  pass with `--read` / `--write`;
+- child processes, worker threads, native addons, WASI and the inspector are
+  denied;
+- the parent environment is **not** inherited — only `--env KEY=VALUE` pairs
+  reach the script, and credential-shaped names are refused outright.
+
+```bash
+halalchain sandbox doctor
+halalchain sandbox run --inline "console.log(process.version)"
+halalchain sandbox run ./job.mjs --timeout 10000 --env MODE=demo
+halalchain sandbox clean
+```
+
+> **There is no network isolation.** The permission model has no egress
+> control, so a sandboxed script can still open sockets. Treat it as a
+> filesystem/process jail, not an air gap — which is also why `--env` refuses
+> keys that look like credentials.
+
+`doctor` reports what the current runtime can enforce; the flag moved from
+`--experimental-permission` to `--permission` in Node 23.5, and the CLI
+probes for whichever the host accepts.
 
 ## Guarantees
 
