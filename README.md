@@ -1417,6 +1417,15 @@ flowchart LR
 
 ## 15. Related documents
 
+| Document | Purpose |
+|----------|---------|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Full architecture, decisions, trade-offs |
+| [`docs/DASHBOARD_ARCHITECTURE.md`](docs/DASHBOARD_ARCHITECTURE.md) | Multi-tenant dashboard framework design |
+| [`docs/DASHBOARD_OPERATIONS.md`](docs/DASHBOARD_OPERATIONS.md) | Dashboard deployment, operations, troubleshooting |
+| [`docs/FOUNDRY_LEVERAGE.md`](docs/FOUNDRY_LEVERAGE.md) | Foundry testing automation for smart contracts |
+| [`docs/runbooks/`](docs/runbooks/) | Operational procedures |
+| [`AGENTS.md`](AGENTS.md) | Development and testing guide for this project |
+
 - `AGENTS.md` — build, test, and repository conventions
 - `docs/ARCHITECTURE.md` — this document's canonical long-form home
 - `docs/FOUNDRY_LEVERAGE.md` — Foundry and local chain

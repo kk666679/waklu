@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
-"""Validate documentation and runtime declarations stay in sync."""
+"""Validate documentation and runtime declarations stay in sync.
+
+Two declarations have to agree with docker-compose.yml:
+
+* ``service-manifest.yaml`` — the frozen image list. Every compose service needs
+  an entry, every entry needs a compose service, tags must be explicit (no
+  ``:latest``, no bare major), and a service that declares an ``image:`` in
+  compose must use exactly the frozen tag.
+* ``docs/RUNTIME-MATRIX.md`` — the human-facing inventory. Every compose service
+  must be listed, and the documented port must be one the service actually
+  publishes or exposes.
+
+The manifest used to carry a ``services:`` block of host ports. It is now an
+image registry (``images:`` / ``third_party:`` / ``policy:``), so the port-drift
+check moved to RUNTIME-MATRIX.md, which already held the same table.
+"""
 
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 # Walk up to the repo root by marker file rather than by a fixed `..` hop.
@@ -28,30 +42,67 @@ COMPOSE_PATH = ROOT / "docker-compose.yml"
 MANIFEST_PATH = ROOT / "service-manifest.yaml"
 RUNTIME_MATRIX_PATH = ROOT / "docs" / "RUNTIME-MATRIX.md"
 
+# Top-level manifest blocks that map a service name to a frozen image tag.
+MANIFEST_IMAGE_BLOCKS = ("images", "third_party")
+MANIFEST_POLICY_BLOCK = "policy"
 
-def parse_service_manifest(path: Path) -> dict[str, int]:
-    services: dict[str, int] = {}
-    current: str | None = None
+
+def parse_service_manifest(path: Path) -> tuple[dict[str, str], dict[str, bool]]:
+    """Return (frozen image per service, image-tag policy flags).
+
+    The manifest is a two-level YAML subset: top-level keys holding either a
+    nested block or a scalar. A line parser is enough here and keeps this gate
+    free of a PyYAML dependency on the runner image.
+    """
+    images: dict[str, str] = {}
+    policy: dict[str, bool] = {}
+    block: str | None = None
+
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.rstrip()
         if not line.strip() or line.lstrip().startswith("#"):
             continue
-        if re.match(r"^services:\s*$", line):
+
+        top_level = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if top_level:
+            block = top_level.group(1)
             continue
-        match = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
-        if match:
-            current = match.group(1)
-            services[current] = -1
+
+        entry = re.match(r"^  ([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if not entry or block is None:
             continue
-        if current is not None:
-            port_match = re.match(r"^    port:\s*(\d+)\s*$", line)
-            if port_match:
-                services[current] = int(port_match.group(1))
-    return services
+        name, value = entry.group(1), entry.group(2).strip().strip('"').strip("'")
+        if block in MANIFEST_IMAGE_BLOCKS:
+            images[name] = value
+        elif block == MANIFEST_POLICY_BLOCK:
+            policy[name] = value.lower() == "true"
+
+    return images, policy
 
 
-def parse_compose(path: Path) -> dict[str, set[int]]:
+def split_image_tag(reference: str) -> tuple[str, str]:
+    """Split an image reference into (name, tag).
+
+    A pinned digest stands in for a tag, and a colon belonging to a registry
+    host (``registry:5000/name``) is not a tag separator.
+    """
+    if "@" in reference:
+        name, _, digest = reference.partition("@")
+        return name, digest
+    name, separator, tag = reference.rpartition(":")
+    if separator and "/" in tag:
+        return reference, ""
+    return name, tag
+
+
+def parse_compose(path: Path) -> tuple[dict[str, set[int]], dict[str, str]]:
+    """Return (published ports per service, declared image tag per service).
+
+    A port lands in the set from either ``ports:`` (both sides of the mapping)
+    or ``expose:``, which is what a human-facing port table documents.
+    """
     services: dict[str, set[int]] = {}
+    images: dict[str, str] = {}
     current: str | None = None
     in_ports = False
     in_expose = False
@@ -76,10 +127,15 @@ def parse_compose(path: Path) -> dict[str, set[int]]:
         if service_match:
             current = service_match.group(1)
             services[current] = set()
+            images.pop(current, None)
             in_ports = False
             in_expose = False
             continue
         if current is None:
+            continue
+        image_match = re.match(r"^    image:\s*(\S+)\s*$", line)
+        if image_match:
+            images[current] = image_match.group(1).strip('"').strip("'")
             continue
         if re.match(r"^    (ports|expose):\s*$", line):
             key = re.match(r"^    (ports|expose):\s*$", line).group(1)
@@ -98,39 +154,108 @@ def parse_compose(path: Path) -> dict[str, set[int]]:
                 services[current].add(int(port_match.group(1)))
                 continue
 
-    return services
+    return services, images
+
+
+def parse_runtime_matrix(path: Path) -> dict[str, int | None]:
+    """Return the documented port per service from the RUNTIME-MATRIX tables.
+
+    A prose port cell (``none (outbound only)``, used by the non-compose runtime
+    hosts) maps to None. Rows for hosts that are not compose services are simply
+    never looked up, so documenting them stays legitimate.
+    """
+    documented: dict[str, int | None] = {}
+    row = re.compile(r"^\|\s*`([^`]+)`\s*\|([^|]*)\|")
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|"):
+            continue
+        match = row.match(line)
+        if not match or match.group(1) in documented:
+            continue
+        port_match = re.search(r"\d+", match.group(2))
+        documented[match.group(1)] = int(port_match.group(0)) if port_match else None
+    return documented
 
 
 def main() -> int:
-    if not COMPOSE_PATH.exists():
-        print(f"Missing compose file: {COMPOSE_PATH}")
-        return 1
-    if not MANIFEST_PATH.exists():
-        print(f"Missing service manifest: {MANIFEST_PATH}")
-        return 1
-    if not RUNTIME_MATRIX_PATH.exists():
-        print(f"Missing runtime matrix: {RUNTIME_MATRIX_PATH}")
-        return 1
+    for path, label in (
+        (COMPOSE_PATH, "compose file"),
+        (MANIFEST_PATH, "service manifest"),
+        (RUNTIME_MATRIX_PATH, "runtime matrix"),
+    ):
+        if not path.exists():
+            print(f"Missing {label}: {path}")
+            return 1
 
-    manifest = parse_service_manifest(MANIFEST_PATH)
-    compose = parse_compose(COMPOSE_PATH)
+    compose_ports, compose_images = parse_compose(COMPOSE_PATH)
+    frozen_images, tag_policy = parse_service_manifest(MANIFEST_PATH)
+    documented_ports = parse_runtime_matrix(RUNTIME_MATRIX_PATH)
 
     errors: list[str] = []
-    for service_name, manifest_port in sorted(manifest.items()):
-        if service_name not in compose:
-            errors.append(f"Service {service_name!r} exists in manifest but not in docker-compose.yml")
-            continue
-        if manifest_port == -1:
-            errors.append(f"Service {service_name!r} is missing a port in service-manifest.yaml")
-            continue
-        if manifest_port not in compose[service_name]:
+
+    # 1. The frozen image list must describe exactly the compose stack.
+    for service_name in sorted(set(compose_ports) - set(frozen_images)):
+        errors.append(
+            f"Service {service_name!r} exists in docker-compose.yml but has no "
+            "frozen image in service-manifest.yaml"
+        )
+    for service_name in sorted(set(frozen_images) - set(compose_ports)):
+        errors.append(
+            f"Frozen image {service_name!r} in service-manifest.yaml has no "
+            "docker-compose.yml service"
+        )
+
+    # 2. Tags must be explicit — no floating :latest, no bare major.
+    forbid_latest = tag_policy.get("forbid_latest", True)
+    forbid_bare_major = tag_policy.get("forbid_bare_major", True)
+    for service_name, reference in sorted(frozen_images.items()):
+        _, tag = split_image_tag(reference)
+        if not tag:
             errors.append(
-                f"Port mismatch for {service_name!r}: manifest says {manifest_port}, "
-                f"docker-compose exposes {sorted(compose[service_name])}"
+                f"Frozen image {service_name!r} in service-manifest.yaml has no "
+                f"explicit tag: {reference}"
+            )
+        elif tag == "latest" and forbid_latest:
+            errors.append(
+                f"Frozen image {service_name!r} in service-manifest.yaml uses the "
+                "floating ':latest' tag"
+            )
+        elif forbid_bare_major and re.fullmatch(r"\d+(\.\d+)?", tag):
+            errors.append(
+                f"Frozen image {service_name!r} in service-manifest.yaml uses the "
+                f"bare major tag ':{tag}'"
             )
 
-    for service_name in sorted(set(compose) - set(manifest)):
-        errors.append(f"Service {service_name!r} exists in docker-compose.yml but not in service-manifest.yaml")
+    # 3. A service that pins an image in compose must run the frozen tag.
+    for service_name, reference in sorted(compose_images.items()):
+        frozen = frozen_images.get(service_name)
+        if frozen is not None and frozen != reference:
+            errors.append(
+                f"Image tag drift for {service_name!r}: docker-compose.yml uses "
+                f"{reference}, service-manifest.yaml freezes {frozen}"
+            )
+
+    # 4. The human-facing inventory must cover the compose stack and its ports.
+    for service_name in sorted(compose_ports):
+        if service_name not in documented_ports:
+            errors.append(
+                f"Service {service_name!r} exists in docker-compose.yml but is not "
+                "listed in docs/RUNTIME-MATRIX.md"
+            )
+            continue
+        documented = documented_ports[service_name]
+        if documented is None:
+            errors.append(
+                f"Service {service_name!r} has no port documented in "
+                "docs/RUNTIME-MATRIX.md"
+            )
+        elif documented not in compose_ports[service_name]:
+            errors.append(
+                f"Port mismatch for {service_name!r}: docs/RUNTIME-MATRIX.md says "
+                f"{documented}, docker-compose.yml publishes "
+                f"{sorted(compose_ports[service_name])}"
+            )
 
     if errors:
         print("Documentation drift detected:")
@@ -138,7 +263,11 @@ def main() -> int:
             print(f" - {error}")
         return 1
 
-    print(f"Runtime inventory matches: {len(manifest)} services checked.")
+    print(
+        f"Runtime inventory matches: {len(compose_ports)} compose services, "
+        f"{len(frozen_images)} frozen images, "
+        f"{len(documented_ports)} runtime-matrix rows."
+    )
     return 0
 
 
