@@ -12,6 +12,9 @@ public sealed class Product
     public string? ShortDescription { get; set; }
     public string? Keywords { get; set; }
 
+    // ── Product Status (halal compliance lifecycle) ──────────────────
+    public ProductStatus Status { get; set; } = ProductStatus.Draft;
+
     // ── Commerce path (new 4-level taxonomy) ────────────────────────
     public Guid? ProductTypeId { get; set; }
     public ProductType? ProductType { get; set; }
@@ -75,4 +78,17 @@ public sealed class Product
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Applies a status transition to this product, enforced by the ProductStatusMachine.
+    /// </summary>
+    public void ApplyTransition(StatusTransition transition)
+    {
+        if (transition.From != Status)
+            throw new InvalidOperationException(
+                $"Cannot apply transition: current status is {Status}, but transition is from {transition.From}.");
+
+        Status = transition.To;
+        UpdatedAt = transition.EvaluatedAt;
+    }
 }
