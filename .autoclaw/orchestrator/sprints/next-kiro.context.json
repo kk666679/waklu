@@ -1,7 +1,7 @@
 {
   "schema": "autoclaw.contextPack.v1",
   "markdown_path": ".autoclaw/orchestrator/sprints/next-kiro.context.md",
-  "generated_at": "2026-09-29T00:25:37.475Z",
+  "generated_at": "2026-09-29T14:41:24.318Z",
   "workspace_root_hash": "7e4cd6ba64c0688c",
   "scope": {
     "task": "Next available work for kiro: Auto-dispatched by orchestrator-loop. Agent kiro is idle.",
@@ -136,7 +136,7 @@
       "mode: balanced",
       "query-mode: balanced"
     ],
-    "generated_at": "2026-09-29T00:25:37.475Z",
+    "generated_at": "2026-09-29T14:41:24.318Z",
     "mode": "balanced",
     "spine_block_ids": [
       "ctx:c:/users/kurni/onedrive/desktop/waklu-keewak:project:root"
