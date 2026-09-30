@@ -1,17 +1,40 @@
 <Project>
   <!--
-    Recompile wwwroot/scss/ → wwwroot/css/ using ./scripts/build-scss.sh
-    on every .NET build. Only projects that actually own an SCSS source
-    tree trigger the target — the SassEnabled condition requires both the
-    build script and a top-level scss/app.scss to exist.
+    Optional: recompile wwwroot/scss/ → wwwroot/css/ during a .NET build.
+
+    This target is OFF by default and must stay that way. The container builds
+    compile the stylesheets in a dedicated `node:22-alpine` stage and overlay
+    the result (see HalalChain.Web/Dockerfile lines 8-17, 45), because the
+    mcr.microsoft.com/dotnet/sdk image used for the `build` stage has no npm.
+    Turning this on unconditionally would therefore break `docker build` with
+    "npm not found".
+
+    It previously pointed at scripts/build-scss.sh, which does not exist in this
+    repository, so the Exists() gate was permanently false and the target was
+    dead code that silently never ran. The path is now real, which makes the
+    gate meaningful — so opt-in is explicit rather than accidental:
+
+        dotnet build -p:SassEnabled=true
+
+    Requires npm and the root `sass` devDependency on PATH.
   -->
   <PropertyGroup>
-    <SassBuildScript>$(MSBuildThisFileDirectory)scripts/build-scss.sh</SassBuildScript>
-    <SassEnabled Condition=" '$(SassEnabled)' == '' AND Exists('$(SassBuildScript)') AND (Exists('$(MSBuildProjectDirectory)/wwwroot/scss/app.scss') OR Exists('$(MSBuildProjectDirectory)/wwwroot/scss/site.scss')) ">true</SassEnabled>
+    <!-- GetDirectoryName matters: MSBuildThisFileDirectory already ends with a
+         backslash, and a trailing backslash inside a quoted argument escapes the
+         closing quote, so npm received the path as
+         "...\waklu-keewak\"\package.json". GetDirectoryName drops that trailing
+         separator. (The [MSBuild]::RemoveTrailingSlash intrinsic is not callable
+         as a static method here — it fails with MSB4186.) -->
+    <RepoRoot>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileDirectory)'))</RepoRoot>
+    <SassBuildScript>$(RepoRoot)/infrastructure/scripts/build-scss.mjs</SassBuildScript>
+    <SassEnabled Condition=" '$(SassEnabled)' == '' ">false</SassEnabled>
+    <SassEnabled Condition=" '$(SassEnabled)' == 'true' AND Exists('$(SassBuildScript)') AND (Exists('$(MSBuildProjectDirectory)/wwwroot/scss/app.scss') OR Exists('$(MSBuildProjectDirectory)/wwwroot/scss/site.scss')) ">true</SassEnabled>
   </PropertyGroup>
 
   <Target Name="BuildScss" BeforeTargets="BeforeBuild" Condition="'$(SassEnabled)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
-    <Exec Command="bash $(SassBuildScript)" ContinueOnError="false" />
+    <!-- Build the whole stylesheet set from the repository root, because
+         build-scss.mjs emits for every UI project, not just this one. -->
+    <Exec Command="npm run scss:build --prefix &quot;$(RepoRoot)&quot;" ContinueOnError="false" />
   </Target>
 
   <!--

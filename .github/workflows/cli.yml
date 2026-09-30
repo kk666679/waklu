@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - "HalalChain-Cli/**"
-      - "pnpm-workspace.yaml"
-      - "pnpm-lock.yaml"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   cli:
@@ -13,26 +13,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.18.0
-
+      # This repository is an npm workspace (root package.json declares
+      # `workspaces` and package-lock.json is committed). The workflow
+      # previously installed with pnpm against pnpm-workspace.yaml and
+      # pnpm-lock.yaml — neither of which exists — so `pnpm install
+      # --frozen-lockfile` failed before any gate could run.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+          cache: npm
 
-      - run: pnpm install --frozen-lockfile
+      - run: npm ci --no-audit --no-fund
 
       - name: Typecheck
-        run: pnpm --filter @halalchain/cli typecheck
+        run: npm run typecheck --workspace HalalChain-Cli
 
       - name: Validate skills
         working-directory: HalalChain-Cli
-        run: pnpm intent:validate
+        run: npm run intent:validate
 
       - name: Test
-        run: pnpm --filter @halalchain/cli test
+        run: npm test --workspace HalalChain-Cli
 
       - name: Guard — no browser packages
         working-directory: HalalChain-Cli

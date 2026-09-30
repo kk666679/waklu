@@ -6,7 +6,6 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "pnpm@10.18.0",
   "bin": {
     "halalchain": "./bin/halalchain.js"
   },

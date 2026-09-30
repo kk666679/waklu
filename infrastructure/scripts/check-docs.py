@@ -7,7 +7,23 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# Walk up to the repo root by marker file rather than by a fixed `..` hop.
+# This file moved under infrastructure/ in commit 5e58296, so
+# `parent.parent` began resolving to <root>/infrastructure and every
+# repository-rooted path below silently pointed at a non-existent file.
+REPO_MARKER = "HalalChain.Platform.sln"
+
+
+def _find_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / REPO_MARKER).is_file():
+            return candidate
+    raise SystemExit(
+        f"Cannot locate the repository root: no {REPO_MARKER} found at or above {start}."
+    )
+
+
+ROOT = _find_root(Path(__file__).resolve().parent)
 COMPOSE_PATH = ROOT / "docker-compose.yml"
 MANIFEST_PATH = ROOT / "service-manifest.yaml"
 RUNTIME_MATRIX_PATH = ROOT / "docs" / "RUNTIME-MATRIX.md"

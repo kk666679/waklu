@@ -11,10 +11,13 @@ FROM node:22-alpine AS styles
 WORKDIR /styles
 COPY package.json package-lock.json ./
 RUN npm install --no-audit --no-fund
-COPY scripts/ ./scripts/
+# build-scss.mjs locates the repo root by walking up to this marker file, so it
+# has to exist in the (deliberately minimal) styles context.
+COPY HalalChain.Platform.sln ./
+COPY infrastructure/scripts/ ./infrastructure/scripts/
 COPY HalalChain.Web/wwwroot/scss/ ./HalalChain.Web/wwwroot/scss/
 COPY HalalChain.Marketplace/wwwroot/scss/ ./HalalChain.Marketplace/wwwroot/scss/
-RUN node scripts/build-scss.mjs --silent
+RUN node infrastructure/scripts/build-scss.mjs --silent
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION} AS base
 WORKDIR /app
 EXPOSE 8080

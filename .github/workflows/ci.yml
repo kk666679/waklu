@@ -35,7 +35,7 @@ jobs:
         run: npm run scss:build
 
       - name: Validate docs and service inventory
-        run: python3 scripts/check-docs.py
+        run: python3 infrastructure/scripts/check-docs.py
 
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION }}

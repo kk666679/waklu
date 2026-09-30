@@ -21,11 +21,33 @@
 import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile, rm, stat } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Repo root, located by walking up until a marker file is found rather than by
+// counting `..` segments. This script used to live at <root>/scripts/, so a
+// fixed `resolve(__dirname, '..')` was correct; commit 5e58296 moved it to
+// <root>/infrastructure/scripts/ and that one-segment hop started resolving to
+// <root>/infrastructure — which then silently found zero SCSS projects and
+// exited 0, so CI looked green while compiling nothing. Marker-walking keeps
+// the script correct wherever it is relocated to next.
+const REPO_MARKER = 'HalalChain.Platform.sln';
+function findRepoRoot(start) {
+  let dir = start;
+  for (;;) {
+    if (existsSync(join(dir, REPO_MARKER))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(
+        `Cannot locate the repository root: no ${REPO_MARKER} found at or above ${start}.`
+      );
+    }
+    dir = parent;
+  }
+}
+const repoRoot = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
 // `sass` is a declared devDependency of the root workspace.
 let sass;
@@ -91,7 +113,12 @@ async function compileThemes(projectDir, cssDir) {
   const compiled = [];
 
   for (const file of files) {
-    const name = file.split('/').pop().replace(/^_/, '').replace(/\.scss$/, '');
+    // basename() rather than file.split('/').pop(): `join()` produces
+    // backslashes on Windows, so a forward-slash split returned the entire
+    // absolute path and the destination became
+    // "wwwroot/css/C:\...\admin.css". This never surfaced before because the
+    // broken repoRoot made this function return early with zero projects.
+    const name = basename(file).replace(/^_/, '').replace(/\.scss$/, '');
     // _index.scss / _index-*.scss are the @use aggregators, not bundles.
     if (name.startsWith('index')) continue;
     // _radzen.scss is a partial shared by the theme bundles.
@@ -139,7 +166,7 @@ async function buildProject(project) {
   // 1. entries/<name>.scss — the per-concern bundles.
   const entriesDir = join(scssDir, 'entries');
   for (const file of await scssFilesIn(entriesDir)) {
-    const name = file.split('/').pop().replace(/^_/, '').replace(/\.scss$/, '');
+    const name = basename(file).replace(/^_/, '').replace(/\.scss$/, '');
     built.push(await compile(file, cssDir, name));
   }
 
