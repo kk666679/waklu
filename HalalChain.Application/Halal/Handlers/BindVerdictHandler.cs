@@ -37,16 +37,21 @@ public sealed class BindVerdictHandler
         BindVerdictCommand request,
         CancellationToken ct)
     {
-        var product = await _products.GetAsync(request.ProductId, ct)
+        if (!Guid.TryParse(request.ProductId.Value, out var productGuid))
+            throw new ArgumentException(
+                $"'{request.ProductId}' is not a valid product identifier.",
+                nameof(request));
+
+        var product = await _products.GetAsync(productGuid, ct)
             ?? throw new KeyNotFoundException($"Product {request.ProductId} not found.");
 
         var binding = VerdictBinding.Issue(
+            productId: request.ProductId,
+            certificateId: new CertificateId(request.CertificateNumber ?? string.Empty),
             state: request.State,
             policyVersion: request.PolicyVersion,
-            certificateNumber: request.CertificateNumber,
-            certificateExpiresAt: request.CertificateExpiresAt ?? DateTimeOffset.MaxValue,
-            traceHash: request.TraceHash,
-            decidedAt: _clock.UtcNow);
+            expiresAt: request.CertificateExpiresAt ?? DateTimeOffset.MaxValue,
+            boundAt: _clock.UtcNow);
 
         await _bindings.UpsertAsync(binding, ct);
 
@@ -55,7 +60,7 @@ public sealed class BindVerdictHandler
             product.ApplyTransition(transition);
 
         return new BindVerdictResult(
-            ProductId: product.Id,
+            ProductId: request.ProductId,
             State: request.State,
             ProjectedStatus: product.Status,
             BoundAt: _clock.UtcNow);

@@ -5,6 +5,7 @@ using HalalChain.Application.Halal.Commands;
 using HalalChain.Application.Halal.Interfaces;
 using HalalChain.Application.Halal.StateMachine;
 using HalalChain.Domain.Catalog;
+using HalalChain.Domain.Halal;
 using MediatR;
 
 /// <summary>
@@ -48,7 +49,7 @@ public sealed class SweepExpiringCertificatesHandler
 
         foreach (var certificate in candidates)
         {
-            var bindings = await _bindings.QueryByCertificateAsync(certificate.Id, ct);
+            var bindings = await _bindings.QueryByCertificateAsync(new CertificateId(certificate.Id.ToString()), ct);
 
             foreach (var pair in bindings)
             {
@@ -64,8 +65,8 @@ public sealed class SweepExpiringCertificatesHandler
 
                 switch (transition.To)
                 {
-                    case ProductStatus.Active:       activated++;    break;
-                    case ProductStatus.ExpiringSoon: expiringSoon++; break;
+                    case ProductStatus.Approved:     activated++;    break;
+                    case ProductStatus.Published:    expiringSoon++; break;
                     case ProductStatus.Suspended:    suspended++;    break;
                 }
             }

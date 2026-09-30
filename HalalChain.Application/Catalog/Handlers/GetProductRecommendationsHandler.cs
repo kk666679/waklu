@@ -8,7 +8,7 @@ namespace HalalChain.Application.Catalog.Handlers;
 /// Handler for getting personalized and trending product recommendations.
 /// Supports multiple recommendation algorithms: collaborative, content-based, trending, etc.
 /// </summary>
-public sealed class GetProductRecommendationsHandler(IProductRepository productRepository)
+public sealed class GetProductRecommendationsHandler
     : IRequestHandler<GetProductRecommendationsQuery, List<ProductRecommendation>>
 {
     public async Task<List<ProductRecommendation>> Handle(GetProductRecommendationsQuery request, CancellationToken ct)

@@ -1,6 +1,7 @@
 namespace HalalChain.Application.Halal.StateMachine;
 
 using HalalChain.Domain.Catalog;
+using HalalChain.Domain.Halal;
 
 /// <summary>
 /// The single source of truth for ProductStatus transitions.
@@ -17,12 +18,12 @@ public sealed class ProductStatusMachine
 {
     private static readonly Dictionary<ProductStatus, ProductStatus[]> Allowed = new()
     {
-        [ProductStatus.Draft]               = [ProductStatus.PendingVerification, ProductStatus.Archived],
-        [ProductStatus.PendingVerification] = [ProductStatus.Active, ProductStatus.Rejected],
+        [ProductStatus.Draft]               = [ProductStatus.Submitted, ProductStatus.Archived],
+        [ProductStatus.Submitted]           = [ProductStatus.Approved, ProductStatus.Rejected],
         [ProductStatus.Rejected]            = [ProductStatus.Draft, ProductStatus.Archived],
-        [ProductStatus.Active]              = [ProductStatus.ExpiringSoon, ProductStatus.Suspended, ProductStatus.Archived],
-        [ProductStatus.ExpiringSoon]        = [ProductStatus.Active, ProductStatus.Suspended],
-        [ProductStatus.Suspended]           = [ProductStatus.PendingVerification, ProductStatus.Archived],
+        [ProductStatus.Approved]            = [ProductStatus.Published, ProductStatus.Suspended, ProductStatus.Archived],
+        [ProductStatus.Published]           = [ProductStatus.Suspended, ProductStatus.Archived],
+        [ProductStatus.Suspended]           = [ProductStatus.Submitted, ProductStatus.Archived],
         [ProductStatus.Archived]            = [],
     };
 
@@ -36,16 +37,16 @@ public sealed class ProductStatusMachine
 
         var target = binding.State switch
         {
-            VerdictState.Halal when binding.CertificateExpiresAt <= now
+            VerdictState.Verified when binding.ExpiresAt <= now
                 => ProductStatus.Suspended,
-            VerdictState.Halal when binding.CertificateExpiresAt - now <= TimeSpan.FromDays(30)
-                => ProductStatus.ExpiringSoon,
-            VerdictState.Halal
-                => ProductStatus.Active,
-            VerdictState.NotHalal
+            VerdictState.Verified when binding.ExpiresAt - now <= TimeSpan.FromDays(30)
+                => ProductStatus.Published,
+            VerdictState.Verified
+                => ProductStatus.Approved,
+            VerdictState.NonCompliant
                 => ProductStatus.Rejected,
-            VerdictState.InsufficientEvidence
-                => ProductStatus.PendingVerification,
+            VerdictState.ManualReview
+                => ProductStatus.UnderReview,
             _ => product.Status,
         };
 

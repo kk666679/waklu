@@ -8,7 +8,7 @@ namespace HalalChain.Application.Catalog.Handlers;
 /// Handler for retrieving available facets (filters) for catalog navigation.
 /// Returns all available filter options with result counts.
 /// </summary>
-public sealed class GetCatalogFacetsHandler(IProductRepository productRepository)
+public sealed class GetCatalogFacetsHandler
     : IRequestHandler<GetCatalogFacetsQuery, CatalogFacets>
 {
     public async Task<CatalogFacets> Handle(GetCatalogFacetsQuery request, CancellationToken ct)

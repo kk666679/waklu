@@ -42,8 +42,11 @@ public class AddProductMediaAssetCommandValidator : AbstractValidator<AddProduct
             .WithMessage("VideoThumbnailUrl must be a valid URL.");
     }
 
-    private static bool BeValidUrl(string url)
+    private static bool BeValidUrl(string? url)
     {
+        if (string.IsNullOrWhiteSpace(url))
+            return true;
+
         return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
             && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }

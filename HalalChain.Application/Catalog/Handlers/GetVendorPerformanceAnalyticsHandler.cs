@@ -7,7 +7,7 @@ namespace HalalChain.Application.Catalog.Handlers;
 /// <summary>
 /// Handler for retrieving comprehensive vendor performance analytics.
 /// </summary>
-public sealed class GetVendorPerformanceAnalyticsHandler(IProductRepository productRepository)
+public sealed class GetVendorPerformanceAnalyticsHandler
     : IRequestHandler<GetVendorPerformanceAnalyticsQuery, VendorPerformanceAnalytics>
 {
     public async Task<VendorPerformanceAnalytics> Handle(GetVendorPerformanceAnalyticsQuery request, CancellationToken ct)

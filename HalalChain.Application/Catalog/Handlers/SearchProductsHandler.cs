@@ -9,7 +9,7 @@ namespace HalalChain.Application.Catalog.Handlers;
 /// <summary>
 /// Handler for advanced product search with full-text, semantic, and faceted search.
 /// </summary>
-public sealed class SearchProductsHandler(IProductRepository productRepository)
+public sealed class SearchProductsHandler
     : IRequestHandler<SearchProductsQuery, PagedResult<ProductSearchResult>>
 {
     public async Task<PagedResult<ProductSearchResult>> Handle(SearchProductsQuery request, CancellationToken ct)

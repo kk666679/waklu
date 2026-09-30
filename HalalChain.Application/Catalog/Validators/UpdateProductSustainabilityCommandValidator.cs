@@ -68,8 +68,11 @@ public class UpdateProductSustainabilityCommandValidator : AbstractValidator<Upd
         return certifications.All(c => validCertifications.Contains(c, StringComparer.OrdinalIgnoreCase));
     }
 
-    private static bool BeValidUrl(string url)
+    private static bool BeValidUrl(string? url)
     {
+        if (string.IsNullOrWhiteSpace(url))
+            return true;
+
         return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
             && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
