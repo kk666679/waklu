@@ -59,6 +59,10 @@ export function buildProgram(): Command {
   program.addCommand(createLocalCommand())
   program.addCommand(createSandboxCommand())
 
+  program.action(() => {
+    program.outputHelp()
+  })
+
   const skills = new Command('skills')
     .description('Inspect and install the CLI skill definitions (skills/*.md)')
   skills.command('list').description('List discovered skills').action(async () => {
