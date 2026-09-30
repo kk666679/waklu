@@ -21,7 +21,7 @@
     "start": "node ./bin/halalchain.js",
     "dev": "tsx ./src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx ./test/**/*.test.ts",
+    "test": "node --test --import tsx \"./test/*.test.ts\"",
     "intent:list": "intent list",
     "intent:validate": "intent validate",
     "intent:install": "intent install --map",
