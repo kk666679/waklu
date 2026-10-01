@@ -3,6 +3,7 @@ using System.Reflection;
 using HalalChain.Agents.Eval.Dag;
 using HalalChain.Agents.Eval.Dag.Propagation;
 using HalalChain.Agents.Eval.Taxonomy;
+using HalalChain.Domain.Halal;
 
 using Xunit;
 
@@ -63,8 +64,8 @@ public sealed class VerdictBoundaryTests
         // another name. VerdictState is the domain's compliance vocabulary —
         // Halal / NotHalal / InsufficientEvidence — and the eval harness must
         // not be able to hold one.
-        var verdictState = typeof(HalalChain.Domain.Catalog.VerdictState);
-        var verdictBinding = typeof(HalalChain.Domain.Catalog.VerdictBinding);
+        var verdictState = typeof(VerdictState);
+        var verdictBinding = typeof(VerdictBinding);
 
         var offenders = new List<string>();
 

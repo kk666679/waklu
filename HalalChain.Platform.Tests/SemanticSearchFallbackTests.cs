@@ -36,7 +36,11 @@ public sealed class SemanticSearchFallbackTests
 
     private sealed class StubAuthService : IAuthService
     {
-        public event Action? OnAuthStateChanged;
+        public event Action? OnAuthStateChanged
+        {
+            add { }
+            remove { }
+        }
         public bool IsAuthenticated => false;
         public string? UserName => null;
         public string? FullName => null;

@@ -510,7 +510,7 @@ public sealed partial class AutoclawStructureTests
 
         var transitions = ParseTransitions(lines);
         Assert.True(
-            transitions.Count > 0,
+            transitions.Length > 0,
             "No transitions parsed from transitions.yaml. The state machine is " +
             "the enforcement for P9; an unparseable one is not enforced.");
 

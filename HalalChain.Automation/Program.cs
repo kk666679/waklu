@@ -10,9 +10,6 @@ using HalalChain.Automation.Scheduling;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// ─── Aspire service defaults ─────────────────────────────────────────────────
-builder.AddServiceDefaults();
-
 // ─── Scheduling infrastructure ───────────────────────────────────────────────
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<JobRegistry>();
