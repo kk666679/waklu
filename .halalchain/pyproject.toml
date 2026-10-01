@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "HalalChain Python Services Workspace"
 requires-python = ">=3.11"
 
+[tool.uv]
+constraint-dependencies = ["qdrant-client==1.19.1"]
+
 [tool.uv.workspace]
 members = [
   "_shared",

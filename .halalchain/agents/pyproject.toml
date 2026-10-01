@@ -17,6 +17,8 @@ runtime = [
     "mcp-types>=2.2.0,<3.0.0",
     "haiku-skills[signing]>=0.18.1",
     "agent-skills>=1.1.1",
+]
+vector = [
     "qdrant-client[fastembed]>=1.15.0",
 ]
 eval = [
@@ -35,12 +37,3 @@ asyncio_mode = "auto"
 
 [tool.uv]
 exclude-newer-package = { mcp = false, "mcp-types" = false, deepeval = false }
-
-[tool.uv.sources]
-# halalchain-shared lives in this repo, not on PyPI, so every member that depends
-# on it must declare where to find it. A relative path source works regardless of
-# uv's workspace discovery; without it `uv pip compile` fails with
-# "halalchain-shared was not found in the package registry".
-# The emitted lock omits this package (--no-emit-package) because pip cannot
-# hash-check a local requirement; its dependencies stay pinned in the output.
-halalchain-shared = { path = "../_shared" }
