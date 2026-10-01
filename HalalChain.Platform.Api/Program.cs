@@ -25,6 +25,9 @@ using HalalChain.Platform.Api.Modules.Indexer;
 using HalalChain.Platform.Api.Modules.Ipfs;
 using HalalChain.Platform.Api.Modules.Vendors;
 using HalalChain.Platform.Api.Persistence;
+using HalalChain.Platform.Api.Infrastructure.Repositories;
+using HalalChain.Agents.DependencyInjection;
+using HalalChain.Application.Halal.Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using System.Threading.RateLimiting;
 
@@ -182,6 +185,9 @@ builder.Services.AddValidatorsFromAssembly(typeof(CreateProductRequestValidator)
 builder.Services.AddApplicationMapping();
 builder.Services.AddScoped<HalalChain.Application.Common.Interfaces.IProductRepository, EfProductRepository>();
 builder.Services.AddScoped<HalalChain.Application.Vendors.Interfaces.IVendorRepository, EfVendorRepository>();
+builder.Services.AddScoped<ICertificateRepository, EfCertificateRepository>();
+builder.Services.AddSingleton<IVerdictBindingRepository, InMemoryVerdictBindingRepository>();
+builder.Services.AddAgentRuntime(builder.Configuration);
 
 // ── AI Gateway ────────────────────────────────────────────────────────────
 builder.Services.Configure<AiGatewayOptions>(builder.Configuration.GetSection(AiGatewayOptions.SectionName));
@@ -323,7 +329,11 @@ if (!app.Environment.IsDevelopment())
 
 app.MapOpenApi();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("HalalChainCors");
 app.UseRateLimiter();
 
@@ -366,3 +376,5 @@ static void LoadDotEnv()
 }
 
 app.Run();
+
+public partial class Program;
