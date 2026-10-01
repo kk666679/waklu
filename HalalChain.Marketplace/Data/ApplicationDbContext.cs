@@ -130,11 +130,15 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.ChangedAt)
                 .HasDatabaseName("IX_DashboardConfigAudit_ChangedAt");
 
+            // nvarchar(max) is SQL Server-only; SQLite has no such type and
+            // fails schema creation on it.
+            var auditJsonColumnType = isDbSqlServer ? "nvarchar(max)" : "TEXT";
+
             entity.Property(e => e.PreviousConfigurationJson)
-                .HasColumnType("nvarchar(max)");
+                .HasColumnType(auditJsonColumnType);
 
             entity.Property(e => e.NewConfigurationJson)
-                .HasColumnType("nvarchar(max)");
+                .HasColumnType(auditJsonColumnType);
         });
 
         // Configure DashboardConfigCacheEntity
