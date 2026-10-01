@@ -23,9 +23,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate AlertManager config
+        env:
+          SLACK_WEBHOOK_URL: https://example.invalid/
         run: |
+          envsubst '${SLACK_WEBHOOK_URL}' \
+            < infrastructure/alertmanager/alertmanager.yml \
+            > "$RUNNER_TEMP/alertmanager.yml"
+          chmod 644 "$RUNNER_TEMP/alertmanager.yml"
           docker run --rm \
-            -v "$PWD/infrastructure/alertmanager:/etc/alertmanager:ro" \
+            -v "$RUNNER_TEMP/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            -v "$PWD/infrastructure/alertmanager/templates:/etc/alertmanager/templates:ro" \
             --entrypoint amtool \
             prom/alertmanager:v0.28.0 \
             check-config /etc/alertmanager/alertmanager.yml
