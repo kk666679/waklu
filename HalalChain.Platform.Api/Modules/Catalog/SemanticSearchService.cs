@@ -1,164 +1,107 @@
-using System.Net.Http.Json;
-using System.Text.Json;
+using HalalChain.Platform.Api.AI;
 using HalalChain.Domain.Catalog;
 using HalalChain.Platform.Api.Persistence;
+using HalalChain.Platform.Contracts.AI.Requests;
 using HalalChain.Platform.Contracts.Catalog.Dto;
 using Microsoft.EntityFrameworkCore;
 
 namespace HalalChain.Platform.Api.Modules.Catalog;
 
 /// <summary>
-/// Semantic search service using pgvector-style cosine similarity.
-/// Generates embeddings via the ai-inference gateway, stores them in PostgreSQL,
-/// and performs vector similarity search using raw SQL.
-/// 
-/// The ai-inference gateway produces 256-dim embeddings. These are stored as
-/// real[] columns in PostgreSQL. Cosine similarity is computed using:
-///   similarity = 1 - (embedding <=> query_embedding)
-/// where <=> is the cosine distance operator.
+/// Generates embeddings from explicitly indexed catalog rows and ranks their
+/// persisted vectors without provider-specific database operators.
 /// </summary>
 public sealed class SemanticSearchService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAiInferenceProvider _aiInference;
     private readonly HalalChainDbContext _db;
     private readonly ILogger<SemanticSearchService> _logger;
-    private readonly IConfiguration _configuration;
 
     public SemanticSearchService(
-        IHttpClientFactory httpClientFactory,
+        IAiInferenceProvider aiInference,
         HalalChainDbContext db,
-        ILogger<SemanticSearchService> logger,
-        IConfiguration configuration)
+        ILogger<SemanticSearchService> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _aiInference = aiInference;
         _db = db;
         _logger = logger;
-        _configuration = configuration;
     }
 
     /// <summary>
-    /// Generate embedding for a product and store it.
+    /// Embed a real product only after it has explicitly opted into indexing.
     /// </summary>
-    public async Task<ProductEmbedding?> EmbedProductAsync(Guid productId, string text, CancellationToken ct = default)
+    public async Task<ProductEmbedding?> EmbedProductAsync(Guid productId, CancellationToken ct = default)
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("AiInference");
-            var response = await client.PostAsJsonAsync("/embeddings", new { text }, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to generate embedding for product {ProductId}", productId);
-                return null;
-            }
+        var product = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == productId && p.IsSearchIndexed, ct);
 
-            var result = await response.Content.ReadFromJsonAsync<EmbeddingResult>(cancellationToken: ct);
-            if (result?.Embedding is null || result.Embedding.Length == 0) return null;
-
-            // Upsert embedding
-            var existing = await _db.ProductEmbeddings.FirstOrDefaultAsync(pe => pe.ProductId == productId, ct);
-            if (existing is not null)
-            {
-                existing.Embedding = result.Embedding;
-                existing.Dimension = result.Embedding.Length;
-                existing.Model = result.Model ?? "halalchain-local-v1";
-                existing.UpdatedAt = DateTimeOffset.UtcNow;
-            }
-            else
-            {
-                existing = new ProductEmbedding
-                {
-                    Id = Guid.NewGuid(),
-                    ProductId = productId,
-                    Embedding = result.Embedding,
-                    Dimension = result.Embedding.Length,
-                    Model = result.Model ?? "halalchain-local-v1",
-                };
-                _db.ProductEmbeddings.Add(existing);
-            }
-            await _db.SaveChangesAsync(ct);
-            return existing;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error embedding product {ProductId}", productId);
-            return null;
-        }
+        return product is null ? null : await EmbedProductAsync(product, ct);
     }
 
     /// <summary>
-    /// Search products by semantic similarity using cosine distance.
-    /// Uses raw SQL for optimal PostgreSQL vector performance.
+    /// Search only persisted embeddings belonging to explicitly indexed products.
     /// </summary>
     public async Task<List<SemanticSearchResult>> SearchAsync(string query, int topK = 10, CancellationToken ct = default)
     {
-        // Generate query embedding
-        var client = _httpClientFactory.CreateClient("AiInference");
-        var response = await client.PostAsJsonAsync("/embeddings", new { text = query }, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Failed to generate query embedding");
-            return [];
-        }
+        if (string.IsNullOrWhiteSpace(query)) return [];
 
-        var result = await response.Content.ReadFromJsonAsync<EmbeddingResult>(cancellationToken: ct);
-        if (result?.Embedding is null || result.Embedding.Length == 0) return [];
+        var stored = await _db.ProductEmbeddings
+            .AsNoTracking()
+            .Join(
+                _db.Products.AsNoTracking().Where(p => p.IsSearchIndexed),
+                embedding => embedding.ProductId,
+                product => product.Id,
+                (embedding, _) => embedding)
+            .ToListAsync(ct);
 
-        // Cosine similarity search using raw SQL
-        // PostgreSQL array distance: 1 - (a <=> b) = cosine similarity
-        var connStr = _configuration.GetConnectionString("Postgres");
-        if (string.IsNullOrEmpty(connStr)) return [];
+        if (stored.Count == 0) return [];
 
-        var queryEmbedding = result.Embedding;
-        var results = new List<SemanticSearchResult>();
+        var response = await _aiInference.EmbedAsync(new EmbeddingsRequest(query), ct);
+        var queryVector = response.Embedding.Select(value => (float)value).ToArray();
+        if (queryVector.Length == 0) return [];
 
-        await using var conn = new Npgsql.NpgsqlConnection(connStr);
-        await conn.OpenAsync(ct);
+        var ranked = stored
+            .Where(item => item.Dimension == queryVector.Length && item.Embedding.Length == queryVector.Length)
+            .Select(item => new
+            {
+                item.ProductId,
+                Similarity = CosineSimilarity(item.Embedding, queryVector)
+            })
+            .Where(item => double.IsFinite(item.Similarity))
+            .OrderByDescending(item => item.Similarity)
+            .Take(Math.Clamp(topK, 1, 100))
+            .ToArray();
 
-        // Create pgvector extension if not exists, then search
-        var sql = @"
-            CREATE EXTENSION IF NOT EXISTS vector;
-            
-            WITH query AS (
-                SELECT ARRAY[{0}]::real[] AS q
-            )
-            SELECT 
-                pe.""ProductId"",
-                p.""Title"",
-                p.""Slug"",
-                p.""Description"",
-                v.""Name"" AS ""VendorName"",
-                c.""Name"" AS ""CategoryName"",
-                p.""Price"",
-                p.""Currency"",
-                p.""Origin"",
-                1 - (pe.""Embedding"" <=> (SELECT q FROM query)) AS ""Similarity""
-            FROM ""ProductEmbeddings"" pe
-            JOIN ""Products"" p ON pe.""ProductId"" = p.""Id""
-            JOIN ""Vendors"" v ON p.""VendorId"" = v.""Id""
-            JOIN ""Categories"" c ON p.""CategoryId"" = c.""Id""
-            ORDER BY pe.""Embedding"" <=> (SELECT q FROM query)
-            LIMIT {1}";
+        if (ranked.Length == 0) return [];
 
-        var embeddingStr = string.Join(",", queryEmbedding.Select(x => x.ToString("F6")));
-        var cmd = new Npgsql.NpgsqlCommand(string.Format(sql, embeddingStr, topK), conn);
+        var productIds = ranked.Select(item => item.ProductId).ToArray();
+        var products = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.Vendor)
+            .Where(p => p.IsSearchIndexed && productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
-        {
-            results.Add(new SemanticSearchResult(
-                reader.GetGuid(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.IsDBNull(3) ? null : reader.GetString(3),
-                reader.GetString(4),
-                reader.GetString(5),
-                reader.GetDecimal(6),
-                reader.GetString(7),
-                reader.GetString(8),
-                reader.GetDouble(9)));
-        }
-
-        return results;
+        return ranked
+            .Where(item => products.ContainsKey(item.ProductId))
+            .Select(item =>
+            {
+                var product = products[item.ProductId];
+                return new SemanticSearchResult(
+                    product.Id,
+                    product.Title,
+                    product.Slug,
+                    product.Description,
+                    product.Vendor?.Name ?? string.Empty,
+                    product.Category?.Name ?? string.Empty,
+                    product.Price,
+                    product.Currency,
+                    product.Origin,
+                    item.Similarity);
+            })
+            .ToList();
     }
 
     /// <summary>
@@ -166,13 +109,16 @@ public sealed class SemanticSearchService
     /// </summary>
     public async Task<int> EmbedAllProductsAsync(CancellationToken ct = default)
     {
-        var products = await _db.Products.ToListAsync(ct);
+        var products = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Where(p => p.IsSearchIndexed)
+            .ToListAsync(ct);
         var embedded = 0;
 
         foreach (var product in products)
         {
-            var text = $"{product.Title}. {product.Description ?? ""}. Category: {product.Category?.Name ?? ""}. Origin: {product.Origin}.";
-            var emb = await EmbedProductAsync(product.Id, text, ct);
+            var emb = await EmbedProductAsync(product, ct);
             if (emb is not null) embedded++;
         }
 
@@ -214,5 +160,63 @@ public sealed class SemanticSearchService
         return productSuggestions;
     }
 
-    private sealed record EmbeddingResult(float[] Embedding, string? Model);
+    private async Task<ProductEmbedding?> EmbedProductAsync(Product product, CancellationToken ct)
+    {
+        try
+        {
+            var text = BuildProductText(product);
+            var response = await _aiInference.EmbedAsync(new EmbeddingsRequest(text), ct);
+            var embedding = response.Embedding.Select(value => (float)value).ToArray();
+            if (embedding.Length == 0) return null;
+
+            var stored = await _db.ProductEmbeddings
+                .FirstOrDefaultAsync(item => item.ProductId == product.Id, ct);
+            if (stored is null)
+            {
+                stored = new ProductEmbedding { Id = Guid.NewGuid(), ProductId = product.Id };
+                _db.ProductEmbeddings.Add(stored);
+            }
+
+            stored.Embedding = embedding;
+            stored.Dimension = embedding.Length;
+            stored.Model = response.Model;
+            stored.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return stored;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error embedding indexed product {ProductId}", product.Id);
+            return null;
+        }
+    }
+
+    private static string BuildProductText(Product product)
+        => string.Join(". ", new[]
+        {
+            product.Title,
+            product.ShortDescription,
+            product.Description,
+            product.Keywords,
+            product.Category?.Name,
+            product.Origin,
+            string.Join(", ", product.Tags),
+            string.Join(", ", product.Ingredients)
+        }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    private static double CosineSimilarity(float[] left, float[] right)
+    {
+        double dot = 0;
+        double leftNorm = 0;
+        double rightNorm = 0;
+        for (var index = 0; index < left.Length; index++)
+        {
+            dot += left[index] * right[index];
+            leftNorm += left[index] * left[index];
+            rightNorm += right[index] * right[index];
+        }
+
+        var denominator = Math.Sqrt(leftNorm * rightNorm);
+        return denominator > 0 ? dot / denominator : double.NaN;
+    }
 }

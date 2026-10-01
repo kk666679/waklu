@@ -47,10 +47,10 @@ public sealed class SearchController : ControllerBase
     /// </summary>
     [HttpPost("embed/{productId:guid}")]
     [Authorize(Policy = CatalogPolicies.VendorOrAdmin)]
-    public async Task<ActionResult> EmbedProduct(Guid productId, [FromBody] EmbedProductRequest request, CancellationToken ct)
+    public async Task<ActionResult> EmbedProduct(Guid productId, CancellationToken ct)
     {
-        var result = await _searchService.EmbedProductAsync(productId, request.Text, ct);
-        if (result is null) return NotFound(new { error = "Failed to embed product." });
+        var result = await _searchService.EmbedProductAsync(productId, ct);
+        if (result is null) return NotFound(new { error = "Product not found or not enabled for search indexing." });
         return Ok(new { productId, dimension = result.Dimension, model = result.Model });
     }
 
@@ -71,5 +71,3 @@ public sealed class SearchController : ControllerBase
         return Ok(suggestions);
     }
 }
-
-public sealed record EmbedProductRequest(string Text);
