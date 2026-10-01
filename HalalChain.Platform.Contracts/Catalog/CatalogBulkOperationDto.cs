@@ -155,7 +155,7 @@ public sealed class CatalogBulkExportResponse
 public sealed class CatalogBulkUpdateRequest
 {
     /// <summary>
-    /// Operation type: "UpdatePrice", "UpdateStock", "SetTags", "SetHalalStatus", "Activate", "Deactivate".
+    /// Operation type: "UpdatePrice", "UpdateStock", "SetTags", "Activate", or "Deactivate".
     /// </summary>
     public string OperationType { get; set; } = string.Empty;
 

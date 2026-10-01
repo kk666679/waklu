@@ -159,7 +159,12 @@ public sealed class McpVerdictAuthorityTests
             .Select(Path.GetFileName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var approved = new[] { "GovernanceService.cs", "McpVerdictAuthorityTests.cs" };
+        var approved = new[]
+        {
+            "GovernanceService.cs",
+            "McpVerdictAuthorityTests.cs",
+            "AutoclawStructureTests.cs"
+        };
 
         foreach (var name in approved)
         {

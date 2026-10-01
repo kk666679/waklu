@@ -69,7 +69,7 @@ public sealed class VerifyNoVerdictAuthorityTool : ITool
             output += "**Zero files were scanned** — a scan of nothing must never be read as a clean result.\n\n";
         }
 
-        output += "The guard marker `halalchain:verdict-authority-guard` exempts the files that must name what they forbid " +
+        output += "The governance scan skips explicitly marked source files that must name what they forbid " +
                   "(this guard's own declaration and its architecture test); the skip count above is published, not hidden.\n\n" +
                   "This tool reports; it holds no authority. Only the deterministic Policy Engine in tawheed decides a compliance status.\n";
         return Task.FromResult(output);

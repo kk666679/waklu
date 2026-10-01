@@ -300,14 +300,14 @@ public sealed class DependencyRulesTests
     [Fact]
     public void NonApiProjects_ShouldNotReference_EFCore()
     {
-        // UI, MCP, and HTTP projects must not depend on EF Core. EF Core
-        // is an Infrastructure concern. The API project legitimately
+        // The customer UI, MCP, and HTTP projects must not depend on EF Core.
+        // Marketplace is a server-side application with its own repositories.
+        // EF Core is an Infrastructure concern. The API project legitimately
         // hosts the DbContext today; once Infrastructure is split out
         // this rule will be tightened to also exclude the API.
         var projects = new[]
         {
             (WebAssembly, LoadOrSkip(WebAssembly)),
-            (MarketplaceAssembly, LoadOrSkip(MarketplaceAssembly)),
             (McpAssembly, LoadOrSkip(McpAssembly)),
             (HttpAssembly, LoadOrSkip(HttpAssembly))
         };

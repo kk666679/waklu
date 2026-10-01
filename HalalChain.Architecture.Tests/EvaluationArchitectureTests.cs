@@ -97,8 +97,10 @@ public sealed class EvaluationArchitectureTests
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToArray();
 
-        var scored = ((System.Collections.IEnumerable)nodeTypesProperty!.GetValue(
-                Activator.CreateInstance(registryType!)!)!)
+        var registry = Activator.CreateInstance(registryType!, [null]);
+        Assert.NotNull(registry);
+
+        var scored = ((System.Collections.IEnumerable)nodeTypesProperty!.GetValue(registry)!)
             .Cast<object>()
             .Select(n => n!.ToString()!)
             .OrderBy(n => n, StringComparer.Ordinal)
