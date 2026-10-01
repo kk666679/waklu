@@ -1,0 +1,15 @@
+client: cline
+transport: stdio
+config_file: .vscode/mcp.json
+server_ref: mcp/servers/halalchain.yaml
+
+connected_agents:
+  - evidence-collector
+  - certifier-assistant
+  - auditor-coordinator
+  - skill-reviewer
+
+notes: |
+  .vscode/mcp.json is generated from this file. Its `servers.halalchain` entry
+  carries a `comment` field pointing back at mcp/servers/halalchain.yaml so the
+  config lineage stays discoverable from the client side.

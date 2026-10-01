@@ -1,0 +1,40 @@
+id: cold-chain-threshold
+version: 1.0.3
+severity: blocking
+applies_to:
+  - cold-chain-log
+  - delivery-confirmation
+
+inputs:
+  - cold_chain_log.readings[].temperature_celsius
+  - cold_chain_log.readings[].timestamp
+  - shipment.product.cold_chain_class     # frozen | chilled | ambient
+
+rule: |
+  FOR ALL reading IN cold_chain_log.readings:
+    reading.temperature_celsius <= policy.thresholds[shipment.product.cold_chain_class].max_celsius AND
+    reading.temperature_celsius >= policy.thresholds[shipment.product.cold_chain_class].min_celsius
+
+policy:
+  thresholds:
+    frozen:  { max_celsius: -12.0, min_celsius: -25.0 }
+    chilled: { max_celsius:   8.0, min_celsius:  -1.0 }
+    ambient: { max_celsius:  30.0, min_celsius:  10.0 }
+
+on_violation:
+  outcome: non-compliant
+  code: COLD_CHAIN_BREACH
+  action:
+    - quarantine: shipment.id
+    - notify: logistics-coordinator
+    - notify: certifier-assistant
+    - require: re-inspection
+
+audit:
+  emit: true
+  redact: []
+
+notes: |
+  min_celsius is the floor below which the product is damaged, not merely cold;
+  it is a quality limit, not a safety limit, and a breach quarantines the
+  shipment pending re-inspection rather than failing it outright.

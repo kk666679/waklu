@@ -1,0 +1,56 @@
+version: 1.0.0
+
+# How the fleet partitions by tenant. Every layer that stores or caches
+# tenant-scoped data has exactly one isolation key, and there is no layer
+# without one.
+
+isolation_keys:
+  database:  tenant_id (row-level via EF global query filter)
+  cache:     key prefix  t:{tenant_id}:
+  blob:      path prefix /tenants/{tenant_id}/
+  search:    index-per-tenant (preferred) or filter-by-tenant_id (fallback)
+  mcp:       request header X-Tenant-Id, validated against auth claim
+
+enforcement:
+  - name: EF global query filter
+    applies_to: [PlatformDbContext]
+
+  - name: ArchUnit rule
+    test: HalalChain.Architecture.Tests.Rules.AutoclawStructureTests.Tenant_Isolation_Keys_Are_Declared
+
+  - name: Integration test
+    test: Cross_Tenant_Read_Is_Denied
+
+  - name: MCP preflight
+    where: mcp/servers/*.yaml
+
+deny_by_default:
+  # An absent tenant is a denial, never a shared-tenant fallback. A query with
+  # no tenant filter must throw, not widen.
+  missing_tenant_context: deny
+  cross_tenant_read: deny
+  cross_tenant_write: deny
+  cross_tenant_join: deny
+  # A join across tenants is a leak even when every row is individually
+  # authorised. Aggregation that spans tenants requires the compliance-zone
+  # route, not a broader query.
+
+shared_infrastructure:
+  # Postgres, Redis, Neo4j, Qdrant and the object store are shared. Only the
+  # key differs. A dedicated deployment per tenant is available via
+  # deploy/compliance-zones/ for tenants whose residency or scale justifies it.
+  mode: shared-with-prefix
+  per_tenant_dedicated: opt-in
+  opt_in_criteria: [residency-restricted, data-sovereignty, sustained-scale]
+
+fail_closed:
+  tenant_context_resolution_failure: deny
+  cache_key_construction_failure: bypass-cache          # never fall back to an unscoped key
+  index_selection_failure: deny
+  blob_path_construction_failure: deny
+
+operational_notes: |
+  The EF global query filter is the load-bearing mechanism, and it is silent:
+  a forgotten `Where` clause does not fail, it returns the tenant's own rows and
+  looks correct. The integration test Cross_Tenant_Read_Is_Denied exists to
+  catch that specific class of mistake, and it must stay green.

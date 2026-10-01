@@ -1,0 +1,46 @@
+name: tenant-admin
+role: Tenant Administrator Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:own-tenant
+  - write:own-tenant
+  - administer:own-tenant
+  - read:cross-tenant          # the only role for which this is the point
+  - read:participant
+  - submit:byok-credential
+  - read:byok-metadata
+  - call:mcp:halalchain_list_projects
+  - call:mcp:halalchain_list_services
+
+cannot:
+  - set:verdict
+  - override:tawheed
+  - read:tawheed-policy-source
+  - write:cross-tenant
+  - log:secrets
+
+skills: []
+
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 200
+
+escalation:
+  on_byok_leak: { revoke_immediately: true, notify: security-contact }
+  on_credential_age_exceeded: { revoke: true, notify: tenant-admin }
+  on_tenant_suspension_request: { block: true, notify: government-liaison }
+
+audit:
+  every_cross_tenant_read: true
+  rationale: >
+    read:cross-tenant is permitted here and nowhere else. It is audited on
+    every use, because a role that can read other tenants routinely is a role
+    that will.
+
+notes: |
+  read:cross-tenant is an explicit exception, not an omission. It is granted to
+  this role and denied to every other, and every invocation is recorded — see
+  tenants/policies/cross-tenant-access.yaml.

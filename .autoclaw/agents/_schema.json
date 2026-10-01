@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent persona",
+  "description": "A HalalChain participant persona in agents/. The `cannot` list is the part that gets enforced: a capability named in `never_grantable` in participants/capabilities/registry.yaml is rejected at load time regardless of which persona declares it.",
+  "type": "object",
+  "required": ["name", "role", "participant_type", "tenant_scoped", "can", "cannot", "budget"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "role": { "type": "string" },
+    "participant_type": {
+      "type": "string",
+      "enum": [
+        "ai-agent", "government", "certification-body", "auditor", "laboratory",
+        "consultant", "producer", "manufacturer", "distributor", "retailer",
+        "logistics-provider", "fintech-provider", "developer", "enterprise-buyer", "consumer"
+      ],
+      "description": "An agent is always ai-agent. The distinction matters because the certification machine's ai-never-authoritative invariant keys on it."
+    },
+    "tenant_scoped": {
+      "type": "boolean",
+      "description": "True for every agent. An agent without a tenant has no evidence scope and no place in the isolation model."
+    },
+    "can": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/capability" },
+      "description": "Declared, not inferred. Enforced by participants/capabilities/registry.yaml."
+    },
+    "cannot": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Explicit refusals. An agent with an empty `cannot` list is a persona that has not been reviewed yet, and the schema requires at least one."
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Skill directories under skills/published/. A reference to skills/staging/ is a load-time failure: staging is inert by design."
+    },
+    "budget": {
+      "type": "object",
+      "required": ["max_tokens_per_task", "max_wall_clock_seconds", "max_mcp_calls_per_task"],
+      "properties": {
+        "max_tokens_per_task": { "type": "integer", "minimum": 1000 },
+        "max_wall_clock_seconds": { "type": "integer", "minimum": 10 },
+        "max_mcp_calls_per_task": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "escalation": {
+      "type": "object",
+      "description": "What the agent does when it cannot proceed. Every persona needs one; an agent that guesses instead of escalating is worse than one that stops.",
+      "additionalProperties": true
+    },
+    "prompts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files under prompts/."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "capability": {
+      "type": "string",
+      "pattern": "^(read|propose|write|call|schedule|notify|set):[a-z0-9-]+(:[a-z0-9-]+)*$"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "participant_type": { "const": "ai-agent" } }, "required": ["participant_type"] },
+      "then": {
+        "properties": { "tenant_scoped": { "const": true } },
+        "description": "Every ai-agent is tenant-scoped. An unscoped agent is not loadable."
+      }
+    }
+  ]
+}

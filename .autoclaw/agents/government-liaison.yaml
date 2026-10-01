@@ -1,0 +1,36 @@
+name: government-liaison
+role: Government and Regulator Liaison Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - propose:evidence
+  - read:participant
+  - read:certification-state
+  - notify:government-registry
+  - call:mcp:halalchain_list_projects
+
+cannot:
+  - set:verdict
+  - certify
+  - reinstate-certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+
+budget:
+  max_tokens_per_task: 120_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 120
+
+escalation:
+  on_regulator_directive: { route: suspension, require: evidence }
+  on_jurisdiction_conflict: { halt: true, notify: tenant-admin }
+  on_registry_outage: notify:tenant-admin
+
+notes: |
+  Per authorities/government-registry.yaml this role may direct a suspension
+  (T10) and nothing else. It cannot certify and cannot reinstate — T12 belongs
+  to the certification body even when a regulator is satisfied, because the
+  reinstatement is the certifier's claim to make.

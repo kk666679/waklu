@@ -1,0 +1,23 @@
+version: 1.0.0
+server: halalchain
+
+global:
+  max_concurrent_invocations: 4
+  max_invocations_per_minute: 120
+  max_invocations_per_hour: 2000
+
+per_tenant_overrides:
+  - tenant_region: MY
+    max_invocations_per_hour: 500
+  - tenant_region: EU
+    max_invocations_per_hour: 2000
+
+on_exceed:
+  action: throttle
+  retry_after_ms: 1000
+  emit_event: mcp.rate-limit.exceeded
+
+notes: |
+  Throttling is not enforcement. A tool that is denied by tool-allowlist.yaml is
+  refused outright and never reaches the rate limiter; the rate limiter only
+  bounds volume for tools that are already permitted.

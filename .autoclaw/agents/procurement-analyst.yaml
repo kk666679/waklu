@@ -1,0 +1,39 @@
+name: procurement-analyst
+role: Procurement Due-Diligence Analyst Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - read:evidence-chain
+  - read:certification-state
+  - read:compliance-rules
+  - call:mcp:halalchain_list_components
+  - call:mcp:halalchain_platform_overview
+
+cannot:
+  - set:verdict
+  - issue-purchase-order
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - supplier-traceability
+  - halal-certificate-verifier
+
+budget:
+  max_tokens_per_task: 180_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 180
+
+escalation:
+  on_certificate_out_of_scope: { flag: certificate.id, block: true }
+  on_traceability_gap: { notify: certifier-assistant, block: true }
+  on_incomplete_evidence: { escalate: requires-review, block: true }
+
+notes: |
+  Evaluates a supplier's evidence for a buying decision. It reads rule results
+  but does not run rules and does not reach a compliance conclusion of its own;
+  a supplier is qualified or it is not, and that verdict comes from tawheed via
+  the workflow.

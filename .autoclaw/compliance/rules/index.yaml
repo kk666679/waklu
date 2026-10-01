@@ -1,0 +1,36 @@
+rules:
+  - id: evidence-freshness
+    file: evidence-freshness.yaml
+  - id: certificate-scope-match
+    file: certificate-scope-match.yaml
+  - id: cold-chain-threshold
+    file: cold-chain-threshold.yaml
+  - id: laboratory-accreditation
+    file: laboratory-accreditation.yaml
+  - id: supplier-traceability
+    file: supplier-traceability.yaml
+  - id: delegated-authority-check
+    file: delegated-authority-check.yaml
+    evaluated_by: tawheed-preflight
+
+# Order is significant. delegated-authority-check runs first so an unauthorised
+# actor learns nothing about the subject it queried; the rest are independent of
+# one another and their findings are combined by severity.
+evaluation_order:
+  - delegated-authority-check
+  - evidence-freshness
+  - certificate-scope-match
+  - cold-chain-threshold
+  - laboratory-accreditation
+  - supplier-traceability
+
+consumed_by:
+  - tawheed
+
+never_consumed_by:
+  - agents
+  - skills
+  - connectors
+  - mcp
+
+result_schema: compliance/schemas/rule-result.schema.json

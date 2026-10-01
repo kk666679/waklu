@@ -1,0 +1,59 @@
+version: 1.0.0
+platform: halalchain
+
+# Base policy set. Jurisdiction and scheme overrides are merged on top of this
+# file, never substituted for it. An override that omits a key inherits it.
+
+default_jurisdiction: EU-GENERIC
+default_scheme: EU-GENERIC
+
+evaluation:
+  rules: compliance/rules/index.yaml
+  order_source: compliance/rules/index.yaml
+  fail_closed: true
+  unknown_policy_version: error
+
+severity_combination:
+  # Any single blocking finding is non-compliant. The others do not get a vote.
+  blocking: non-compliant
+  warning: pass-with-warnings
+  informational: pass
+
+evidence:
+  minimum_state_for_input: verified
+  # A conclusion fed back in as an assumption: refuse rather than evaluate.
+  allow_evaluated_evidence_as_input: false
+  missing_evidence_outcome: requires-review
+
+delegated_authority:
+  rule: delegated-authority-check
+  evaluated_first: true
+  absence_of_delegation: deny
+  short_circuits_remaining_rules: true
+
+redaction:
+  patterns: security/secrets/never-log.yaml
+  never_in_response:
+    - field values listed in any rule's audit.redact
+    - raw MCP arguments
+    - credential values of any kind
+  present_but_redacted: true
+  # Redacted fields are listed, not omitted. Omission would let a reader infer
+  # the value from what is missing.
+
+tenancy:
+  scope_every_evaluation: true
+  on_tenant_mismatch: refuse
+  on_unknown_tenant: refuse
+
+anchors:
+  # P10. The engine may produce a hash to anchor; it may not read a compliance
+  # status from a chain, and a receipt is not an input to any rule.
+  may_emit_hash: true
+  may_read_status_from_chain: false
+  receipt_is_rule_input: false
+
+notes: |
+  Every value here is a decision about what happens when something is missing,
+  and every one of them fails closed. The only permissive branches are
+  informational and warning severities, which do not change `decision`.

@@ -1,0 +1,37 @@
+name: laboratory-liaison
+role: Laboratory Liaison Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - propose:evidence
+  - read:participant
+  - notify:laboratory
+  - call:mcp:halalchain_list_projects
+
+cannot:
+  - set:verdict
+  - accept-unaccredited-report
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - laboratory-report-parser
+
+budget:
+  max_tokens_per_task: 120_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
+
+escalation:
+  on_accreditation_invalid: { reject: evidence.id, notify: laboratory }
+  on_scope_mismatch: { quarantine: true, notify: certifier-assistant }
+  on_provider_outage: notify:tenant-admin
+
+notes: |
+  Routes laboratory reports and checks their accreditation against
+  compliance/rules/laboratory-accreditation.yaml. It cannot accept a report
+  from a lab that is unaccredited for the test type performed — that is the
+  rule, and an agent that could override it would make the rule advisory.

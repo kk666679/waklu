@@ -1,0 +1,92 @@
+version: 1.0
+platform: halalchain
+contracts_authority: ../HalalChain.Platform.Contracts
+
+domains:
+  participants:
+    path: participants/
+    writable: false
+    readers: [agents, workflows, mcp]
+
+  evidence:
+    path: evidence/
+    writable: true
+    writers: [agents/evidence-collector, connectors/*, workflows/*]
+    immutable_after: [validated, anchored]
+
+  tawheed:
+    path: tawheed/
+    sealed: true
+    callers: [workflows/*]
+    writers: []
+
+  governance:
+    path: governance/
+    writable: true
+    writers: [agents/skill-reviewer, agents/certifier-assistant]
+
+  byok:
+    path: byok/
+    writable: true
+    secrets_inline: false
+
+  tenants:
+    path: tenants/
+    enforced_at: [database, cache, blob, search, mcp]
+
+forbidden_patterns:
+  - name: verdict-writer
+    regex: \b(SetVerdict|WriteVerdict|OverrideTawheed|ApproveCertificate|RejectCertificate)\b
+    scope: [agents, skills, connectors, mcp, workflows]
+    enforcement:
+      - hooks/pre-commit/run.sh
+      - HalalChain.Architecture.Tests.Rules.AutoclawStructureTests.No_Forbidden_Verdict_Pattern_Outside_Tawheed
+
+  - name: secret-in-log
+    regex: (?i)(log|trace|exception).*?(api[_-]?key|password|secret|private[_-]?key)
+    scope: [".**"]
+    enforcement:
+      - hooks/pre-commit/run.sh
+      - HalalChain.Architecture.Tests.Rules.AutoclawStructureTests.No_Secret_Pattern_In_Logging_Config
+
+sealed_boundaries:
+  - path: tawheed/
+    marker: tawheed/SEALED
+    rationale: >
+      The Policy Engine is the only component permitted to emit a compliance
+      decision. Sealing it as a directory makes the invariant a filesystem
+      property rather than a review convention: there is nowhere for a new
+      writer to put itself.
+    test: HalalChain.Architecture.Tests.Rules.AutoclawStructureTests.Tawheed_Directory_Is_Sealed
+
+subsystems:
+  anchors:
+    path: anchors/
+    role: integrity receipts only; never an authority (P10)
+  compliance:
+    path: compliance/
+    role: deterministic rule definitions consumed only by tawheed
+  connectors:
+    path: connectors/
+    role: untrusted-provider ingress, one folder per provider class
+  mcp:
+    path: mcp/
+    role: gateway config and the tool allow/deny boundary for HalalChain.Mcp
+  security:
+    path: security/
+    role: trust, ssrf, webhooks, secrets, keys, threat model
+  skills:
+    path: skills/
+    role: governed artifacts split by governance state
+  workflows:
+    path: workflows/
+    role: the only caller permitted to invoke tawheed
+
+build:
+  harness: autobuild/harness/dotnet-10.yaml
+  directives: autobuild/directives/
+  commands:
+    restore: dotnet restore HalalChain.Platform.sln
+    build: dotnet build HalalChain.Platform.sln -c Release
+    test: dotnet test HalalChain.Platform.sln -c Release --no-build
+    scaffold: ./scripts/init-autoclaw.ps1

@@ -1,0 +1,75 @@
+version: 1.0.0
+# Per-jurisdiction amendments to tawheed/policies/core.yaml.
+#
+# Merge semantics: keys present here replace the base value; keys absent here
+# inherit from core.yaml. An amendment may tighten a policy. It may not relax
+# fail_closed, allow_evaluated_evidence_as_input, or any invariant.
+
+MY:
+  name: Malaysia
+  authority: JAKIM
+  scheme: MS-1500
+  language_default: ms
+  evidence:
+    max_age_seconds: 31536000     # 365d
+  temperature_standard: MS 1500:2009
+
+ID:
+  name: Indonesia
+  authority: BPJPH
+  scheme: HAS-23000
+  language_default: id
+  evidence:
+    max_age_seconds: 31536000
+  required_accreditations: [KAN, LKAN]
+
+SA:
+  name: Saudi Arabia
+  authority: SFDA
+  scheme: GSO-2055
+  language_default: ar
+  evidence:
+    max_age_seconds: 25920000     # 300d
+  required_accreditations: [SASO]
+
+AE:
+  name: United Arab Emirates
+  authority: ESMA
+  scheme: GSO-2055
+  language_default: ar
+  evidence:
+    max_age_seconds: 25920000
+  required_accreditations: [MOIAT, EIAC]
+
+TR:
+  name: Turkiye
+  authority: HAK
+  scheme: OIC-SMIIC
+  language_default: tr
+  evidence:
+    max_age_seconds: 31536000
+  required_accreditations: [TURKAK]
+
+US:
+  name: United States
+  authority: IFANCA
+  scheme: none
+  language_default: en
+  evidence:
+    max_age_seconds: 15552000     # 180d
+  required_accreditations: [ISO-17025, A2LA]
+
+EU:
+  name: European Union (generic)
+  authority: member-state
+  scheme: EU-GENERIC
+  language_default: en
+  evidence:
+    max_age_seconds: 15552000
+  required_accreditations: [ISO-17025, ISO-IEC-17065]
+
+unknown_jurisdiction:
+  # P2, fails closed. An unrecognised jurisdiction is not a reason to evaluate
+  # permissively; it is a reason to stop.
+  outcome: requires-governance
+  action: notify: government-liaison

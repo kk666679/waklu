@@ -1,0 +1,3 @@
+﻿This directory is the sealed deterministic boundary.
+No agent, skill, connector, or MCP tool may write here.
+Architecture test: HalalChain.Architecture.Tests.Rules.AutoclawStructureTests.Tawheed_Directory_Is_Sealed

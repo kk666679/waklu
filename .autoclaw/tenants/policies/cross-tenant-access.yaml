@@ -1,0 +1,42 @@
+version: 1.0.0
+applies_to: HalalChain.Mcp
+
+# Tenant binding on the MCP surface. The header is a request, not a fact: it is
+# validated against the auth claim before anything else happens, and a mismatch
+# is a denial rather than a fallback to the claim.
+
+header: X-Tenant-Id
+resolution_order:
+  1. auth claim            # authoritative
+  2. header                # must equal the claim
+  3. argument payload      # never used for tenancy
+on_missing_header: deny
+on_mismatch: deny
+on_unresolvable_claim: deny
+
+tool_scope: own-tenant
+exception:
+  capability: read:cross-tenant
+  roles: [tenant-admin]
+  audit: required
+  rationale: >
+    A tenant administrator reading another tenant is the point of the role. It
+    is permitted, it is explicit, and it is recorded every time — not a
+    convenience for the common case.
+
+# Tenancy is resolved before the allowlist check, not after. An unauthenticated
+# or unbound request must not be able to learn which tools exist.
+order_of_checks:
+  - tenant_resolution
+  - tool_denylist
+  - tool_allowlist
+  - agent_permission
+  - rate_limit
+  - audit
+  - dispatch
+
+never:
+  - infer tenancy from an argument value
+  - fall back to a shared tenant
+  - cache a tool result across tenants without a tenant-scoped key
+  - include another tenant's identifier in a not-found response

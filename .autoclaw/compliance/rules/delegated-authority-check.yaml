@@ -1,0 +1,47 @@
+id: delegated-authority-check
+version: 1.0.0
+severity: blocking
+applies_to:
+  - "*"                                 # applies to every action
+evaluated_by: tawheed-preflight
+
+inputs:
+  - actor.participant_id
+  - actor.role
+  - action.capability_required
+  - delegation.granting_participant_id
+  - delegation.scope
+  - delegation.valid_from
+  - delegation.valid_until
+  - delegation.revoked_at
+
+rule: |
+  (
+    action.capability_required IN actor.own_capabilities
+    AND action.tenant_id == actor.tenant_id
+  )
+  OR
+  (
+    EXISTS delegation
+    WHERE delegation.granting_participant_id == action.tenant_owner_id
+      AND delegation.revoked_at IS NULL
+      AND delegation.valid_from  <= now()
+      AND now()                  <= delegation.valid_until
+      AND action.capability_required IN delegation.scope
+  )
+
+on_violation:
+  outcome: denied
+  code: DELEGATED_AUTHORITY_INVALID
+  action:
+    - reject: request
+    - audit: actor, action
+
+audit:
+  emit: true
+  redact: []
+
+notes: |
+  Evaluated first, before any substantive rule. A request from an actor without
+  authority must not be able to learn anything about the subject it asked about,
+  so a denial here short-circuits the rest of the evaluation.

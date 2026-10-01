@@ -1,0 +1,71 @@
+version: 1.0.0
+applies_to_server: halalchain
+enforced_by: mcp/policies/rate-limits.yaml + hooks/mcp-tool-invoked/
+
+# The eight tools below are the complete set of tools HalalChain.Mcp exposes.
+# AutoclawStructureTests.Allowlist_Matches_Exposed_Tools asserts this list
+# against the server source, in both directions: a tool added to the server
+# without an entry here fails the build, and an entry here for a tool the
+# server does not implement also fails.
+
+allowed:
+  - name: halalchain_get_architecture
+    hint: readonly
+    per_agent_max_per_minute: 5
+    per_tenant_max_per_hour: 60
+
+  - name: halalchain_health
+    hint: readonly
+    per_agent_max_per_minute: 30
+    per_tenant_max_per_hour: 600
+    network_egress: allowed
+
+  - name: halalchain_list_components
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+    allowed_agents:
+      - skill-reviewer
+      - tenant-admin
+      - procurement-analyst
+
+  - name: halalchain_list_pages
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_list_projects
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_list_services
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_platform_overview
+    hint: readonly
+    per_agent_max_per_minute: 5
+    per_tenant_max_per_hour: 60
+
+  - name: halalchain_project_status
+    hint: readonly
+    per_agent_max_per_minute: 5
+    per_tenant_max_per_hour: 60
+
+denied:
+  - name: halalchain_set_verdict
+    reason: "P3 - AI does not decide"
+  - name: halalchain_approve_certificate
+    reason: "P3, P9 - authority belongs to certification-body via the governance state machine"
+  - name: halalchain_reject_certificate
+    reason: "P3, P9"
+  - name: halalchain_override_tawheed
+    reason: "P2 - tawheed is the sealed deterministic boundary"
+  - name: halalchain_decide_compliance
+    reason: "P2, P3"
+  - name: halalchain_write_verdict
+    reason: "P3"
+
+default_action: deny

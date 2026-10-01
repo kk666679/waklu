@@ -1,0 +1,145 @@
+machine: skill-governance
+version: 1.0.0
+owner: skill-reviewer
+audit_sink: governance/audits/findings.yaml
+
+states:
+  - id: Authored
+    terminal: false
+  - id: InReview
+    terminal: false
+  - id: ChangesRequested
+    terminal: false
+  - id: Approved
+    terminal: false
+  - id: Published
+    terminal: false
+  - id: Suspended
+    terminal: false
+  - id: Withdrawn
+    terminal: true
+  - id: Rejected
+    terminal: true
+
+transitions:
+  - id: S01
+    from: Authored
+    to: InReview
+    allowed_roles: [author, publisher]
+    guards: [manifest_present, schema_valid]
+    side_effects: [notify: skill-reviewer]
+
+  - id: S02
+    from: InReview
+    to: ChangesRequested
+    allowed_roles: [skill-reviewer]
+    guards: [any_check_failed]
+    side_effects:
+      - record: findings
+      - notify: author
+    audit: { emit: true }
+
+  - id: S03
+    from: ChangesRequested
+    to: InReview
+    allowed_roles: [author]
+    guards: [findings_addressed]
+    side_effects: [notify: skill-reviewer]
+
+  - id: S04
+    from: InReview
+    to: Approved
+    allowed_roles: [skill-reviewer]
+    guards:
+      - all_checks_passed
+      - reviewer_not_author
+      - does_not_emit_ComplianceVerdict
+    side_effects: [record: review_record]
+    audit: { emit: true }
+
+  - id: S05
+    from: Approved
+    to: Published
+    allowed_roles: [publisher, human-admin]
+    guards:
+      - manifest_governance_record_present
+      - dependency_review_passed
+    side_effects:
+      - move: skills/staging -> skills/published
+      - emit: skill.published
+    audit: { emit: true, immutable: true }
+
+  - id: S06
+    from: Published
+    to: Suspended
+    allowed_roles: [skill-reviewer, human-admin]
+    guards:
+      - reason_present
+      - reason in [security-advisory, dependency-cve, verdict-pattern-found, false-evidence]
+    side_effects:
+      - move: skills/published -> skills/suspended
+      - emit: skill.suspended
+      - notify: affected-agents
+    audit: { emit: true, immutable: true }
+
+  - id: S07
+    from: Suspended
+    to: Published
+    allowed_roles: [human-admin]
+    guards: [remediation_verified, all_checks_passed]
+    side_effects: [emit: skill.reinstated]
+    audit: { emit: true, immutable: true }
+
+  - id: S08
+    from: Published
+    to: Withdrawn
+    allowed_roles: [publisher, human-admin]
+    guards: [reason_present]
+    side_effects:
+      - move: skills/published -> skills/suspended
+      - emit: skill.withdrawn
+    audit: { emit: true, immutable: true }
+
+  - id: S09
+    from: InReview
+    to: Rejected
+    allowed_roles: [skill-reviewer, human-admin]
+    guards: [reason_present, reviewer_not_author]
+    side_effects: [record: rejection_reason, notify: author]
+    audit: { emit: true, immutable: true }
+
+invariants:
+  - id: author-cannot-approve
+    rule: transition.to == "Approved" IMPLIES actor.id != skill.author
+
+  - id: agent-cannot-publish
+    rule: transition.to == "Published" IMPLIES actor.type == "human"
+
+  - id: no-verdict-authority
+    rule: |
+      transition.to IN ["Published", "Approved"]
+      IMPLIES skill.does_not_emit CONTAINS "ComplianceVerdict"
+
+  - id: suspended-stays-inert
+    rule: |
+      skill.state IN ["Suspended", "Withdrawn", "Rejected"]
+      IMPLIES skill is NOT resolvable by any agent at runtime
+
+  - id: staging-is-inert
+    rule: |
+      skill.path STARTS WITH "skills/staging/"
+      IMPLIES skill is NOT resolvable by any agent at runtime
+
+checks:
+  - manifest-validation
+  - capability-review
+  - static-security
+  - no-verdict-scan
+  - dependency-review
+
+notes: |
+  `reviewer_not_author` and `agent-cannot-publish` are the two places where a
+  purely automated pipeline would quietly stop being a control. A skill-reviewer
+  agent runs the five checks, but approval and publication are human-authorised
+  steps. That split is deliberate: the checks are mechanical and benefit from
+  automation, while the judgement about whether to ship is not.

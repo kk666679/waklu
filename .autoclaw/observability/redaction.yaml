@@ -1,0 +1,63 @@
+version: 1.0.0
+applies_to: HalalChain.Mcp
+
+# Single source for observability redaction. security/secrets/never-log.yaml
+# defines the patterns; this file defines what the platform does with them.
+# Kept separate so a pattern can be added without a telemetry change and a
+# telemetry change can be made without touching the secret list.
+
+pipeline:
+  - stage: capture
+    applies_to: [log, trace, exception, metric-label, audit]
+    action: none
+  - stage: redact
+    applies_to: [log, trace, exception, metric-label]
+    patterns: security/secrets/never-log.yaml
+    action: replace-with [REDACTED:{name}]
+  - stage: drop
+    applies_to: [metric-label]
+    # A metric label containing a secret is dropped entirely rather than
+    # replaced. Labels are indexed; a redacted label is still a high-cardinality
+    # slot that an operator will try to group by.
+    action: drop-record
+  - stage: wrap
+    applies_to: [exception]
+    # Exceptions are wrapped, not string-matched, because a secret usually
+    # arrives through a message or a stack frame that sanitising the message
+    # would not reach.
+    action: wrap-as-SecretLeakPrevented
+
+never_logged_regardless_of_layer:
+  - credential values of any kind
+  - byok sealed reference resolution output
+  - raw MCP arguments
+  - private keys, mnemonics, connection strings
+  - full certificate numbers
+
+always_logged:
+  - request_hash
+  - policy_version
+  - actor participant_id and role
+  - tenant_id
+  - decision and rule ids
+  - duration_ms
+  rationale: >
+    The point of the audit is reproducibility. A log that omits the request hash
+    and the policy version cannot settle a dispute about what the engine
+    decided, however well it records everything else.
+
+sampling:
+  # Sampling applies after redaction, never before.
+  stage: after_redaction
+  default: 100 percent for audit and authoritative decision records
+  reducible:
+    - health checks
+    - read-only MCP tool invocations above 10 per minute per tenant
+
+retention: tawheed/audit/retention.yaml
+
+on_detection:
+  emit_event: security.secret-leak-prevented
+  include_field_name: true
+  include_value: false
+  severity: high

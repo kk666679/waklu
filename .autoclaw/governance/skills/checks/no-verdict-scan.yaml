@@ -1,0 +1,62 @@
+id: no-verdict-scan
+version: 1.0.0
+severity: blocking
+applies_to: [skill]
+gate: governance/skills/transitions.yaml
+
+description: >
+  A skill must not be capable of producing a compliance conclusion. This is the
+  check that P3 is enforced by, and it is the one that matters most on this
+  platform: a skill that can conclude can conclude incorrectly, and nothing
+  downstream distinguishes its output from a real evaluation.
+
+inputs:
+  - skill.manifest.does_not_emit
+  - skill.manifest.emits
+  - skill.source_text
+  - skill.tools
+  - skill.capabilities
+
+rule: |
+  "ComplianceVerdict" IN skill.manifest.does_not_emit AND
+  NOT "ComplianceVerdict" IN skill.manifest.emits AND
+  skill.source_text CONTAINS NO forbidden verdict-authority identifier AND
+  NOT "call:tawheed.evaluate" IN skill.capabilities
+
+forbidden_identifiers:
+  - SetVerdict
+  - WriteVerdict
+  - OverrideTawheed
+  - ApproveCertificate
+  - RejectCertificate
+  - assignComplianceStatus
+
+forbidden_tools:
+  - mcp:halalchain_set_verdict
+  - mcp:halalchain_approve_certificate
+  - mcp:halalchain_reject_certificate
+  - mcp:halalchain_override_tawheed
+
+excluded_paths:
+  # The sealed boundary and the policy that names the identifiers legitimately.
+  - .autoclaw/tawheed/
+  - .autoclaw/governance/
+  - .autoclaw/CONTROLS.yaml
+  - .autoclaw/MANIFEST.yaml
+  - .autoclaw/hooks/
+  - .autoclaw/mcp/policies/
+
+on_violation:
+  outcome: rejected
+  code: SKILL_EMITS_VERDICT
+  action:
+    - reject: skill
+    - notify: tenant-admin
+    - suspend: any-published-skill-with-the-same-signature
+  severity: high
+
+notes: |
+  A skill that needs a compliance answer calls tawheed through a workflow and
+  receives a result. It does not compute one. The two are different operations:
+  the first is an audit, the second is a reimplementation, and the second is
+  where a hallucinated verdict would enter a certificate.

@@ -1,0 +1,23 @@
+scheme: MS-1500
+jurisdiction: MY
+authority: JAKIM
+base_machine: transitions.yaml
+
+state_overrides:
+  - state: CorrectiveAction
+    max_duration_days: 90
+  - state: GovernanceReview
+    required_approvals:
+      - shariah-board
+      - technical-reviewer
+
+transition_overrides:
+  - id: T08
+    additional_guards:
+      - shariah_board_approval_count >= 2
+
+notes: |
+  An override may only add state restrictions and transition guards. It may not
+  widen allowed_roles, and it may not touch the invariants block of
+  transitions.yaml — a scheme that could relax `ai-never-authoritative` would
+  be a scheme that lets a model certify itself.

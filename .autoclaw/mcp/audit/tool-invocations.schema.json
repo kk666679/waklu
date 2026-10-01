@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP tool invocation record",
+  "description": "One line of mcp/audit/tool-invocations.jsonl. `args_hash` is a sha256 over the canonicalised arguments; raw arguments are never recorded, because they routinely carry tenant identifiers and occasionally credential references.",
+  "type": "object",
+  "required": ["ts", "agent", "tenant_id", "tool", "duration_ms", "result"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO-8601 with a trailing Z."
+    },
+    "agent": {
+      "type": "string",
+      "description": "Participant id of the calling agent, or 'operator' for interactive callers."
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant resolved from the X-Tenant-Id header after validation against the auth claim. Never taken from the argument payload."
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "string",
+      "description": "Tool name. Must appear in mcp/policies/tool-allowlist.yaml for a result other than 'denied'."
+    },
+    "args_hash": {
+      "type": "string",
+      "description": "sha256 of the canonicalised argument object. Replaces the arguments themselves."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "result": {
+      "enum": ["ok", "denied", "error", "throttled"]
+    },
+    "error_code": {
+      "type": "string",
+      "description": "Populated for denied, error and throttled results. Free text otherwise empty."
+    }
+  },
+  "additionalProperties": false
+}

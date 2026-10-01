@@ -1,0 +1,228 @@
+machine: certification
+version: 2.0.0
+scheme: "*"                          # overridden per scheme in schemes/*.yaml
+owner: certification-body
+audit_sink: governance/certification/audit.jsonl
+
+states:
+  - id: Draft
+    terminal: false
+  - id: ApplicationSubmitted
+    terminal: false
+  - id: EvidenceCollection
+    terminal: false
+  - id: AuditScheduled
+    terminal: false
+  - id: AuditCompleted
+    terminal: false
+  - id: CorrectiveAction
+    terminal: false
+  - id: EvidenceReview
+    terminal: false
+  - id: GovernanceReview
+    terminal: false
+  - id: Certified
+    terminal: false
+    authoritative: true
+  - id: Rejected
+    terminal: true
+  - id: Suspended
+    terminal: false
+  - id: Expired
+    terminal: true
+  - id: Renewed
+    terminal: false
+    authoritative: true
+
+transitions:
+
+  - id: T01
+    from: Draft
+    to: ApplicationSubmitted
+    allowed_roles: [producer, consultant-operator, tenant-admin]
+    guards:
+      - participant_identity_verified
+      - tenant_scope_matches
+    side_effects:
+      - emit: certification.application.submitted
+      - notify: certification-body
+    audit: { emit: true }
+
+  - id: T02
+    from: ApplicationSubmitted
+    to: EvidenceCollection
+    allowed_roles: [certification-body, system]
+    guards:
+      - application.completeness >= 0.5
+    side_effects:
+      - create: evidence_collection_task
+      - assign: evidence-collector
+      - notify: producer
+    audit: { emit: true }
+
+  - id: T03
+    from: EvidenceCollection
+    to: AuditScheduled
+    allowed_roles: [certification-body]
+    guards:
+      - evidence_completeness >= 0.9
+      - delegation_valid_if_consultant_involved
+      - laboratory_accreditation_passed
+    side_effects:
+      - schedule: audit
+      - assign: auditor-coordinator
+    audit: { emit: true }
+
+  - id: T04
+    from: AuditScheduled
+    to: AuditCompleted
+    allowed_roles: [auditor-coordinator]
+    guards:
+      - audit.report_present == true
+      - audit.auditor_accreditation_valid == true
+      - audit.tenant_matches == true
+    side_effects:
+      - attach: audit.report to evidence_chain
+      - emit: audit.completed
+    audit: { emit: true }
+
+  - id: T05
+    from: AuditCompleted
+    to: CorrectiveAction
+    allowed_roles: [auditor-coordinator, certifier-assistant]
+    guards:
+      - audit.findings.count > 0
+      - audit.findings[].severity contains "major"
+    side_effects:
+      - create: corrective_action_tasks
+      - notify: producer
+      - notify: consultant-operator
+    audit: { emit: true }
+
+  - id: T06
+    from: CorrectiveAction
+    to: EvidenceReview
+    allowed_roles: [consultant-operator, producer]
+    guards:
+      - corrective_action.evidence_complete == true
+      - all_corrective_actions_verified
+    side_effects:
+      - emit: corrective-action.resolved
+      - notify: certifier-assistant
+    audit: { emit: true }
+
+  - id: T07
+    from: EvidenceReview
+    to: GovernanceReview
+    allowed_roles: [certification-body]
+    guards:
+      - tawheed.evaluate.result == "requires-governance"
+      - no_outstanding_blocking_rule_violations
+    side_effects:
+      - invoke: tawheed/api/evaluate.md
+      - record: policy_version_used
+    audit: { emit: true }
+
+  - id: T08
+    from: GovernanceReview
+    to: Certified
+    allowed_roles: [certification-body]
+    authoritative: true
+    guards:
+      - shariah_board_approval_present
+      - tawheed.evaluate.result == "compliant"
+      - certificate.scope == application.scope
+    side_effects:
+      - issue: certificate
+      - anchor: certificate.hash            # blockchain integrity only
+      - notify: producer, consultant-operator, buyer-subscribers
+      - emit: certification.certified
+    audit: { emit: true, immutable: true }
+
+  - id: T09
+    from: GovernanceReview
+    to: Rejected
+    allowed_roles: [certification-body]
+    authoritative: true
+    guards:
+      - rejection_reason_present
+    side_effects:
+      - emit: certification.rejected
+      - notify: producer, consultant-operator
+      - archive: application
+    audit: { emit: true, immutable: true }
+
+  - id: T10
+    from: Certified
+    to: Suspended
+    allowed_roles: [certification-body, government-liaison]
+    authoritative: true
+    guards:
+      - suspension_reason_present
+      - ( suspension_reason IN [fraud-suspected, evidence-invalidated, regulator-directive] )
+    side_effects:
+      - emit: certification.suspended
+      - block: certificate.id, "downstream-verifications"
+      - notify: producers, buyers, marketplace
+    audit: { emit: true, immutable: true }
+
+  - id: T11
+    from: Certified
+    to: Expired
+    allowed_roles: [system]
+    guards:
+      - certificate.valid_until < now()
+    side_effects:
+      - emit: certification.expired
+      - notify: producer
+    audit: { emit: true }
+
+  - id: T12
+    from: Suspended
+    to: Certified
+    allowed_roles: [certification-body]
+    authoritative: true
+    guards:
+      - suspension_reason_resolved
+      - re_inspection_completed == true
+    side_effects:
+      - emit: certification.reinstated
+      - unblock: certificate.id
+    audit: { emit: true, immutable: true }
+
+  - id: T13
+    from: Certified
+    to: Renewed
+    allowed_roles: [certification-body]
+    authoritative: true
+    guards:
+      - renewal_evidence_complete == true
+      - tawheed.evaluate.result == "compliant"
+    side_effects:
+      - issue: certificate (new-version)
+      - anchor: certificate.new_hash
+      - emit: certification.renewed
+    audit: { emit: true, immutable: true }
+
+# Hard rules — cannot be overridden by any role, ever, including by a
+# scheme override in schemes/*.yaml. A scheme may add guards; it may not
+# remove an invariant.
+invariants:
+  - id: consultant-cannot-certify
+    rule: transition.to IN [Certified, Rejected, Suspended, Renewed]
+          IMPLIES actor.role == "certification-body"
+
+  - id: ai-never-authoritative
+    rule: transition.authoritative == true
+          IMPLIES actor.type != "ai-agent"
+
+  - id: tawheed-required-pre-authority
+    rule: transition.to IN [Certified, Renewed]
+          IMPLIES "tawheed.evaluate" RECORDED in transition.evidence_ids
+
+  - id: audit-immutable-on-authority
+    rule: transition.authoritative == true
+          IMPLIES transition.audit.immutable == true
+
+verdict_authority: certification-body only
+consultant_cannot: [Certified, Rejected, Suspended, Renewed]

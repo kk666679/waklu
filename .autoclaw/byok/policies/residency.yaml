@@ -1,0 +1,57 @@
+version: 1.0.0
+
+# Residency gate applied before any external provider call. Evaluated against
+# the *provider region* the call would land in, not the region the provider
+# advertises.
+
+default: deny
+
+rules:
+  - tenant_region: EU
+    allowed_provider_regions: [eu-west-1, eu-central-1, eu-north-1]
+    action_on_violation: ExecutionDeniedByDataResidencyPolicy
+
+  - tenant_region: MY
+    allowed_provider_regions: [ap-southeast-1, ap-southeast-5]
+    action_on_violation: ExecutionDeniedByDataResidencyPolicy
+
+  - tenant_region: SA
+    allowed_provider_regions: [me-south-1, me-central-1]
+    action_on_violation: ExecutionDeniedByDataResidencyPolicy
+
+  - tenant_region: AE
+    allowed_provider_regions: [me-central-1, me-south-1]
+    action_on_violation: ExecutionDeniedByDataResidencyPolicy
+
+  - tenant_region: US
+    allowed_provider_regions: [us-east-1, us-west-2]
+    action_on_violation: ExecutionDeniedByDataResidencyPolicy
+
+silent_reroute: false
+# Never reroute silently. A provider region that is not permitted is a denial,
+# and the denial is reported. A silent reroute would satisfy the policy while
+# quietly sending the data somewhere the tenant did not agree to.
+
+# What counts as tenant data for the purposes of this gate. A prompt, an
+# embedding, a retrieved chunk, a trace, and a cached credential reference are
+# all tenant data. A health check is not.
+in_scope_payloads:
+  - prompt
+  - completion
+  - embedding
+  - retrieved_chunks
+  - trace
+  - document_upload
+  - credential_reference
+  - telemetry_sample
+
+out_of_scope_payloads:
+  - health_check
+  - version_probe
+  - tool_list
+
+enforcement_point: byok-execution workflow, before provider dispatch
+audit:
+  emit: true
+  record: [tenant_id, provider, requested_region, resolved_region, decision]
+  never_record: [payload, credential]

@@ -1,0 +1,58 @@
+version: 1.0.0
+# Per-scheme amendments to tawheed/policies/core.yaml and the jurisdiction
+# override in force.
+#
+# Merge order: core.yaml -> jurisdiction-overrides.yaml -> this file.
+# Later wins. Nothing here may set fail_closed: false or
+# allow_evaluated_evidence_as_input: true.
+
+MS-1500:
+  name: Malaysian Standard MS 1500:2009
+  authority: JAKIM
+  reference: reference/standards/ms1500.md
+  overrides:
+    evidence:
+      max_age_seconds: 31536000
+    governance:
+      required_approvals: [shariah-board, technical-reviewer]
+      shariah_board_approval_count: 2
+
+OIC-SMIIC:
+  name: OIC/SMIIC 1:2022
+  authority: OIC
+  reference: reference/standards/oic-smiic.md
+  overrides:
+    evidence:
+      max_age_seconds: 31536000
+
+GSO-2055:
+  name: GSO 2055-1
+  authority: GSO / GSO-member bodies
+  reference: reference/standards/gso-2055.md
+  overrides:
+    evidence:
+      max_age_seconds: 25920000
+
+HAS-23000:
+  name: Indonesia SNI / HAS 23000
+  authority: BPJPH
+  reference: reference/standards/has-23000.md
+  overrides:
+    evidence:
+      max_age_seconds: 31536000
+
+EU-GENERIC:
+  name: Generic EU scheme
+  authority: member-state
+  overrides:
+    evidence:
+      max_age_seconds: 15552000
+
+none:
+  name: No recognised scheme
+  outcome: requires-governance
+  action: notify: government-liaison
+  notes: |
+    A tenant operating outside any configured scheme is not evaluated permissively.
+    The deterministic answer is that the rules cannot answer, and that is a
+    governance question, not a compliance one.

@@ -1,0 +1,22 @@
+role: government-registry
+kind: authoritative
+
+scope: |
+  Government and statutory bodies: JAKIM, BPJPH, SFDA, ESMA, national halal
+  registries, customs authorities. A registry may direct a suspension of an
+  existing certificate, but it does not certify directly — the certification
+  body remains the party that issues.
+
+may_transition:
+  - T10    # Certified -> Suspended, reason: regulator-directive
+
+constraints:
+  - must be a registered participant of type government
+  - must produce a regulator-directive document as evidence
+  - the directive must be attached to the application before the transition
+    is accepted
+
+cannot:
+  - certify
+  - reinstate (T12 belongs to the certification body)
+  - suspend a certificate that is not in state Certified

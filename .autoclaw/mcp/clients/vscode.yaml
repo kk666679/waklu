@@ -1,0 +1,14 @@
+client: vscode
+transport: stdio
+config_file: .vscode/mcp.json
+server_ref: mcp/servers/halalchain.yaml
+
+connected_agents:
+  - consultant-operator
+  - laboratory-liaison
+  - logistics-coordinator
+  - government-liaison
+
+notes: |
+  Shares .vscode/mcp.json with the cline binding. Same server, same exe; the
+  split is in which agents each client is permitted to drive.

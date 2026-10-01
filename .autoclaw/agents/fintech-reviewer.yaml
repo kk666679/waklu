@@ -1,0 +1,35 @@
+name: fintech-reviewer
+role: Financial Services Compliance Reviewer Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - propose:evidence
+  - read:certification-state
+  - call:mcp:halalchain_health
+
+cannot:
+  - set:verdict
+  - move-funds
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - halal-certificate-verifier
+
+budget:
+  max_tokens_per_task: 100_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 80
+
+escalation:
+  on_sanctions_match: { halt: true, notify: government-liaison }
+  on_aml_concern: { quarantine: true, notify: tenant-admin }
+  on_provider_outage: notify:tenant-admin
+
+notes: |
+  Reviews evidence for financial-services onboarding. It holds no payment
+  capability of any kind — `move-funds` is in the cannot list because an agent
+  that can both assess a counterparty and pay it has collapsed the review.

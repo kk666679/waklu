@@ -1,0 +1,43 @@
+version: 1.0.0
+principles: [P10]
+
+# Which chain a subject is anchored to. Selection is a function of the
+# tenant's compliance zone and the subject's jurisdiction — never of
+# convenience, and never a choice the agent making the request influences.
+
+selection:
+  - compliance_zone: mena
+    jurisdiction: [MY, ID, SA, AE, TR]
+    primary: evm-polygon
+    fallback: evm-sepolia
+    rationale: >
+      Lowest cost for the volume these jurisdictions generate, with a public
+      testnet available when the primary is degraded.
+
+  - compliance_zone: eu
+    jurisdiction: [EU]
+    primary: evm-polygon
+    fallback: evm-sepolia
+    rationale: >
+      GDPR scoping favours an EU-accessible network. Note that a receipt is
+      metadata, not personal data; the scope in tenants/policies/data-residency.yaml
+      decides, and it says this is acceptable.
+
+  - compliance_zone: us
+    jurisdiction: [US]
+    primary: evm-polygon
+    fallback: evm-sepolia
+
+enterprise:
+  - when: tenant_declares_permissioned_chain
+    use: hyperledger-fabric
+    requires: explicit tenant configuration, not a default
+    rationale: >
+      Some enterprises will not place anchors on a public chain. That is a
+      legitimate position, and it is honoured by configuration rather than by a
+      new code path.
+
+never:
+  - select a chain based on which one is fastest at request time
+  - fail over silently to a chain in a different compliance zone
+  - record a receipt without a canonical inclusion check

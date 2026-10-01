@@ -1,0 +1,57 @@
+version: 1.0.0
+applies_to: byok
+
+# Residency decisions, and the payload classes they apply to. The provider-side
+# gate is in byok/policies/residency.yaml; this file is the platform-side
+# statement of what counts as data leaving the region.
+
+classifications:
+  tenant_data:
+    moves_across_boundary: prohibited_without_tenant_consent
+    applies_to:
+      - prompt and completion content
+      - embeddings
+      - retrieved chunks
+      - uploaded documents
+      - evidence metadata beyond the minimum
+      - traces
+      - credential references
+
+  tenant_metadata:
+    moves_across_boundary: permitted
+    applies_to:
+      - tenant_id
+      - participant_id
+      - capability names
+      - tool names
+      - timings and counters
+    rationale: >
+      Opaque identifiers are not personal data on their own, but they are
+      joinable. They are permitted across a boundary only where the receiving
+      region is permitted for the tenant.
+
+  operational:
+    moves_across_boundary: always_permitted
+    applies_to:
+      - health checks
+      - version probes
+      - error codes without payloads
+
+deployment:
+  compliance_zones: deploy/compliance-zones/
+  rule: >
+    A tenant's region determines which zone serves it, and a zone never serves
+    a tenant from a different region. Multi-region deployment is permitted;
+    cross-region serving is not.
+
+on_violation:
+  action: deny
+  emit_event: tenancy.residency.violation
+  never: reroute
+  notify: [tenant-admin]
+  audit: true
+
+notes: |
+  Anchor receipts and certificate hashes are treated as tenant_metadata. They
+  are integrity records, contain no personal data, and are not readable back
+  to a product without the capsule — which does not leave the region.

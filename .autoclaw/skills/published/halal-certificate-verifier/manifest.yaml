@@ -1,0 +1,52 @@
+name: halal-certificate-verifier
+version: 1.0.0
+publisher: HalalChain
+license: Apache-2.0
+description: >
+  Verify a halal certificate against the issuer's registry and against the
+  integrity anchor. Confirms the certificate exists, is in scope for the
+  product, and has not been tampered with. Emits an EvidenceProposal; it does
+  not conclude.
+
+tools:
+  - http
+  - blob-read
+  - chain-read
+  - mcp:halalchain_get_certificates
+
+capabilities:
+  - evidence.propose
+  - evidence.read
+
+emits: [EvidenceProposal]
+does_not_emit: [ComplianceVerdict]
+
+budget:
+  max_tokens: 50_000
+  max_seconds: 120
+  max_network_calls: 30
+
+governance:
+  security_review: passed
+  no_verdict_scan: passed
+  static_scan: passed
+  capability_review: passed
+  manifest_validation: passed
+  dependency_review: passed
+  reviewer: skill-reviewer-agent
+  approved_at: 2026-09-12
+
+failure_modes:
+  registry_unreachable: >
+    Emit no proposal. An unreachable registry is not evidence that a
+    certificate is invalid, and a proposal that says so would be read as a
+    negative finding.
+  anchor_missing: >
+    Emit the proposal with anchor state recorded as absent. Integrity anchoring
+    is P10, not a validity requirement.
+
+notes: |
+  `chain-read` verifies a hash receipt. It does not read a compliance status
+  from a chain, and there is no version of this skill that would: the receipt
+  proves the certificate has not changed since it was recorded, which is a
+  different question from whether it is valid.

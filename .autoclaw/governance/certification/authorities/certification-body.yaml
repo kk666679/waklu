@@ -1,0 +1,27 @@
+role: certification-body
+kind: authoritative
+
+may_transition:
+  - T02
+  - T03
+  - T07
+  - T08
+  - T09
+  - T10
+  - T12
+  - T13
+
+may_not_transition:
+  - T06                                 # consultants/producers only
+
+constraints:
+  - must be a registered participant of type certification-body
+  - must have accreditation_body evidence in state verified
+  - must have the certificate.issue capability declared
+  - must hold the tawheed.evaluate capability to read evaluation results
+
+cannot:
+  - schedule and close the same audit (separation-of-duties)
+  - act on behalf of itself as consultant
+
+audit: immutable

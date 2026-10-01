@@ -1,0 +1,42 @@
+name: auditor-coordinator
+role: Auditor Coordination Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - read:certification-state
+  - read:participant
+  - schedule:audit
+  - propose:evidence
+  - notify:producer
+  - notify:consultant-operator
+  - call:mcp:halalchain_project_status
+
+cannot:
+  - set:verdict
+  - transition:certification
+  - override:tawheed
+  - close-own-audit
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - cold-chain-audit
+  - supplier-traceability
+
+budget:
+  max_tokens_per_task: 200_000
+  max_wall_clock_seconds: 1200
+  max_mcp_calls_per_task: 200
+
+escalation:
+  on_major_finding: { create: corrective_action_tasks, notify: producer }
+  on_auditor_accreditation_gap: { halt: true, notify: government-liaison }
+  on_fraud_indicator: { quarantine: true, notify: certifier-assistant }
+
+notes: |
+  Separation of duties is the reason `close-own-audit` is in the cannot list. An
+  agent that schedules an audit and also closes it collapses the control in
+  governance/controls/separation-of-duties.yaml, and the control is the audit
+  trail, not a formality.

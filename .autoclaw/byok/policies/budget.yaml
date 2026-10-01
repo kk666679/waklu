@@ -1,0 +1,64 @@
+version: 1.0.0
+
+# Budgets are enforced at the workflow, not at the provider. A provider-side
+# budget cap is the second line of defence, not the first: by the time a cap
+# trips, the spend has already happened.
+
+currency: USD
+period: month
+period_starts_on: 1
+
+limits:
+  per_tenant:
+    soft: 500
+    hard: 1000
+    on_soft: notify tenant-admin
+    on_hard: deny
+
+  per_agent:
+    soft: 50
+    hard: 100
+    on_soft: emit budget.warning
+    on_hard: deny
+
+  per_task:
+    # Matches the max_tokens_per_task declared in each agent persona. The lower
+    # of the two wins.
+    tokens: 200000
+    wall_clock_seconds: 900
+    mcp_calls: 200
+
+  per_model:
+    default:
+      tokens_per_minute: 200000
+      requests_per_minute: 100
+
+  by_provider:
+    openai:
+      tokens_per_minute: 200000
+    anthropic:
+      tokens_per_minute: 150000
+    azure-openai:
+      tokens_per_minute: 300000
+    cohere:
+      requests_per_minute: 60
+    mistral:
+      requests_per_minute: 60
+    aws-bedrock:
+      tokens_per_minute: 200000
+    evm-rpc:
+      requests_per_minute: 20
+    s3-blob:
+      requests_per_minute: 60
+
+on_exceed:
+  action: deny
+  never: degrade_silently
+  emit_event: byok.budget.exceeded
+  audit: true
+
+notes: |
+  A budget denial is not a failure of the task. The workflow surfaces it as
+  requires-review and a human decides whether to raise the limit. Silently
+  falling back to a cheaper model would change the meaning of the output
+  without changing anything the caller could observe.

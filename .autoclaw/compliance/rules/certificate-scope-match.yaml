@@ -1,0 +1,40 @@
+id: certificate-scope-match
+version: 1.1.0
+severity: blocking
+applies_to:
+  - halal-certificate
+  - regulatory-registration
+
+inputs:
+  - certificate.scope.product_categories
+  - certificate.scope.facility_ids
+  - certificate.scope.sku_list
+  - certificate.scope.jurisdiction
+  - product.category
+  - product.sku
+  - facility.id
+  - tenant.jurisdiction
+
+rule: |
+  product.category            IN certificate.scope.product_categories AND
+  facility.id                 IN certificate.scope.facility_ids        AND
+  ( certificate.scope.sku_list IS EMPTY
+    OR product.sku IN certificate.scope.sku_list )                    AND
+  certificate.scope.jurisdiction == tenant.jurisdiction
+
+on_violation:
+  outcome: non-compliant
+  code: CERTIFICATE_SCOPE_MISMATCH
+  action:
+    - notify: certifier-assistant
+    - flag: certificate.id, "out-of-scope"
+
+audit:
+  emit: true
+  redact: []
+
+notes: |
+  An empty sku_list means the certificate covers every SKU at every listed
+  facility. A non-empty sku_list narrows it. A non-empty sku_list combined with
+  a null or missing scope is a failure, not a wildcard — the rule fails closed
+  so a malformed certificate cannot widen its own scope.

@@ -1,0 +1,40 @@
+name: consultant-operator
+role: Halal Consultant Operator Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - propose:evidence
+  - read:certification-state
+  - write:corrective-action
+  - notify:producer
+  - call:mcp:halalchain_list_projects
+
+cannot:
+  - set:verdict
+  - transition:certification
+  - certify
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - supplier-traceability
+  - evidence-collector
+
+budget:
+  max_tokens_per_task: 250_000
+  max_wall_clock_seconds: 1200
+  max_mcp_calls_per_task: 250
+
+escalation:
+  on_delegation_lapsed: { halt: true, notify: tenant-admin }
+  on_scope_dispute: { escalate: certification-body, block: true }
+  on_policy_gap: notify:tenant-admin
+
+notes: |
+  Prepares applications and closes corrective actions (T06 is the only
+  transition available to this role). It holds no authoritative transition at
+  all, which is the consultant-cannot-certify invariant expressed as a
+  capability set rather than a rule.

@@ -1,0 +1,61 @@
+version: 1.0.0
+applies_to: tawheed/audit/evaluation-log.md
+
+# Retention is a legal question before it is a storage question. These are
+# floors, not ceilings: a jurisdiction or scheme may require longer, never less.
+
+records:
+  authoritative:
+    # Tied to decisions that moved a certificate. Retained for the life of the
+    # certificate plus the longest statutory period among the jurisdictions in
+    # which it was relied on.
+    description: evaluations that produced a transition marked authoritative
+    retain_until: certificate_lifetime_plus_statutory_max
+    minimum_years: 10
+    immutable: true
+    deletion_requires: legal-hold-release
+
+  compliant:
+    description: evaluations whose result was relied upon downstream
+    retain_until: tenant_configured_period
+    default_years: 7
+    immutable: true
+
+  non_compliant:
+    description: evaluations that produced a blocking finding
+    retain_until: tenant_configured_period
+    default_years: 7
+    immutable: false
+
+  requires_review:
+  requires_governance:
+    description: evaluations that stopped short of a decision
+    retain_until: tenant_configured_period
+    default_years: 3
+    immutable: false
+
+  error:
+    description: evaluations that could not be performed
+    retain_until: tenant_configured_period
+    default_years: 3
+    immutable: false
+    notes: |
+      Retained precisely because they failed. A stream of errors is a signal;
+      deleting it removes the signal and keeps only the successes, which are the
+      ones already visible in the certificates.
+
+legal_hold:
+  overrides_all: true
+  effect: suspends deletion for the held tenant
+  authority: tenant-admin, countersigned by government-liaison
+
+redaction:
+  applied: before-write
+  patterns: security/secrets/never-log.yaml
+  presentation: present_but_redacted
+
+exports:
+  - path: evidence/export/
+    format: tawheed-eval-v1
+    requires_capability: tawheed.audit.read
+    revalidated_against: caller tenant

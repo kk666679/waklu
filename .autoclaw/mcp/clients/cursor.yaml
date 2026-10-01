@@ -1,0 +1,13 @@
+client: cursor
+transport: stdio
+config_file: .cursor/mcp.json
+server_ref: mcp/servers/halalchain.yaml
+
+connected_agents:
+  - tenant-admin
+  - procurement-analyst
+
+notes: |
+  .cursor/mcp.json is generated from this file and points at the same
+  HalalChain.Mcp.exe as .vscode/mcp.json. Both carry a `comment` field pointing
+  back at mcp/servers/halalchain.yaml.

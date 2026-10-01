@@ -1,0 +1,36 @@
+version: 1.0.0
+name: tool-denylist
+
+# Denials are absolute: no agent, tenant, or client binding can re-enable them.
+# A tool listed here is refused before rate limiting and before the request is
+# marshalled to HalalChain.Mcp.exe. Adding to this file requires a P-number
+# citation in the `reason`.
+
+denied:
+  - name: halalchain_set_verdict
+    reason: "P3 - AI does not decide"
+  - name: halalchain_write_verdict
+    reason: "P3 - AI does not decide"
+  - name: halalchain_approve_certificate
+    reason: "P3, P9 - authority belongs to certification-body via the governance state machine"
+  - name: halalchain_reject_certificate
+    reason: "P3, P9"
+  - name: halalchain_override_tawheed
+    reason: "P2 - tawheed is the sealed deterministic boundary"
+  - name: halalchain_decide_compliance
+    reason: "P2, P3"
+
+prefix_denied:
+  # Any tool whose name suggests a write to a decision surface is refused
+  # without needing an entry above. Keeps the denylist closed as the server
+  # grows rather than open by omission.
+  - "halalchain_verdict_"
+  - "halalchain_compliance_decide"
+  - "halalchain_tawheed_"
+
+default_action: deny
+
+# Two independent layers agree on this list. HalalChain.Mcp does not implement
+# any of the denied tools, so even a bypass of this policy would find nothing
+# to call. This file exists so the refusal is explicit and auditable rather
+# than incidental.

@@ -1,0 +1,46 @@
+server:
+  name: halalchain
+  transport: stdio
+  command: c:/Users/kurni/OneDrive/Desktop/waklu-keewak/HalalChain.Mcp/bin/Release/net10.0/HalalChain.Mcp.exe
+  env:
+    HALALCHAIN_SOLUTION_ROOT: c:/Users/kurni/OneDrive/Desktop/waklu-keewak
+
+preflight:
+  allowlist: mcp/policies/tool-allowlist.yaml
+  denylist: mcp/policies/tool-denylist.yaml
+  rate_limits: mcp/policies/rate-limits.yaml
+  hook: hooks/mcp-tool-invoked/check.sh
+  audit_sink: mcp/audit/tool-invocations.jsonl
+  audit_schema: mcp/audit/tool-invocations.schema.json
+
+tenant:
+  header: X-Tenant-Id
+  validated_against: auth claim
+  on_mismatch: deny
+
+exposed_tools:
+  readonly:
+    - halalchain_get_architecture
+    - halalchain_health
+    - halalchain_list_components
+    - halalchain_list_pages
+    - halalchain_list_projects
+    - halalchain_list_services
+    - halalchain_platform_overview
+    - halalchain_project_status
+  denied:
+    - halalchain_set_verdict
+    - halalchain_write_verdict
+    - halalchain_approve_certificate
+    - halalchain_reject_certificate
+    - halalchain_override_tawheed
+    - halalchain_decide_compliance
+
+notes: |
+  The `denied` list here is duplicated from mcp/policies/tool-denylist.yaml so
+  the server definition is readable on its own. The policy file is the
+  enforcement point; this block is documentation. If the two disagree, the
+  policy file wins and the disagreement is a bug.
+
+  HalalChain.Mcp is runnable but is not a deployable compose service. It is
+  launched on demand by whichever client binds it — see mcp/clients/.

@@ -1,0 +1,17 @@
+client: claude-desktop
+transport: stdio
+config_file: ~/Library/Application Support/Claude/claude_desktop_config.json
+platform_paths:
+  windows: %APPDATA%/Claude/claude_desktop_config.json
+  linux: ~/.config/Claude/claude_desktop_config.json
+  macos: ~/Library/Application Support/Claude/claude_desktop_config.json
+server_ref: mcp/servers/halalchain.yaml
+
+connected_agents: []
+
+notes: |
+  No fleet agent is bound to the desktop client. It is available for interactive
+  operator use, where the caller is a person with an authenticated session
+  rather than a tenant-scoped agent, so the tenant preflight in
+  mcp/servers/halalchain.yaml does not apply. Do not add agents here without a
+  tenancy model for interactive callers.

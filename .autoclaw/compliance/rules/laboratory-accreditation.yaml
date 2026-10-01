@@ -1,0 +1,30 @@
+id: laboratory-accreditation
+version: 1.0.0
+severity: blocking
+applies_to:
+  - laboratory-report
+
+inputs:
+  - laboratory.id
+  - laboratory.accreditation_body
+  - laboratory.accreditation_valid_until
+  - laboratory.accreditation_scope
+  - laboratory_report.test_type
+  - tenant.jurisdiction
+  - policy.required_accreditations[jurisdiction]
+
+rule: |
+  laboratory.accreditation_valid_until > now()                        AND
+  laboratory.accreditation_scope    CONTAINS laboratory_report.test_type AND
+  laboratory.accreditation_body     IN policy.required_accreditations[tenant.jurisdiction]
+
+on_violation:
+  outcome: non-compliant
+  code: LAB_ACCREDITATION_INVALID
+  action:
+    - reject: evidence.id
+    - notify: laboratory-liaison
+
+audit:
+  emit: true
+  redact: []

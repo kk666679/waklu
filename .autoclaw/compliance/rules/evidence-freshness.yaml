@@ -1,0 +1,32 @@
+id: evidence-freshness
+version: 1.2.0
+severity: blocking
+applies_to:
+  - halal-certificate
+  - laboratory-report
+  - audit-report
+  - inspection-report
+  - regulatory-registration
+
+inputs:
+  - evidence.valid_from
+  - evidence.valid_until
+  - evidence.issued_at
+  - policy.max_age_seconds
+
+rule: |
+  evidence.valid_from  <= now()  AND
+  now()                <= evidence.valid_until  AND
+  evidence.issued_at   >= (now() - policy.max_age_seconds)
+
+on_violation:
+  outcome: non-compliant
+  code: EVIDENCE_EXPIRED
+  action:
+    - notify: certifier-assistant
+    - reorder: evidence-collector
+    - tag: evidence.id, "stale"
+
+audit:
+  emit: true
+  redact: []

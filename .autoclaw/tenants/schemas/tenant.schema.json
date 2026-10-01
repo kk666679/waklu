@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tenant",
+  "description": "The isolation unit. Every stored or cached tenant-scoped record carries tenant_id, and every read resolves it through tenants/model.yaml rather than trusting the caller.",
+  "type": "object",
+  "required": ["tenant_id", "region", "jurisdiction", "scheme", "status"],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+      "description": "Also the cache key prefix (t:{tenant_id}:), the blob path prefix (/tenants/{tenant_id}/), and the EF global query filter predicate."
+    },
+    "display_name": { "type": "string" },
+    "region": {
+      "type": "string",
+      "enum": ["EU", "MY", "SA", "AE", "TR", "US"],
+      "description": "Drives byok/policies/residency.yaml and the compliance zone in deploy/compliance-zones/."
+    },
+    "jurisdiction": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "Two-letter code. Resolves to compliance/jurisdictions/<code>.yaml and the tawheed jurisdiction override."
+    },
+    "scheme": {
+      "type": "string",
+      "description": "Certification scheme, e.g. MS-1500. 'none' is valid and produces requires-governance, not a permissive default."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["provisioning", "active", "suspended", "offboarding", "closed"]
+    },
+    "admins": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Participant ids holding administer:own-tenant."
+    },
+    "compliance_zone": {
+      "type": "string",
+      "enum": ["eu", "apac", "mena"],
+      "description": "Must be consistent with region. Inconsistency is a provisioning error, not a runtime fallback."
+    },
+    "dedicated_infrastructure": {
+      "type": "boolean",
+      "default": false,
+      "description": "Opt-in for residency-restricted, data-sovereignty, or sustained-scale tenants."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Set when status reaches 'closed'. Data is retained per tawheed/audit/retention.yaml, not deleted with the tenant."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["suspended", "offboarding", "closed"] } } },
+      "then": {
+        "properties": {
+          "byok_credentials_revoked": { "const": true }
+        },
+        "required": ["byok_credentials_revoked"],
+        "description": "Suspension revokes BYOK credentials before anything else. A suspended tenant with a live provider key is a tenant whose spend continues while its access does not."
+      }
+    }
+  ],
+  "additionalProperties": false
+}

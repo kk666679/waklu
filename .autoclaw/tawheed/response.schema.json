@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TawheedResponse",
+  "description": "Output of POST /tawheed/evaluate. Deterministic: the same request bytes under the same policy version produce the same response bytes apart from evaluated_at and request_hash, which are echoes of the input and the call.",
+  "type": "object",
+  "required": ["decision", "findings", "policy_version", "evaluated_at", "request_hash", "tenant_id"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["compliant", "non-compliant", "requires-governance", "requires-review", "error"],
+      "description": "error is never treated as compliant downstream. There is no implicit default and no optimistic fallback."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "rule_version", "severity", "outcome", "code"],
+        "properties": {
+          "rule_id": { "type": "string" },
+          "rule_version": { "type": "string" },
+          "severity": { "type": "string", "enum": ["blocking", "warning", "informational"] },
+          "outcome": { "type": "string", "enum": ["compliant", "non-compliant", "denied", "not-applicable", "error"] },
+          "code": {
+            "type": "string",
+            "description": "Empty when outcome is compliant or not-applicable. Populated from the rule's on_violation.code otherwise."
+          },
+          "inputs_read": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Field paths the rule actually read. Makes the evaluation reproducible by hand."
+          },
+          "redacted_inputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Field paths that were read but withheld by audit.redact. Present rather than omitted, so absence is not itself a disclosure."
+          },
+          "actions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Side effects the rule requested: notify:, reorder:, quarantine:, reject:, tag:, flag:, require:, block:, unblock:."
+          },
+          "message": {
+            "type": "string",
+            "description": "Operator-facing explanation. Never contains evidence content or field values beyond the redacted path list."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "policy_version": { "type": "string" },
+    "jurisdiction": { "type": "string" },
+    "scheme": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "subject": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "id": { "type": "string" }
+      },
+      "required": ["type", "id"],
+      "additionalProperties": false
+    },
+    "evaluated_at": { "type": "string", "format": "date-time" },
+    "request_hash": {
+      "type": "string",
+      "description": "sha256 over the canonicalised request. The reproducibility key: two evaluations are comparable only if their request_hash and policy_version match."
+    },
+    "audit_id": {
+      "type": "string",
+      "description": "Reference into tawheed/audit/evaluation-log.md. Present on every response including error, because a failed evaluation that was not recorded is indistinguishable from one that never happened."
+    },
+    "correlation_id": { "type": "string" }
+  },
+  "additionalProperties": false
+}

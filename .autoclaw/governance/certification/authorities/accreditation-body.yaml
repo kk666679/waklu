@@ -1,0 +1,24 @@
+role: accreditation-body
+kind: authoritative
+
+scope: |
+  Determines whether a certification body, laboratory, or auditor is itself
+  accredited. Accreditation decisions gate `T03` through the
+  laboratory_accreditation_passed guard, but do not themselves move the
+  certification state machine — accrediting a certifier is a different
+  governance process from certifying a product.
+
+may_transition: []
+
+consulted_at:
+  - T03    # laboratory_accreditation_passed
+  - T04    # audit.auditor_accreditation_valid
+
+constraints:
+  - must be a registered participant of type accreditation-body
+  - must have the accreditation.issue capability declared
+  - accreditation scope must name the test types it covers
+
+cannot:
+  - certify a product
+  - certify an application submitted by a participant it accredits

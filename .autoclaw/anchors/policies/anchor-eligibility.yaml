@@ -1,0 +1,60 @@
+version: 1.0.0
+principles: [P1, P4, P10]
+
+# What may be anchored. Anchoring is not free and not everything needs it:
+# a receipt is only useful if something downstream would be misled by a
+# changed hash.
+
+eligible:
+  - type: halal-certificate
+    required_state: verified
+    reason: >
+      A certificate that can be altered after issue would make every
+      downstream verification meaningless. This is the primary anchor subject.
+
+  - type: regulatory-registration
+    required_state: verified
+    reason: Government registrations change and their history matters.
+
+  - type: batch-record
+    required_state: validated
+    reason: >
+      Batches are high-volume. Anchor the record hash, not the batch contents,
+      and only for tenants that have opted in.
+
+  - type: audit-report
+    required_state: verified
+    reason: An audit report is the basis for a certification decision.
+
+ineligible:
+  - type: cold-chain-log
+    reason: >
+      High-frequency telemetry. A changed reading is a normal operational event,
+      not tampering, and anchoring it would be noise.
+
+  - type: supplier-declaration
+    reason: >
+      A declaration is a claim by its issuer and is superseded by a fresh one
+      routinely. The claim's provenance is recorded in evidence/chain; its bytes
+      are not worth a receipt.
+
+  - type: inspection-report
+    reason: >
+      Point-in-time and short-lived. Anchored by the accreditation body that
+      issued it, not by us.
+
+policy:
+  hash_algorithm: sha256
+  batch_size: 500
+  on_provider_failure: retry_then_record_failed
+  on_permanent_failure: emit anchor-failed, do not block the pipeline
+  rationale: >
+    A failed anchor does not invalidate the evidence. It records that the
+    integrity receipt could not be obtained, which is itself a fact worth
+    having, and the alternative — failing the pipeline — would punish the
+    tenant for a chain's outage.
+
+never:
+  - read a compliance status from a chain
+  - treat a receipt as a certification decision
+  - allow a receipt to satisfy certificate-scope-match

@@ -1,0 +1,39 @@
+name: logistics-coordinator
+role: Logistics Coordination Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - propose:evidence
+  - read:participant
+  - schedule:inspection
+  - notify:certifier-assistant
+  - call:mcp:halalchain_list_services
+
+cannot:
+  - set:verdict
+  - override:tawheed
+  - release-quarantined-shipment
+  - cross_tenant_read
+  - log:secrets
+
+skills:
+  - cold-chain-audit
+  - customs-preparation
+
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 150
+
+escalation:
+  on_cold_chain_breach: { quarantine: shipment.id, require: re-inspection }
+  on_customs_hold: { block: shipment.id, notify: government-liaison }
+  on_carrier_outage: notify:tenant-admin
+
+notes: |
+  A cold-chain breach quarantines the shipment and requires re-inspection. It
+  does not fail the shipment: a reading below the floor means the product is
+  damaged, which is a quality question for an inspector rather than a compliance
+  verdict for the engine.

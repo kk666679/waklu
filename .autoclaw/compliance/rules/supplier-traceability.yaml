@@ -1,0 +1,35 @@
+id: supplier-traceability
+version: 1.1.1
+severity: blocking
+applies_to:
+  - batch-record
+  - production-record
+
+inputs:
+  - batch.ingredient_lines[].ingredient_id
+  - batch.ingredient_lines[].supplier_participant_id
+  - participant.evidence_chain.depth
+
+rule: |
+  FOR ALL line IN batch.ingredient_lines:
+    EXISTS evidence IN evidence_chain(line.supplier_participant_id)
+      WHERE evidence.type IN [halal-certificate, supplier-declaration, regulatory-registration]
+      AND   evidence.state == "verified"
+      AND   evidence.valid_until > now()
+      AND   evidence_chain(line.supplier_participant_id).depth >= 1
+
+on_violation:
+  outcome: non-compliant
+  code: TRACEABILITY_GAP
+  action:
+    - reorder: evidence-collector
+    - notify: certifier-assistant
+
+audit:
+  emit: true
+  redact: []
+
+notes: |
+  depth >= 1 excludes the batching facility's own declaration from satisfying
+  its own traceability requirement. One hop is the minimum; deeper chains are
+  resolved transitively by the same rule.

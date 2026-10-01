@@ -1,0 +1,26 @@
+server:
+  name: <name>
+  transport: stdio
+  command: <absolute path or on-PATH command>
+  env:
+    HALALCHAIN_SOLUTION_ROOT: <absolute path to solution root>
+
+preflight:
+  allowlist: mcp/policies/tool-allowlist.yaml
+  denylist: mcp/policies/tool-denylist.yaml
+  rate_limits: mcp/policies/rate-limits.yaml
+  hook: hooks/mcp-tool-invoked/check.sh
+  audit_sink: mcp/audit/tool-invocations.jsonl
+
+tenant:
+  header: X-Tenant-Id
+  validated_against: auth claim
+  on_mismatch: deny
+
+exposed_tools:
+  readonly: []
+  denied: []
+
+# Copy to mcp/servers/<name>.yaml and fill every field. A server definition
+# with a non-empty `denied` list and an empty `readonly` list is a server that
+# can do nothing; that is almost always a misconfiguration rather than intent.

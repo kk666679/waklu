@@ -1,0 +1,63 @@
+version: 1.0.0
+
+# Credentials are rotated on a schedule and immediately on suspicion. The
+# schedule is a floor, not a target: a credential past its maximum age is
+# refused at use, not merely flagged for rotation.
+
+defaults:
+  max_age_days: 90
+  rotate_on_suspicion: immediate
+  overlap_window_days: 7          # old and new valid simultaneously
+  never_log_value: true
+
+per_provider:
+  openai:            { max_age_days: 90 }
+  anthropic:         { max_age_days: 90 }
+  azure-openai:      { max_age_days: 180 }
+  aws-bedrock:       { max_age_days: 180 }
+  cohere:            { max_age_days: 60 }
+  mistral:           { max_age_days: 60 }
+  evm-rpc:           { max_age_days: 365, note: "read-only RPC endpoints; rotation is cheap and rarely enforced upstream" }
+  s3-blob:           { max_age_days: 90 }
+
+rotation_procedure:
+  1. Mint the replacement in the provider's console or via its API.
+  2. Store it through the vault adapter. Never through a file, a commit, or a
+     chat message.
+  3. Update the sealed reference in byok/. The reference changes; the value
+     does not appear anywhere in this repository.
+  4. Verify with a probe call inside the residency gate.
+  5. Retire the old credential only after `overlap_window_days`.
+  6. Confirm retirement by observing the old credential fail.
+
+on_suspicion:
+  triggers:
+    - leaked_in_log          # security.secrets.never-log.yaml detection
+    - employee_offboarding
+    - tenant_offboarding
+    - provider_incident
+  action: revoke_immediately
+  skip_overlap: true
+  notify: [tenant-admin, security-contact]
+  audit: true
+
+on_expiry:
+  action: refuse
+  never: extend_implicitly
+  rationale: >
+    An expired credential that keeps working because something silently extends
+    it is not a control. If a rotation is missed, the failure should be loud.
+
+breach_response:
+  on_leaked_value_found_in_repo:
+    1. Revoke the credential at the provider first. Seconds, not minutes.
+    2. Rotate.
+    3. Then investigate how it entered the repository.
+    rationale: >
+      Ordering matters. Investigating first preserves evidence at the cost of
+      leaving a live credential exposed, and the evidence is recoverable from
+      git history while the credential is not recoverable once rotated.
+
+references:
+  redaction: security/secrets/never-log.yaml
+  vault: byok/vault/README.md

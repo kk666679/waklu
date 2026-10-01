@@ -1,0 +1,32 @@
+name: consumer-verifier
+role: Consumer Product Verification Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - read:compliance-rules
+  - read:certification-state
+  - propose:evidence
+
+cannot:
+  - set:verdict
+  - override:tawheed
+  - cross_tenant_read
+  - expose-other-tenant-certificates
+  - log:secrets
+
+budget:
+  max_tokens_per_task: 40_000
+  max_wall_clock_seconds: 120
+  max_mcp_calls_per_task: 30
+
+escalation:
+  on_unverified_claim: { block: false, route: consumer-report }
+  on_suspicious_certificate: { quarantine: true, notify: certifier-assistant }
+
+notes: |
+  Answers "is this product halal?" for a member of the public. The budget is
+  deliberately the smallest in the fleet. A consumer check that takes a long
+  time and many calls is a consumer check nobody completes, and the failure
+  mode of an incomplete answer is a consumer who assumes it was fine.

@@ -1,0 +1,153 @@
+version: 1.0
+platform: halalchain
+
+# Control catalogue. Each control names the mechanism that actually enforces it.
+# A control whose `enforced_by` is empty is documentation, not a control.
+
+enforcement_kinds:
+  arch_test:   HalalChain.Architecture.Tests (runs in `dotnet test`)
+  pre_commit:  hooks/pre-commit/run.sh (blocks the commit)
+  mcp_hook:    hooks/mcp-tool-invoked/check.sh (blocks the tool call)
+  runtime:     enforced by the running platform, not the tree
+  process:     human review; recorded here so it is at least visible
+
+controls:
+  - id: C-001
+    name: tawheed-is-sealed
+    principles: [P2, P3]
+    statement: >
+      No agent, skill, connector, MCP tool, or workflow may write into tawheed/.
+      Only the Policy Engine itself owns that path.
+    enforced_by: [arch_test:AutoclawStructureTests.Tawheed_Directory_Is_Sealed,
+                  pre_commit:verdict-writer-scan]
+
+  - id: C-002
+    name: no-verdict-authority-outside-governance
+    principles: [P3, P9]
+    statement: >
+      The identifiers SetVerdict, WriteVerdict, OverrideTawheed,
+      ApproveCertificate and RejectCertificate must not appear outside
+      tawheed/. Authority to certify is granted by the state machine in
+      governance/certification/transitions.yaml, never by a code path.
+    enforced_by: [arch_test:AutoclawStructureTests.No_Forbidden_Verdict_Pattern_Outside_Tawheed,
+                  pre_commit:verdict-writer-scan]
+
+  - id: C-003
+    name: ai-cannot-be-authoritative
+    principles: [P3, P9]
+    statement: >
+      A transition flagged authoritative:true requires actor.type != "ai-agent".
+      This is an invariant of the machine, not a per-role check.
+    enforced_by: [runtime:governance.certification.invariants.ai-never-authoritative,
+                  process:certification-body-only role grant]
+
+  - id: C-004
+    name: tawheed-required-before-authority
+    principles: [P1, P2]
+    statement: >
+      Any transition into Certified or Renewed requires a recorded
+      tawheed.evaluate result in transition.evidence_ids.
+    enforced_by: [runtime:governance.certification.invariants.tawheed-required-pre-authority]
+
+  - id: C-005
+    name: separation-of-duties
+    principles: [P9]
+    statement: >
+      The party that schedules an audit may not be the party that closes it,
+      and the party that prepares evidence may not grant certification.
+    enforced_by: [runtime:governance/controls/separation-of-duties.yaml, process:audit-schedule review]
+
+  - id: C-006
+    name: tenant-isolation
+    principles: [P6]
+    statement: >
+      Every read and write is scoped by tenant_id at the database, cache, blob,
+      search and MCP layers. There is no unscoped code path.
+    enforced_by: [arch_test:AutoclawStructureTests.Tenant_Isolation_Keys_Are_Declared,
+                  runtime:EF global query filter on PlatformDbContext,
+                  runtime:MCP X-Tenant-Id preflight]
+
+  - id: C-007
+    name: secrets-never-logged
+    principles: [P7, P11]
+    statement: >
+      BYOK credentials, bearer tokens, provider API keys, EVM private keys and
+      connection strings are redacted in logs and telemetry and dropped
+      entirely from exception payloads.
+    enforced_by: [pre_commit:secret-scan,
+                  runtime:observability/redaction.yaml <- security/secrets/never-log.yaml,
+                  arch_test:AutoclawStructureTests.No_Secret_Pattern_In_Logging_Config]
+
+  - id: C-008
+    name: byok-refs-only
+    principles: [P7, P11]
+    statement: >
+      byok/ stores sealed vault references. No file under byok/ may contain a
+      credential value; credentials live in the vault adapter, never in git.
+    enforced_by: [arch_test:AutoclawStructureTests.Byok_Contains_Refs_Not_Secrets,
+                  pre_commit:secret-scan]
+
+  - id: C-009
+    name: residency-fails-closed
+    principles: [P6, P7]
+    statement: >
+      A provider call whose region is not permitted for the tenant's region is
+      denied. Silent rerouting to another region is forbidden.
+    enforced_by: [runtime:byok/policies/residency.yaml]
+
+  - id: C-010
+    name: skills-require-governance
+    principles: [P12]
+    statement: >
+      Only skills under skills/published/ are executable, and only after
+      passing every check in governance/skills/checks/. staging/ is inert.
+    enforced_by: [arch_test:AutoclawStructureTests.Every_Skill_Has_A_Manifest,
+                  runtime:governance/skills/transitions.yaml]
+
+  - id: C-011
+    name: anchors-are-not-authority
+    principles: [P10]
+    statement: >
+      The anchor subsystem produces a hash receipt and nothing else. No
+      compliance status is read from or written to a chain.
+    enforced_by: [process:anchors/verification/receipt-verifier.md review,
+                  arch_test:AutoclawStructureTests.Anchors_Do_Not_Declare_Verdict_Types]
+
+  - id: C-012
+    name: delegated-authority-explicit
+    principles: [P14, P8]
+    statement: >
+      Acting on someone else's authority requires an unexpired, unrevoked,
+      in-scope delegation record naming the granting participant. Absence of a
+      delegation is a denial, not a fallback to own authority.
+    enforced_by: [runtime:compliance/rules/delegated-authority-check.yaml,
+                  participants/delegated-authority/]
+
+  - id: C-013
+    name: provider-ingress-untrusted
+    principles: [P5, P13]
+    statement: >
+      All external provider traffic enters through a connector with a declared
+      trust tier, a signature algorithm and audit-every-call enabled. Response
+      provenance is mandatory and response bodies are untrusted input.
+    enforced_by: [runtime:security/trust/ingress-rules.yaml,
+                  security/webhooks/signature-algorithms.yaml]
+
+  - id: C-014
+    name: mcp-tool-allowlist
+    principles: [P3, P2]
+    statement: >
+      Only the eight documented HalalChain.Mcp tools are callable. Anything
+      else is refused at the fleet boundary before the process is reached, and
+      every invocation is audited with a hashed argument set.
+    enforced_by: [mcp_hook:hooks/mcp-tool-invoked/check.sh,
+                  runtime:mcp/policies/tool-allowlist.yaml]
+
+  - id: C-015
+    name: immutable-authority-audit
+    principles: [P4, P9]
+    statement: >
+      Any transition marked authoritative emits an immutable audit record
+      containing the request hash and the policy version in force.
+    enforced_by: [runtime:governance/certification/audit.jsonl,
+                  runtime:tawheed/audit/retention.yaml]
