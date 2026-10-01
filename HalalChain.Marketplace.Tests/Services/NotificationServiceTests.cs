@@ -1,6 +1,7 @@
 using HalalChain.Marketplace.Models.ViewModels;
 using HalalChain.Marketplace.Realtime;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -71,9 +72,17 @@ public class CartNotificationServiceTests
         var customerId = Guid.NewGuid();
         var cartSummary = new CartSummaryViewModel
         {
-            ItemCount = 3,
-            SubtotalAmount = 100m,
-            TotalAmount = 110m
+            Items =
+            [
+                new CartItemViewModel
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    ProductName = "Halal Chicken",
+                    Price = 100m,
+                    Quantity = 3
+                }
+            ]
         };
 
         // Act
@@ -262,7 +271,9 @@ public class OrderNotificationServiceTests
         var order = new HalalChain.Marketplace.Models.ViewModels.OrderViewModel
         {
             Id = Guid.NewGuid(),
-            OrderNumber = "ORD-001"
+            CustomerId = Guid.NewGuid(),
+            Status = "Pending",
+            Total = 120m
         };
 
         // Act
@@ -290,7 +301,7 @@ public class OrderNotificationServiceTests
         // Assert
         _mockClients.Verify(c => c.SendCoreAsync(
             "OrderStatusChanged",
-            It.Is<object?[]>(o => o.Length == 3 && o[2]?.Equals(reason) == true),
+            It.Is<object?[]>(o => o.Length == 3 && Equals(o[2], reason)),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }

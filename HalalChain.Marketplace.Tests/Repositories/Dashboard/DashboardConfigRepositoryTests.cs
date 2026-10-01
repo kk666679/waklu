@@ -227,12 +227,19 @@ public class DashboardConfigRepositoryTests : IAsyncLifetime
                 IsActive = i == 3,
                 CreatedBy = "admin",
                 UpdatedBy = "admin",
-                Version = i,
-                UpdatedAt = DateTime.UtcNow.AddHours(-i)
+                Version = i
             })
             .ToList();
 
         _context.DashboardConfigs.AddRange(configs);
+        await _context.SaveChangesAsync();
+
+        // UpdatedAt is store-generated, so the ordering keys are written
+        // after insert: version 3 is the most recently updated.
+        foreach (var config in configs)
+        {
+            config.UpdatedAt = DateTime.UtcNow.AddHours(config.Version - 3);
+        }
         await _context.SaveChangesAsync();
 
         // Act
@@ -268,12 +275,19 @@ public class DashboardConfigRepositoryTests : IAsyncLifetime
                 TenantId = tenantId,
                 ConfigurationId = config.Id,
                 Operation = i == 1 ? "Create" : "Update",
-                ChangedBy = "admin",
-                ChangedAt = DateTime.UtcNow.AddHours(-i)
+                ChangedBy = "admin"
             })
             .ToList();
 
         _context.DashboardConfigAudits.AddRange(audits);
+        await _context.SaveChangesAsync();
+
+        // ChangedAt is store-generated, so the ordering keys are written
+        // after insert: the Create audit is the oldest.
+        foreach (var audit in audits)
+        {
+            audit.ChangedAt = DateTime.UtcNow.AddHours(audit.Operation == "Create" ? -2 : 0);
+        }
         await _context.SaveChangesAsync();
 
         // Act

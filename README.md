@@ -1,5 +1,12 @@
 # HalalChain Platform — Full Architecture and Workflows
 
+
+<p align="center">
+
+![HalalChain](public/HalalChain-Figlet.png)
+
+</p>
+
 AI-native halal commerce and compliance platform for supplier verification, evidence collection, policy evaluation, and vendor-facing workflows. The repository combines a .NET modular platform, customer and marketplace front ends, Python AI/evidence services, and a local developer stack for running the full system together.
 
 **Status:** Consolidating all prior decisions, including the contract test suite.
