@@ -8,14 +8,38 @@ using HalalChain.Automation.Jobs.Platform;
 using HalalChain.Automation.Jobs.Storage;
 using HalalChain.Automation.Scheduling;
 
+using Npgsql;
+
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+
 var builder = Host.CreateApplicationBuilder(args);
 
-// ─── Aspire service defaults ─────────────────────────────────────────────────
-builder.AddServiceDefaults();
+// ─── Observability ───────────────────────────────────────────────────────────
+// Service defaults: OpenTelemetry metrics and traces over OTLP, exported from
+// the same meter the scheduler emits through. The OTLP endpoint is read from
+// configuration; when it is absent the exporter stays inert rather than
+// throwing, so a local run needs no collector.
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddMeter(JobTelemetry.MeterName)
+        .AddOtlpExporter())
+    .WithTracing(tracing => tracing
+        .AddOtlpExporter());
 
 // ─── Scheduling infrastructure ───────────────────────────────────────────────
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<JobRegistry>();
+
+// NpgsqlAdvisoryLock depends on an NpgsqlDataSource rather than a connection
+// string, so the host has to own one data source for the process lifetime. It
+// is built (not opened) here, so registration does not require a live database —
+// the first actual connection is made when a job first tries to take the lock.
+var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException(
+        "Connection string 'Postgres' is required: NpgsqlAdvisoryLock backs IDistributedLock with pg_try_advisory_lock.");
+builder.Services.AddSingleton(_ => new NpgsqlDataSourceBuilder(postgresConnectionString).Build());
+
 builder.Services.AddSingleton<IDistributedLock, NpgsqlAdvisoryLock>();
 builder.Services.AddHostedService<JobScheduler>();
 

@@ -23,6 +23,12 @@ public sealed class JobScheduler : BackgroundService
     private readonly ILogger<JobScheduler> _logger;
     private readonly Dictionary<string, CronSchedule> _schedules;
 
+    /// <summary>
+    /// Upper bound for a single sleep between scheduler ticks. Task.Delay
+    /// rejects any larger TimeSpan, so the wait has to be capped.
+    /// </summary>
+    private static readonly TimeSpan MaxTickDelay = TimeSpan.FromMilliseconds(int.MaxValue - 1);
+
     public JobScheduler(
         JobRegistry registry,
         IServiceProvider services,
@@ -58,6 +64,16 @@ public sealed class JobScheduler : BackgroundService
                 .Min();
 
             var delay = nextTick - now;
+
+            // A schedule that can never fire (e.g. "0 0 30 2 *" — 30 February)
+            // yields DateTimeOffset.MaxValue from NextOccurrence, so the
+            // subtraction produces a span far beyond what Task.Delay accepts
+            // and the host dies with ArgumentOutOfRangeException. Cap the sleep:
+            // the loop recomputes nextTick on every wake, so waking early is
+            // harmless — it just re-arms the same (still unreachable) tick.
+            if (delay > MaxTickDelay)
+                delay = MaxTickDelay;
+
             if (delay > TimeSpan.Zero)
                 await Task.Delay(delay, _clock, stoppingToken);
 

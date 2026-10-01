@@ -41,7 +41,7 @@ public sealed class SuspendedListingCleanupJob : IScheduledJob
 public interface INotificationDispatcher
 {
     Task SendCertificateExpiryReminderAsync(
-        Guid vendorId,
+        Guid productId,
         string certificateNumber,
         DateTimeOffset expiresAt,
         CancellationToken ct);

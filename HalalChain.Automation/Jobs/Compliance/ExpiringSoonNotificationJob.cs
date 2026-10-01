@@ -38,9 +38,9 @@ public sealed class ExpiringSoonNotificationJob : IScheduledJob
         foreach (var certificate in expiring)
         {
             await _notifications.SendCertificateExpiryReminderAsync(
-                certificate.VendorId,
+                certificate.ProductId,
                 certificate.CertificateNumber,
-                certificate.ExpiresAt,
+                certificate.ExpiryDate,
                 ct);
         }
 
