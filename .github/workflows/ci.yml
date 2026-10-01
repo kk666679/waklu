@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [ai-inference, tawheed]
+        service: [ai-inference, tawheed, local-models]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -68,7 +68,11 @@ jobs:
       - name: Install ${{ matrix.service }} dependencies
         working-directory: .halalchain/${{ matrix.service }}
         run: |
-          pip install --disable-pip-version-check -r requirements.txt
+          if [[ "${{ matrix.service }}" == "local-models" ]]; then
+            pip install --disable-pip-version-check -r ../requirements/base.txt
+          else
+            pip install --disable-pip-version-check -r requirements.txt
+          fi
           pip install --disable-pip-version-check -r ../requirements-test.txt
           pip install --disable-pip-version-check ../_shared
       # Fails loudly instead of the way a comment-only requirements file failed
@@ -77,11 +81,16 @@ jobs:
       # src/observability.py and src/main.py need at module scope.
       - name: Verify the runtime and test dependencies are importable
         working-directory: .halalchain/${{ matrix.service }}
+        env:
+          SERVICE: ${{ matrix.service }}
         run: |
-          python -c "import pytest, fastapi, prometheus_client; \
-            from opentelemetry.sdk.trace import TracerProvider; \
-            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter; \
-            print('dependencies importable')"
+          python -c "import pytest, fastapi; print('base dependencies importable')"
+          if [[ "$SERVICE" != "local-models" ]]; then
+            python -c "import prometheus_client; \
+              from opentelemetry.sdk.trace import TracerProvider; \
+              from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter; \
+              print('observability dependencies importable')"
+          fi
       - name: Run pytest
         working-directory: .halalchain/${{ matrix.service }}
         run: python -m pytest
