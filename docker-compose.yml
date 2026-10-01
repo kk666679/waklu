@@ -109,6 +109,9 @@ services:
       # Document processing — only files under this root are processable.
       DOCUMENT_ROOT: ${AI_INFERENCE_DOCUMENT_ROOT:-/var/lib/halalchain/documents}
       AI_BACKEND: ${AI_BACKEND:-local}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local-models}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-384}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
@@ -203,6 +206,7 @@ services:
       PORT: 8080
       AI_BACKEND: ${AI_BACKEND:-local}
       # Model configuration
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
       TRANSFORMERS_CACHE: /models
       HF_HOME: /models
       # Cross-service

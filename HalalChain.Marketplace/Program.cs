@@ -35,13 +35,25 @@ public class Program
 
         builder.Services.AddRadzenComponents();
 
-        // ── Platform Database (PostgreSQL) for domain entities ─────────────
+        // ── Platform Database (PostgreSQL if configured, otherwise SQLite fallback) ─
         builder.Services.AddDbContext<PlatformDbContext>(o =>
         {
             var platformConn = builder.Configuration.GetConnectionString("PlatformConnection")
-                ?? builder.Configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string 'PlatformConnection' not found.");
-            o.UseNpgsql(platformConn, opts => opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+                ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+            if (!string.IsNullOrWhiteSpace(platformConn) &&
+                (platformConn.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+                 platformConn.Contains("host=", StringComparison.OrdinalIgnoreCase) ||
+                 platformConn.Contains("Port=", StringComparison.OrdinalIgnoreCase)))
+            {
+                o.UseNpgsql(platformConn, opts => opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+                return;
+            }
+
+            var sqlitePath = builder.Configuration.GetConnectionString("PlatformSqlite")
+                ?? $"Data Source={builder.Environment.ContentRootPath}/platform-marketplace.db";
+            o.UseSqlite(sqlitePath);
+            Console.WriteLine($"[startup] Platform DB using SQLite fallback at: {sqlitePath}");
         });
 
         // ── Dashboard Services (config, caching, navigation) ──────────────────

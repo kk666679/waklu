@@ -18,6 +18,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+llm = [
+    "openai==3.22.1",
+]
 base = [
     "fastapi==0.120.0",
     "uvicorn[standard]==0.40.0",

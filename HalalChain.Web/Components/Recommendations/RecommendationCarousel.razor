@@ -543,7 +543,7 @@
                 RecommendationReason = Recommendations.First().Reason;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log error
         }
@@ -558,7 +558,6 @@
         if (CarouselElement.Context != null)
         {
             // Scroll left logic
-            var scrollAmount = 300;
             // Would call JS interop to scroll
         }
     }
@@ -568,7 +567,6 @@
         if (CarouselElement.Context != null)
         {
             // Scroll right logic
-            var scrollAmount = 300;
             // Would call JS interop to scroll
         }
     }

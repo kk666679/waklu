@@ -21,7 +21,7 @@ public sealed class SignedUrlIssuerTests
         var issuer = Create();
         var reference = BlobRef.Create(new string('a', 64));
 
-        var uri = await issuer.IssueAsync(reference, TimeSpan.FromMinutes(5));
+        var uri = await issuer.IssueAsync(reference, TimeSpan.FromMinutes(5), TestContext.Current.CancellationToken);
 
         Assert.Equal("/_blob/" + reference.ContentHash, uri.AbsolutePath);
         Assert.Contains("e=", uri.Query, StringComparison.Ordinal);
@@ -35,8 +35,8 @@ public sealed class SignedUrlIssuerTests
         var reference = BlobRef.Create(new string('b', 64));
         var ttl = TimeSpan.FromMinutes(5);
 
-        var first = await issuer.IssueAsync(reference, ttl);
-        var second = await issuer.IssueAsync(reference, ttl);
+        var first = await issuer.IssueAsync(reference, ttl, TestContext.Current.CancellationToken);
+        var second = await issuer.IssueAsync(reference, ttl, TestContext.Current.CancellationToken);
 
         Assert.Equal(first.Query, second.Query);
     }
@@ -47,8 +47,8 @@ public sealed class SignedUrlIssuerTests
         var reference = BlobRef.Create(new string('c', 64));
         var ttl = TimeSpan.FromMinutes(5);
 
-        var a = await Create("key-one").IssueAsync(reference, ttl);
-        var b = await Create("key-two").IssueAsync(reference, ttl);
+        var a = await Create("key-one").IssueAsync(reference, ttl, TestContext.Current.CancellationToken);
+        var b = await Create("key-two").IssueAsync(reference, ttl, TestContext.Current.CancellationToken);
 
         Assert.NotEqual(a.Query, b.Query);
     }
@@ -81,12 +81,12 @@ public sealed class NdjsonAccessLoggerTests : IDisposable
 
         await logger.RecordAsync(new AccessRecord(
             AccessKind.Ingest, EvidenceId.New(), BlobRef.Create(new string('d', 64)),
-            "actor-1", DateTimeOffset.UtcNow, "Certificate"));
+            "actor-1", DateTimeOffset.UtcNow, "Certificate"), TestContext.Current.CancellationToken);
         await logger.RecordAsync(new AccessRecord(
             AccessKind.Read, EvidenceId.New(), BlobRef.Create(new string('e', 64)),
-            "actor-2", DateTimeOffset.UtcNow, null));
+            "actor-2", DateTimeOffset.UtcNow, null), TestContext.Current.CancellationToken);
 
-        var lines = await File.ReadAllLinesAsync(LogPath);
+        var lines = await File.ReadAllLinesAsync(LogPath, TestContext.Current.CancellationToken);
         Assert.Equal(2, lines.Length);
     }
 
@@ -98,9 +98,9 @@ public sealed class NdjsonAccessLoggerTests : IDisposable
         await Task.WhenAll(Enumerable.Range(0, 50).Select(i => logger.RecordAsync(
             new AccessRecord(
                 AccessKind.Read, EvidenceId.New(), BlobRef.Create(new string('f', 64)),
-                $"actor-{i}", DateTimeOffset.UtcNow, null))));
+            $"actor-{i}", DateTimeOffset.UtcNow, null), TestContext.Current.CancellationToken)));
 
-        var lines = await File.ReadAllLinesAsync(LogPath);
+        var lines = await File.ReadAllLinesAsync(LogPath, TestContext.Current.CancellationToken);
         Assert.Equal(50, lines.Length);
         Assert.All(lines, l => Assert.StartsWith("{", l));
     }

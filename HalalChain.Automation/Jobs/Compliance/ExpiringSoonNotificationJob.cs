@@ -1,6 +1,7 @@
 namespace HalalChain.Automation.Jobs.Compliance;
 
 using HalalChain.Application.Halal.Interfaces;
+using HalalChain.Application.Common.Interfaces;
 using HalalChain.Automation.Abstractions;
 
 /// <summary>
@@ -13,13 +14,16 @@ using HalalChain.Automation.Abstractions;
 public sealed class ExpiringSoonNotificationJob : IScheduledJob
 {
     private readonly ICertificateRepository _certificates;
+    private readonly IProductRepository _products;
     private readonly INotificationDispatcher _notifications;
 
     public ExpiringSoonNotificationJob(
         ICertificateRepository certificates,
+        IProductRepository products,
         INotificationDispatcher notifications)
     {
         _certificates = certificates;
+        _products = products;
         _notifications = notifications;
     }
 
@@ -34,16 +38,22 @@ public sealed class ExpiringSoonNotificationJob : IScheduledJob
         var horizon = now.AddDays(30);
 
         var expiring = await _certificates.QueryExpiringAsync(now, horizon, ct);
+        var remindersSent = 0;
 
         foreach (var certificate in expiring)
         {
+            var product = await _products.GetAsync(certificate.ProductId, ct);
+            if (product is null)
+                continue;
+
             await _notifications.SendCertificateExpiryReminderAsync(
-                certificate.ProductId,
+                product.VendorId,
                 certificate.CertificateNumber,
                 certificate.ExpiryDate,
                 ct);
+            remindersSent++;
         }
 
-        return JobResult.Success(expiring.Count, TimeSpan.Zero);
+        return JobResult.Success(remindersSent, TimeSpan.Zero);
     }
 }

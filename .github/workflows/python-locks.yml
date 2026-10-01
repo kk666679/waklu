@@ -53,25 +53,17 @@ jobs:
           - lock: dev.txt
             source: _shared/pyproject.toml
             extras: '--extra dev'
-          - lock: llm.txt
-            source: ai-inference/pyproject.toml
-            extras: '--extra llm'
-            no_emit: '--no-emit-package halalchain-shared'
-          - lock: vector.txt
-            source: ai-inference/pyproject.toml
-            extras: '--extra vector'
-            no_emit: '--no-emit-package halalchain-shared'
           - lock: ai-inference.txt
             source: ai-inference/pyproject.toml
-            extras: '--extra llm --extra vector --extra doc-processing --extra auth --extra observability'
+            extras: ''
             no_emit: '--no-emit-package halalchain-shared'
           - lock: tawheed.txt
             source: tawheed/pyproject.toml
-            extras: '--extra observability'
+            extras: '--extra observability --extra llm'
             no_emit: '--no-emit-package halalchain-shared'
           - lock: agents.txt
             source: agents/pyproject.toml
-            extras: ''
+            extras: '--extra vector'
             no_emit: '--no-emit-package halalchain-shared'
           - lock: local-models.txt
             source: local-models/pyproject.toml

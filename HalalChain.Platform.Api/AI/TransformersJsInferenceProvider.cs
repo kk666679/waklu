@@ -58,6 +58,7 @@ public sealed class ResilientAiInferenceProvider : IAiInferenceProvider
     private readonly HttpClient _fallback;
     private readonly AiGatewayOptions _options;
 
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
     public ResilientAiInferenceProvider(HttpClient primary, IHttpClientFactory httpClientFactory, IOptions<AiGatewayOptions> options)
         : this(primary, httpClientFactory.CreateClient("AiInferenceFallback"), options)
     {

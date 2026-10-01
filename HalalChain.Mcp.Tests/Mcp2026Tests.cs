@@ -186,7 +186,8 @@ public class ResourceTests
         Assert.True(registry.TryRead("halalchain://solution/projects", out var contents, out var error), error);
         Assert.Equal("application/json", contents!.MimeType);
 
-        using var document = JsonDocument.Parse(contents.Text!);
+        var text = contents?.Text ?? throw new InvalidOperationException("Runbook index content was not returned.");
+        using var document = JsonDocument.Parse(text);
         Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
         Assert.NotEmpty(document.RootElement.EnumerateArray());
     }
@@ -198,7 +199,8 @@ public class ResourceTests
 
         Assert.True(registry.TryRead("halalchain://runbooks/index", out var contents, out var error), error);
 
-        using var document = JsonDocument.Parse(contents.Text!);
+        var text = contents?.Text ?? throw new InvalidOperationException("Runbook index content was not returned.");
+        using var document = JsonDocument.Parse(text);
         var paths = document.RootElement.EnumerateArray()
             .Select(e => e.GetProperty("path").GetString() ?? string.Empty)
             .ToList();

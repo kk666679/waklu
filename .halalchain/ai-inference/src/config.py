@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     redis_url: Optional[str] = None
 
     # Embeddings
-    embedding_dim: int = 256
-    embedding_provider: str = "local"  # local, sentence_transformers, openai, foundry, openclaw
-    sentence_transformer_model: str = "all-MiniLM-L6-v2"
+    embedding_dim: int = 384
+    embedding_provider: str = "local-models"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # LLM
     default_llm_provider: str = "local"  # retained for backward-compat; use ai_backend

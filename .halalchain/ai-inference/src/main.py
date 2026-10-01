@@ -8,7 +8,7 @@ from .config import settings
 from .models import *
 from .cache import cache
 from .health import get_health, request_count
-from .embeddings import generate_embedding
+from .embeddings import embedding_model_name, generate_embedding
 from .classifier import classify_halal, classify_generic
 from .summarizer import summarize
 from .reranker import rerank
@@ -28,6 +28,15 @@ from .document_processor import processor
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+async def _embed(text: str, model: str | None = None) -> tuple[str, list[float]]:
+    try:
+        model_name = embedding_model_name(model)
+        return model_name, await generate_embedding(text, model_name)
+    except Exception as exc:
+        logger.exception("Embedding provider is unavailable")
+        raise HTTPException(status_code=503, detail="Embedding provider is unavailable") from exc
 
 # Initialize OpenTelemetry tracing if endpoint is configured
 otel_endpoint = settings.otlp_endpoint if hasattr(settings, 'otlp_endpoint') else None
@@ -122,8 +131,11 @@ async def embeddings(req: EmbeddingRequest, auth: bool = Depends(verify_api_key)
     start = time.time()
     if not req.text:
         raise HTTPException(400, "text is required")
-    model = req.model or "halalchain-local-v1"
-    ck = "emb:" + req.text
+    try:
+        model = embedding_model_name(req.model)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="Embedding provider is unavailable") from exc
+    ck = f"emb:{model}:{req.text}"
     if cache:
         cached = cache.get(ck)
         if cached is not None:
@@ -131,7 +143,7 @@ async def embeddings(req: EmbeddingRequest, auth: bool = Depends(verify_api_key)
             record_duration("/embeddings", time.time() - start)
             return EmbeddingResponse(model=model, embedding=cached, cached=True)
     record_cache_miss("/embeddings")
-    vec = generate_embedding(req.text)
+    _, vec = await _embed(req.text, model)
     if cache:
         cache.set(ck, vec)
     record_request("/embeddings")
@@ -229,7 +241,7 @@ async def rag_add_documents(documents: list, auth: bool = Depends(verify_api_key
             continue
         text_chunks = processor.chunk_text(content, settings.rag_chunk_size, settings.rag_chunk_overlap)
         for i, chunk in enumerate(text_chunks):
-            embedding = generate_embedding(chunk)
+            _, embedding = await _embed(chunk)
             chunks.append({
                 "id": f"{doc.get('id', 'doc')}_{i}",
                 "content": chunk,
@@ -243,7 +255,7 @@ async def rag_add_documents(documents: list, auth: bool = Depends(verify_api_key
 @app.post("/rag/search")
 async def rag_search(query: str, top_k: int = 5, auth: bool = Depends(verify_api_key)):
     """Search the vector store for similar documents."""
-    embedding = generate_embedding(query)
+    _, embedding = await _embed(query)
     results = await vector_store.search(embedding, top_k)
     return {"query": query, "results": results}
 

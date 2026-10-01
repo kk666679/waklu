@@ -144,7 +144,7 @@ public class AdvancedRecommendationService : IAdvancedRecommendationService
                     .Where(g => g.Key.HasValue)
                     .OrderByDescending(g => g.Count())
                     .Take(2)
-                    .Select(g => g.Key.Value)
+                    .Select(g => g.Key.GetValueOrDefault())
                     .ToList();
 
                 var newInCategory = allProducts

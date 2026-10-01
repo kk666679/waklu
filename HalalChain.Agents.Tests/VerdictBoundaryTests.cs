@@ -3,6 +3,7 @@ using System.Reflection;
 using HalalChain.Agents.Eval.Dag;
 using HalalChain.Agents.Eval.Dag.Propagation;
 using HalalChain.Agents.Eval.Taxonomy;
+using HalalChain.Domain.Halal;
 
 using Xunit;
 

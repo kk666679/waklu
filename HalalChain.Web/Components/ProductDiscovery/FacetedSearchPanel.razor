@@ -56,7 +56,7 @@
                         {
                             <label class="checkbox-label">
                                 <input type="checkbox"
-                                       @onchange="(ChangeEventArgs e) => OnCategoryChange(option.Value, (bool)e.Value)"
+                                       @onchange="(ChangeEventArgs e) => OnCategoryChange(option.Value, e.Value is true)"
                                        checked="@SelectedCategories.Contains(option.Value)" />
                                 <span>@option.Name</span>
                                 <span class="facet-count">(@option.Count)</span>
@@ -82,7 +82,7 @@
                         {
                             <label class="checkbox-label">
                                 <input type="checkbox"
-                                       @onchange="(ChangeEventArgs e) => OnPriceRangeChange(option.Value, (bool)e.Value)"
+                                       @onchange="(ChangeEventArgs e) => OnPriceRangeChange(option.Value, e.Value is true)"
                                        checked="@SelectedPriceRanges.Contains(option.Value)" />
                                 <span>@option.Name</span>
                                 <span class="facet-count">(@option.Count)</span>
@@ -108,7 +108,7 @@
                         {
                             <label class="checkbox-label">
                                 <input type="checkbox"
-                                       @onchange="(ChangeEventArgs e) => OnRatingChange(option.Value, (bool)e.Value)"
+                                       @onchange="(ChangeEventArgs e) => OnRatingChange(option.Value, e.Value is true)"
                                        checked="@SelectedRatings.Contains(option.Value)" />
                                 <span>
                                     @for (int i = 0; i < 5; i++)
@@ -136,7 +136,7 @@
                     {
                         <label class="checkbox-label">
                             <input type="checkbox"
-                                   @onchange="(ChangeEventArgs e) => OnHalalStatusChange((bool)e.Value)"
+                                   @onchange="(ChangeEventArgs e) => OnHalalStatusChange(e.Value is true)"
                                    checked="@ShowOnlyHalal" />
                             <span>@option.Name</span>
                             <span class="facet-count">(@option.Count)</span>
@@ -419,7 +419,7 @@
 
     private async Task OnInStockOnlyChange(ChangeEventArgs e)
     {
-        ShowInStockOnly = (bool)e.Value;
+        ShowInStockOnly = e.Value is true;
         await NotifyFiltersChanged();
     }
 

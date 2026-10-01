@@ -6,4 +6,12 @@
     <HotReload>false</HotReload>
     <EnableHotReload>false</EnableHotReload>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <MicrosoftNETTestSdkVersion>18.9.0</MicrosoftNETTestSdkVersion>
+    <XunitVersion>2.9.3</XunitVersion>
+    <XunitV3Version>3.0.0</XunitV3Version>
+    <XunitRunnerVisualStudioV2Version>4.0.0</XunitRunnerVisualStudioV2Version>
+    <XunitRunnerVisualStudioV3Version>3.0.0</XunitRunnerVisualStudioV3Version>
+  </PropertyGroup>
 </Project>

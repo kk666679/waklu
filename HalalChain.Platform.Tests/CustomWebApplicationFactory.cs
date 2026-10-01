@@ -16,7 +16,7 @@ using HalalChain.Platform.Api.Persistence;
 
 namespace HalalChain.Platform.Tests;
 
-public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public sealed class CustomWebApplicationFactory : WebApplicationFactory<global::Program>
 {
     // Snapshot of environment variables we mutate so we can restore them
     // deterministically after each test, keeping parallel test execution

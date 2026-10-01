@@ -15,19 +15,19 @@ using OpenTelemetry.Trace;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// ─── Observability ───────────────────────────────────────────────────────────
-// Service defaults: OpenTelemetry metrics and traces over OTLP, exported from
-// the same meter the scheduler emits through. The OTLP endpoint is read from
-// configuration; when it is absent the exporter stays inert rather than
-// throwing, so a local run needs no collector.
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(metrics => metrics
-        .AddMeter(JobTelemetry.MeterName)
-        .AddOtlpExporter())
-    .WithTracing(tracing => tracing
-        .AddOtlpExporter());
+    // ─── Observability ───────────────────────────────────────────────────────────
+    // Service defaults: OpenTelemetry metrics and traces over OTLP, exported from
+    // the same meter the scheduler emits through. The OTLP endpoint is read from
+    // configuration; when it is absent the exporter stays inert rather than
+    // throwing, so a local run needs no collector.
+    builder.Services.AddOpenTelemetry()
+        .WithMetrics(metrics => metrics
+            .AddMeter(JobTelemetry.MeterName)
+            .AddOtlpExporter())
+        .WithTracing(tracing => tracing
+            .AddOtlpExporter());
 
-// ─── Scheduling infrastructure ───────────────────────────────────────────────
+    // ─── Scheduling infrastructure ───────────────────────────────────────────────
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<JobRegistry>();
 

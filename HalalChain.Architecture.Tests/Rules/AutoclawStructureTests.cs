@@ -1,3 +1,4 @@
+// halalchain:verdict-authority-guard
 // AutoclawStructureTests
 //
 // Structural guardrails for the .autoclaw agent-orchestration tree.

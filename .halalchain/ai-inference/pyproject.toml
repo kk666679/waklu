@@ -8,46 +8,25 @@ version = "0.2.0"
 description = "AI inference gateway for HalalChain"
 requires-python = ">=3.11"
 dependencies = [
-    "halalchain-shared",
-]
-
-[project.optional-dependencies]
-llm = [
-    "openai==1.99.9",
-    "anthropic==0.45.0",
-]
-vector = [
-    "qdrant-client==1.15.0",
-]
-doc-processing = [
-    "pypdf==6.1.0",
-    "python-docx==1.1.2",
+    "halalchain-shared[llm]",
+    "python-multipart==0.0.32",
+    "anthropic==1.11.0",
+    "qdrant-client",
+    "pypdf==6.19.0",
+    "python-docx==1.2.0",
     "openpyxl==3.1.5",
-    "beautifulsoup4==4.13.4",
-    "lxml==6.0.0",
-    "markdown==3.8",
+    "beautifulsoup4==4.15.0",
+    "lxml==6.1.3",
+    "markdown==3.11",
+    "pyjwt==2.15.1",
+    "cryptography==50.0.2",
+    "prometheus-client==0.26.0",
+    "opentelemetry-api==1.45.0",
+    "opentelemetry-sdk==1.45.0",
+    "opentelemetry-exporter-otlp==1.45.0",
+    "python-json-logger==4.2.0",
+    "prometheus-fastapi-instrumentator==7.1.0",
 ]
-auth = [
-    "pyjwt==2.10.1",
-    "cryptography==44.0.0",
-]
-observability = [
-    "prometheus-client==0.21.1",
-    "opentelemetry-api==1.29.0",
-    "opentelemetry-sdk==1.29.0",
-    "opentelemetry-exporter-otlp==1.29.0",
-    "python-json-logger==4.0.0",
-    "prometheus-fastapi-instrumentator==7.0.0",
-]
-dev = [
-    "pytest==8.4.0",
-    "pytest-asyncio==0.24.0",
-    "pytest-httpx==0.35.0",
-    "ruff==0.9.0",
-    "mypy==1.15.0",
-    "coverage[toml]==7.10.0",
-]
-
 [tool.setuptools.packages.find]
 where = ["src", "../_shared"]
 
@@ -57,12 +36,3 @@ asyncio_mode = "auto"
 
 [tool.uv]
 exclude-newer-package = { mcp = false, "mcp-types" = false }
-
-[tool.uv.sources]
-# halalchain-shared lives in this repo, not on PyPI, so every member that depends
-# on it must declare where to find it. A relative path source works regardless of
-# uv's workspace discovery; without it `uv pip compile` fails with
-# "halalchain-shared was not found in the package registry".
-# The emitted lock omits this package (--no-emit-package) because pip cannot
-# hash-check a local requirement; its dependencies stay pinned in the output.
-halalchain-shared = { path = "../_shared" }
