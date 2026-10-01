@@ -3,6 +3,7 @@ import { Command } from 'commander'
 import { pathToFileURL } from 'node:url'
 import { registerMCPCleanup } from './lib/mcp-client.js'
 import { logger } from './lib/logger.js'
+import { banner } from './lib/banner.js'
 import { get } from './lib/config.js'
 
 import { createAgentCommand } from './commands/agent.js'
@@ -26,12 +27,14 @@ import { validateSkills, listSkills, installSkills, runIntent } from './runtime/
 
 registerMCPCleanup()
 
+const VERSION = '3.0.0'
+
 /** Build the program. Exported so tests can assert on the registered surface. */
 export function buildProgram(): Command {
   const program = new Command()
     .name('halalchain')
     .description('HalalChain operator CLI — queries, evidence, and policy verdicts over MCP and HTTP')
-    .version('3.0.0')
+    .version(VERSION)
     .option('-v, --verbose', 'verbose output on stderr')
     .option('--no-color', 'disable ANSI colour')
     .hook('preAction', (thisCommand) => {
@@ -40,6 +43,12 @@ export function buildProgram(): Command {
       }
     })
     .showHelpAfterError('(run `halalchain --help` for usage)')
+
+  // Prefix the ASCII-art wordmark to the root help screen only, so that
+  // `halalchain` and `halalchain --help` open with the banner while
+  // per-command help (and any piped output) stays untouched.
+  const rootHelp = program.helpInformation.bind(program)
+  program.helpInformation = (ctx) => `${banner(VERSION)}\n${rootHelp(ctx)}`
 
   program.addCommand(createAgentCommand())
   program.addCommand(createConfigCommand())
@@ -93,9 +102,14 @@ const program = buildProgram()
 // Only drive argv when this module is the process entry point. Tests import
 // `buildProgram` to inspect the registered command surface, and running
 // parseAsync on import would try to interpret the test runner's own arguments.
+// `bin/halalchain.js` is a launcher that imports this module, so `argv[1]` is
+// the launcher and never matches this file. It sets HALALCHAIN_CLI_LAUNCHER to
+// signal that argv is still ours to parse. Without this the compiled `halalchain`
+// binary exits silently on every invocation.
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+  (import.meta.url === pathToFileURL(process.argv[1]).href ||
+    process.env['HALALCHAIN_CLI_LAUNCHER'] === '1')
 
 if (invokedDirectly) {
   program.parseAsync(process.argv).catch((err) => {

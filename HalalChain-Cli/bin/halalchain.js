@@ -21,6 +21,11 @@ const here = dirname(fileURLToPath(import.meta.url))
 const compiled = join(here, '..', 'dist', 'index.js')
 const source = join(here, '..', 'src', 'index.ts')
 
+// The entry module only parses argv when it believes it is the process entry
+// point. It is imported here, so `process.argv[1]` is this launcher and the
+// check would fail; tell it to drive argv itself.
+process.env.HALALCHAIN_CLI_LAUNCHER = '1'
+
 async function main() {
   if (existsSync(compiled)) {
     await import(pathToFileURL(compiled).href)
