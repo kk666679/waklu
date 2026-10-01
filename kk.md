@@ -66,14 +66,23 @@ Each layer below names the artifact that enforces it and how strongly it is
 gated today. "In CI" means a failure breaks the build; "not gated" means the
 artifact exists and is correct but nothing runs it automatically.
 
-> **Read this first.** `.github/workflows/ci.yml` currently fails before it
-> reaches any gate. Its fourth step runs `npm run scss:build`, which resolves to
-> `node scripts/build-scss.mjs`, and its fifth runs
-> `python3 scripts/check-docs.py`. There is no root `scripts/` directory — both
-> files live under `infrastructure/scripts/` — and neither step sets a
-> `working-directory`. So "in CI" in the table below describes where the check
-> is *wired*, not a green checkmark that is being observed today. Fix the two
-> paths first; until then treat every gate row as unproven.
+> **Superseded 2026-09-30.** The three caveats below were accurate when
+> written and **no longer are**. Verified against commit `bac0444`:
+>
+> 1. ~~CI aborts on stale `scripts/` paths~~ — **fixed.** `ci.yml` now runs
+>    `npm run scss:build` (which resolves to `node infrastructure/scripts/build-scss.mjs`)
+>    and `python3 infrastructure/scripts/check-docs.py`. Both paths are correct.
+> 2. ~~`VerdictBoundaryTests` cannot compile~~ — **fixed.** `VerdictState` and
+>    `VerdictBinding` now exist in `HalalChain.Domain/Halal/ValueObjects.cs`, and
+>    `dotnet build HalalChain.Platform.sln -c Release` succeeds for all 18
+>    projects.
+> 3. The **marketplace** half of caveat 2 is still open and is now the
+>    load-bearing gap: `Product.Status` is `public ... { get; set; }`, so P4
+>    ("only Compliance mutates `ProductStatus`") is **not enforced by
+>    anything**. Tracked as `finding F-ENT001-01`.
+>
+> The original text is kept below for the audit trail. Read the correction
+> first; do not act on the superseded text.
 
 | Layer | Enforcement mechanism | Proof | Gate |
 |---|---|---|---|
@@ -115,21 +124,23 @@ checked:
 The intent is deliberate at every layer: a future contributor should not be
 able to reintroduce an LLM-decides-halal path without a build failure.
 
-How much of that holds today, stated precisely:
+How much of that holds today, stated precisely (**as of 2026-09-30**;
+see the supersession note above — two of these have since changed):
 
 - **Holds now.** The type system (`IBlobStore` has no `Delete`), the
   `Application_ShouldNotAssign_HalalVerdicts` architecture guard, and the
   structure of `Modules/Halal/`, which contains no policy types to call.
+- **Now compiling.** `VerdictBoundaryTests` builds and runs; the
+  `VerdictState` / `VerdictBinding` types it referenced now exist.
 - **Written, not gated.** The Solidity invariant tests — no Foundry job exists
   in CI.
-- **Written, not compiling.** `VerdictBoundaryTests` — blocked on the
-  `VerdictState` / `VerdictBinding` types from caveat 2.
-- **Not reachable.** All of the above, because the CI pipeline aborts on the two
-  stale `scripts/` paths before it runs a single test.
+- **Not enforced.** P4. `Product.Status` is a public settable property and no
+  architecture test constrains who writes it. See `finding F-ENT001-01`.
 
-The gap between the principle and the guarantee is therefore smaller than it
-looks but real, and three concrete fixes close it: correct the two CI paths,
-land `VerdictState` and `VerdictBinding`, and add a Foundry job.
+The remaining gap is therefore narrower than it first looked: the pipeline
+runs, the C# guards compile, and what remains unproven is the Foundry job and
+the P4 write-path rule. Two fixes close it: add a Foundry job, and constrain
+the `Product.Status` write path.
 
 ---
 

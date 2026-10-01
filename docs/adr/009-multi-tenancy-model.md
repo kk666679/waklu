@@ -186,4 +186,4 @@ that makes the provisional decision safe.
 - ADR-001 — Modular monolith (module boundaries affect RLS design)
 - `docs/ARCHITECTURE.md` §4 — storage layer (blob prefix isolation)
 - `HalalChain.Platform.Tests/TenantIsolation/` — isolation test suite
-- `bau/LIFECYCLE/data-residency.md` — region pinning rules
+- `.cline_inbox/bau/LIFECYCLE/data-residency.md` — region pinning rules

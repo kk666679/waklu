@@ -247,13 +247,19 @@ of TD-02 (no working Sass build) and needs to be decided together with it.
 
 ### TD-18 — Helm chart is a stub (S2)
 
-`deploy/helm/halalchain/templates/` contains only `deployment.yaml`. `values.yaml` defines
-`service.type`/`service.port`, `platformApi.env`, and `image.repository: ghcr.io/supporthalal/halalchain`,
-but there is no Service, ConfigMap, Secret, Ingress, PDB, or probe template; the deployment
-references an image `release.yml` never publishes (it publishes `-platform-api`, `-web`,
-`-marketplace`). `helm lint` will pass, so this will not be caught until a real cluster deploy, and
-`../due-diligence.md`'s "full production deployment manifests are not clearly proven" gap is exactly
-this.
+`deploy/helm/halalchain/templates/` now carries `service.yaml`, `ingress.yaml`, `hpa.yaml` and the
+blue/green and canary deployment variants; probes are present on every container. `values.yaml`
+still defines no ConfigMap, Secret, or PDB template, so `../due-diligence.md`'s "full production
+deployment manifests are not clearly proven" gap remains.
+
+Two image defects recorded here have since been fixed. The chart previously hardcoded
+`ghcr.io/supporthalal/...` in every `repository` value while `release.yml` pushed with the
+workflow token, which cannot write another account's namespace — that push failed with
+`denied: permission_denied: The requested installation does not exist`. The namespace is now
+`image.registry`/`image.namespace` in `values.yaml`, joined by the `halalchain.image` helper, and
+`release.yml` derives the same value from `vars.GHCR_NAMESPACE || github.repository_owner`. The
+chart also referenced `-ai-inference` and `-tawheed` images the workflow never published; both are
+now built and published.
 
 ## 3. What is verified healthy (do not regress)
 
