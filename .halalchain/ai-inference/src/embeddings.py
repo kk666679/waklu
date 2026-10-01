@@ -1,4 +1,3 @@
-import math
 from typing import List, Optional
 from .config import settings
 
@@ -6,22 +5,6 @@ try:
     from halalchain_shared.service_client import create_local_models_client
 except Exception:  # pragma: no cover
     create_local_models_client = None  # type: ignore
-
-
-DIM = settings.embedding_dim  # 256
-
-
-def _local_embedding(text: str) -> List[float]:
-    """Deterministic 256-dim embedding from text (no external dependency)."""
-    if not text:
-        return [0.0] * DIM
-    v = [0.0] * DIM
-    for i, ch in enumerate(text):
-        c = ord(ch)
-        v[i % DIM] += math.sin(c * 0.1 + i * 0.05) * 0.5 + math.cos(c * 0.07) * 0.3
-        v[(i * 7 + 3) % DIM] += ((c * 2654435761) % 4294967296) / 4294967296 - 0.5
-    norm = math.sqrt(sum(x * x for x in v)) or 1.0
-    return [round(x / norm, 8) for x in v]
 
 
 def _resolve_embedding_endpoint() -> Optional[tuple[str, str, str]]:
@@ -38,33 +21,47 @@ def _resolve_embedding_endpoint() -> Optional[tuple[str, str, str]]:
             return settings.openclaw_base_url, settings.openclaw_api_key or "none", settings.openclaw_model
     elif provider == "local-models":
         if settings.local_models_url:
-            return settings.local_models_url, "", "local"
+            return settings.local_models_url, "", settings.embedding_model
     return None
 
 
-def generate_embedding(text: str) -> List[float]:
-    """Generate an embedding. Uses a remote OpenAI-compatible backend when
-    embedding_provider is set to openai/foundry/openclaw/local-models and configured;
-    otherwise falls back to the deterministic local embedding."""
+def embedding_model_name(model_override: Optional[str] = None) -> str:
     endpoint = _resolve_embedding_endpoint()
-    if endpoint is not None:
-        base_url, api_key, model = endpoint
-        if base_url and base_url.startswith("http") and create_local_models_client:
-            # Use local-models service
-            import asyncio
-            client = create_local_models_client()
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(client.embeddings(text))
-            loop.run_until_complete(client.close())
-            return result.get("embedding", _local_embedding(text))
-        else:
-            # OpenAI-compatible direct
-            import openai
-            client = openai.OpenAI(base_url=base_url, api_key=api_key)
-            resp = client.embeddings.create(model=model, input=text)
-            return resp.data[0].embedding
-    return _local_embedding(text)
+    if endpoint is None:
+        raise RuntimeError("No embedding provider is configured")
+    return model_override or endpoint[2]
+
+
+async def generate_embedding(text: str, model: Optional[str] = None) -> List[float]:
+    """Generate embeddings only through a configured model provider."""
+    endpoint = _resolve_embedding_endpoint()
+    if endpoint is None:
+        raise RuntimeError("No embedding provider is configured")
+
+    base_url, api_key, configured_model = endpoint
+    model_name = model or configured_model
+    if settings.embedding_provider.lower() == "local-models":
+        if create_local_models_client is None:
+            raise RuntimeError("The local-models client is unavailable")
+        client = create_local_models_client()
+        try:
+            response = await client.embeddings(text, model_name)
+            embedding = response.get("embedding")
+        finally:
+            await client.close()
+    else:
+        import openai
+
+        options = {"api_key": api_key}
+        if base_url:
+            options["base_url"] = base_url
+        client = openai.AsyncOpenAI(**options)
+        try:
+            response = await client.embeddings.create(model=model_name, input=text)
+            embedding = response.data[0].embedding
+        finally:
+            await client.close()
+
+    if not embedding:
+        raise RuntimeError(f"Embedding provider returned no vector for model {model_name}")
+    return [float(value) for value in embedding]
