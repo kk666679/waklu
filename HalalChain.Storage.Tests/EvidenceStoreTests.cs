@@ -51,9 +51,9 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore();
         var record = await store.IngestAsync(
             new MemoryStream("certificate-content"u8.ToArray()),
-            Descriptor());
+            Descriptor(), TestContext.Current.CancellationToken);
 
-        var retrieved = await store.GetRecordAsync(record.Id);
+        var retrieved = await store.GetRecordAsync(record.Id, TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal(record.Id, retrieved!.Id);
@@ -67,8 +67,8 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore();
         var payload = "same-content"u8.ToArray();
 
-        var r1 = await store.IngestAsync(new MemoryStream(payload), Descriptor());
-        var r2 = await store.IngestAsync(new MemoryStream(payload), Descriptor());
+        var r1 = await store.IngestAsync(new MemoryStream(payload), Descriptor(), TestContext.Current.CancellationToken);
+        var r2 = await store.IngestAsync(new MemoryStream(payload), Descriptor(), TestContext.Current.CancellationToken);
 
         // Distinct EvidenceRecords, same underlying blob.
         Assert.NotEqual(r1.Id, r2.Id);
@@ -81,11 +81,11 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore();
         var payload = "readable-bytes"u8.ToArray();
 
-        var record = await store.IngestAsync(new MemoryStream(payload), Descriptor());
+        var record = await store.IngestAsync(new MemoryStream(payload), Descriptor(), TestContext.Current.CancellationToken);
 
         // The BlobRef is the SHA-256 of exactly these bytes.
         Assert.Equal(
-            await new Sha256ContentHasher().ComputeAsync(new MemoryStream(payload)),
+            await new Sha256ContentHasher().ComputeAsync(new MemoryStream(payload), TestContext.Current.CancellationToken),
             record.Blob);
     }
 
@@ -95,9 +95,9 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore();
         var record = await store.IngestAsync(
             new MemoryStream("read-me"u8.ToArray()),
-            Descriptor());
+            Descriptor(), TestContext.Current.CancellationToken);
 
-        var read = await store.OpenAsync(record.Id, actorId: "auditor");
+        var read = await store.OpenAsync(record.Id, actorId: "auditor", ct: TestContext.Current.CancellationToken);
 
         Assert.StartsWith("http://test/_blob/", read.SignedUri.ToString());
         Assert.Contains(record.Blob.ContentHash, read.SignedUri.ToString());
@@ -109,7 +109,7 @@ public sealed class EvidenceStoreTests : IDisposable
     {
         var store = CreateStore();
         await Assert.ThrowsAsync<KeyNotFoundException>(
-            async () => await store.OpenAsync(EvidenceId.New(), "auditor"));
+            async () => await store.OpenAsync(EvidenceId.New(), "auditor", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -121,13 +121,13 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore(log);
         var record = await store.IngestAsync(
             new MemoryStream("audited"u8.ToArray()),
-            Descriptor(actor: "ingestor"));
+            Descriptor(actor: "ingestor"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, log.Records.Count);
+        Assert.Single(log.Records);
         Assert.Equal(AccessKind.Ingest, log.Records[0].Kind);
         Assert.Equal("ingestor", log.Records[0].ActorId);
 
-        await store.OpenAsync(record.Id, actorId: "auditor");
+        await store.OpenAsync(record.Id, actorId: "auditor", ct: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, log.Records.Count);
         Assert.Equal(AccessKind.Read, log.Records[1].Kind);
@@ -141,10 +141,10 @@ public sealed class EvidenceStoreTests : IDisposable
         var store = CreateStore();
         await store.IngestAsync(
             new MemoryStream("aged"u8.ToArray()),
-            Descriptor());
+            Descriptor(), TestContext.Current.CancellationToken);
 
         var report = await store.ApplyRetentionAsync(
-            new RetentionPolicy(TimeSpan.FromDays(365), RetentionScope.Certificate));
+            new RetentionPolicy(TimeSpan.FromDays(365), RetentionScope.Certificate), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report.Evaluated);
         Assert.Equal(1, report.Kept);

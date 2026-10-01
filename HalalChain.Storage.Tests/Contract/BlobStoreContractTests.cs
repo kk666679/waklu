@@ -31,20 +31,20 @@ public abstract class BlobStoreContractTests : IAsyncLifetime
     public async Task Put_then_OpenRead_roundtrips_content()
     {
         var payload = "halal-certificate-payload";
-        var reference = await Store.PutAsync(Bytes(payload), Meta());
+        var reference = await Store.PutAsync(Bytes(payload), Meta(), TestContext.Current.CancellationToken);
 
-        await using var read = await Store.OpenReadAsync(reference);
+        await using var read = await Store.OpenReadAsync(reference, TestContext.Current.CancellationToken);
         Assert.NotNull(read);
         using var reader = new StreamReader(read!);
-        Assert.Equal(payload, await reader.ReadToEndAsync());
+        Assert.Equal(payload, await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Put_is_content_addressed_identical_content_same_ref()
     {
         var payload = "identical";
-        var r1 = await Store.PutAsync(Bytes(payload), Meta());
-        var r2 = await Store.PutAsync(Bytes(payload), Meta());
+        var r1 = await Store.PutAsync(Bytes(payload), Meta(), TestContext.Current.CancellationToken);
+        var r2 = await Store.PutAsync(Bytes(payload), Meta(), TestContext.Current.CancellationToken);
         Assert.Equal(r1, r2);
     }
 
@@ -52,21 +52,21 @@ public abstract class BlobStoreContractTests : IAsyncLifetime
     public async Task Put_is_idempotent_when_blob_already_exists()
     {
         var payload = "dedupe-me";
-        var r1 = await Store.PutAsync(Bytes(payload), Meta());
-        var r2 = await Store.PutAsync(Bytes(payload), Meta());
+        var r1 = await Store.PutAsync(Bytes(payload), Meta(), TestContext.Current.CancellationToken);
+        var r2 = await Store.PutAsync(Bytes(payload), Meta(), TestContext.Current.CancellationToken);
         Assert.Equal(r1.ContentHash, r2.ContentHash);
 
-        await using var read = await Store.OpenReadAsync(r2);
+        await using var read = await Store.OpenReadAsync(r2, TestContext.Current.CancellationToken);
         Assert.NotNull(read);
         using var reader = new StreamReader(read!);
-        Assert.Equal(payload, await reader.ReadToEndAsync());
+        Assert.Equal(payload, await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task OpenRead_returns_null_for_unknown_reference()
     {
         var missing = BlobRef.Create(new string('a', 64));
-        var result = await Store.OpenReadAsync(missing);
+        var result = await Store.OpenReadAsync(missing, TestContext.Current.CancellationToken);
         Assert.Null(result);
     }
 
@@ -74,21 +74,21 @@ public abstract class BlobStoreContractTests : IAsyncLifetime
     public async Task Exists_is_false_for_unknown_reference()
     {
         var missing = BlobRef.Create(new string('b', 64));
-        Assert.False(await Store.ExistsAsync(missing));
+        Assert.False(await Store.ExistsAsync(missing, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Exists_is_true_after_put()
     {
-        var inserted = await Store.PutAsync(Bytes("new"), Meta());
-        Assert.True(await Store.ExistsAsync(inserted));
+        var inserted = await Store.PutAsync(Bytes("new"), Meta(), TestContext.Current.CancellationToken);
+        Assert.True(await Store.ExistsAsync(inserted, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Different_content_produces_different_refs()
     {
-        var r1 = await Store.PutAsync(Bytes("alpha"), Meta());
-        var r2 = await Store.PutAsync(Bytes("beta"), Meta());
+        var r1 = await Store.PutAsync(Bytes("alpha"), Meta(), TestContext.Current.CancellationToken);
+        var r2 = await Store.PutAsync(Bytes("beta"), Meta(), TestContext.Current.CancellationToken);
         Assert.NotEqual(r1, r2);
     }
 
@@ -99,12 +99,12 @@ public abstract class BlobStoreContractTests : IAsyncLifetime
         // while hashing. A rewind-based implementation stores zero bytes here.
         var payload = "non-seekable-payload"u8.ToArray();
         using var source = new NonSeekableStream(payload);
-        var reference = await Store.PutAsync(source, Meta());
+        var reference = await Store.PutAsync(source, Meta(), TestContext.Current.CancellationToken);
 
-        await using var read = await Store.OpenReadAsync(reference);
+        await using var read = await Store.OpenReadAsync(reference, TestContext.Current.CancellationToken);
         Assert.NotNull(read);
         using var buffer = new MemoryStream();
-        await read!.CopyToAsync(buffer);
+        await read!.CopyToAsync(buffer, TestContext.Current.CancellationToken);
         Assert.Equal(payload, buffer.ToArray());
     }
 

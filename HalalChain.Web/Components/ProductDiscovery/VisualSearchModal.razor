@@ -16,7 +16,7 @@
             @if (!SearchPerformed)
             {
                 <div class="visual-search-setup">
-                    <div class="upload-area" @ondrop="OnFileDrop" @ondragover="OnDragOver" @ondragleave="OnDragLeave">
+                    <div class="upload-area @(IsDragOver ? "dragover" : string.Empty)" @ondrop="OnFileDrop" @ondragover="OnDragOver" @ondragleave="OnDragLeave">
                         <input type="file"
                                accept="image/*"
                                @onchange="OnFileSelected"
@@ -376,7 +376,7 @@
             var results = await VectorSearchService.SearchSimilarAsync("uploaded_image", 12);
             SearchResults = results;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log error
         }
