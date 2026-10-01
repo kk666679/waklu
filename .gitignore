@@ -37,3 +37,13 @@ HalalChain-Cli/sandbox/
 .kiro/*
 .kilo/*
 .autoclaw/*
+
+# ─── Alertmanager secrets ────────────────────────────────────────────────────
+# Written by infrastructure/scripts/write-alertmanager-secrets.py from the
+# repo-root .env. These are live credentials (Slack webhook, PagerDuty routing
+# keys, SMTP password) and must never be committed.
+infrastructure/alertmanager/secrets/*
+!infrastructure/alertmanager/secrets/.gitignore
+
+.run/
+
