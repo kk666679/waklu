@@ -29,3 +29,32 @@ jobs:
             --entrypoint amtool \
             prom/alertmanager:v0.28.0 \
             check-config /etc/alertmanager/alertmanager.yml
+
+      # Alertmanager never expands ${VAR} in its config, so secrets are read
+      # from files under infrastructure/alertmanager/secrets/ (gitignored, so
+      # absent in CI). This only asserts the wiring is consistent: every
+      # *_file path in the config has a matching entry in the writer script.
+      # A missing secrets directory is expected here and is not an error.
+      - name: Verify AlertManager secret wiring
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path("infrastructure")
+          config = (root / "alertmanager" / "alertmanager.yml").read_text(encoding="utf-8")
+          script = (root / "scripts" / "write-alertmanager-secrets.py").read_text(encoding="utf-8")
+
+          referenced = set(re.findall(r"_file:\s*(\S+)", config))
+          written = set(re.findall(r'^\s{4}"([a-z0-9_]+)":', script, re.MULTILINE))
+
+          expected = {f"/etc/alertmanager/secrets/{name}" for name in written}
+          missing = referenced - expected
+          if missing:
+              print("Config references secret files the writer never creates:")
+              for path in sorted(missing):
+                  print(f" - {path}")
+              sys.exit(1)
+          print(f"AlertManager secret wiring OK: {len(referenced)} file reference(s).")
+          PY
