@@ -37,4 +37,5 @@ HalalChain-Cli/sandbox/
 .kiro/*
 .kilo/*
 .autoclaw/*
-.aspnet/*
+.aspnet/
+halalchain.db
