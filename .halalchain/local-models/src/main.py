@@ -1,6 +1,7 @@
 """FastAPI application entry point for HalalChain Local Models service."""
 from __future__ import annotations
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,7 +13,7 @@ import time
 from halalchain_shared.ai_backend import resolve_ai_backend, resolve_ai_provider_config
 from halalchain_shared.cache import build_cache
 
-setup_logging()
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 # Settings
@@ -29,6 +30,9 @@ class Settings:
     cache_max_size: int = int(os.getenv("CACHE_MAX_SIZE", "10000"))
     cache_ttl: int = int(os.getenv("CACHE_TTL", "3600"))
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    embedding_model: str = os.getenv(
+        "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+    )
 
 settings = Settings()
 
@@ -56,6 +60,7 @@ class EmbeddingRequest(BaseModel):
 class EmbeddingResponse(BaseModel):
     model: str
     embedding: List[float]
+    dimension: int
     cached: bool = False
 
 class ClassifyRequest(BaseModel):
@@ -132,6 +137,41 @@ def get_model(model_name: Optional[str] = None):
     _models[name] = {"name": name, "loaded": True}
     return _models[name]
 
+
+@lru_cache(maxsize=1)
+def _load_embedding_encoder():
+    import torch
+    from transformers import AutoModel, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(settings.embedding_model)
+    model = AutoModel.from_pretrained(settings.embedding_model)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+    return tokenizer, model, device
+
+
+def _encode_embedding(text: str) -> List[float]:
+    import torch
+
+    tokenizer, model, device = _load_embedding_encoder()
+    encoded = tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        max_length=512,
+    )
+    encoded = {name: tensor.to(device) for name, tensor in encoded.items()}
+
+    with torch.inference_mode():
+        token_embeddings = model(**encoded).last_hidden_state
+        attention_mask = encoded["attention_mask"].unsqueeze(-1).to(token_embeddings.dtype)
+        pooled = (token_embeddings * attention_mask).sum(dim=1)
+        pooled = pooled / attention_mask.sum(dim=1).clamp(min=1)
+        normalized = torch.nn.functional.normalize(pooled, p=2, dim=1)
+
+    return normalized[0].cpu().tolist()
+
 @app.get("/")
 async def root():
     return {"service": settings.app_name, "version": settings.app_version, "docs": "/docs"}
@@ -155,21 +195,34 @@ async def health():
     )
 
 @app.post("/embeddings", response_model=EmbeddingResponse)
-async def embeddings(req: EmbeddingRequest):
+def embeddings(req: EmbeddingRequest):
     if not req.text:
         raise HTTPException(400, "text is required")
-    model_name = req.model or "default"
+    model_name = settings.embedding_model
+    if req.model and req.model != model_name:
+        raise HTTPException(400, "Only the configured embedding model is available")
     ck = f"emb:{model_name}:{req.text}"
     if cache:
         cached = cache.get(ck)
         if cached is not None:
-            return EmbeddingResponse(model=model_name, embedding=cached, cached=True)
-    # Generate embedding (placeholder - replace with actual model inference)
-    model = get_model(model_name)
-    embedding = [0.1] * 384  # Placeholder
+            return EmbeddingResponse(
+                model=model_name,
+                embedding=cached,
+                dimension=len(cached),
+                cached=True,
+            )
+    try:
+        embedding = _encode_embedding(req.text)
+    except Exception as exc:
+        logger.exception("Embedding model %s is unavailable", model_name)
+        raise HTTPException(503, "Configured embedding model is unavailable") from exc
     if cache:
         cache.set(ck, embedding)
-    return EmbeddingResponse(model=model_name, embedding=embedding)
+    return EmbeddingResponse(
+        model=model_name,
+        embedding=embedding,
+        dimension=len(embedding),
+    )
 
 @app.post("/classify", response_model=ClassifyResponse)
 async def classify(req: ClassifyRequest):
