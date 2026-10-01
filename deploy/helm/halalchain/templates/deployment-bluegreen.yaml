@@ -48,7 +48,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: "{{ $.Values.web.image.repository }}:{{ $webTag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" $.Values.image.registry "namespace" $.Values.image.namespace) (dict "repository" $.Values.web.image.repository "tag" $webTag)) | quote }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           ports:
             - containerPort: {{ $.Values.web.port }}
@@ -99,7 +99,7 @@ spec:
     spec:
       containers:
         - name: marketplace
-          image: "{{ $.Values.marketplace.image.repository }}:{{ $mktTag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" $.Values.image.registry "namespace" $.Values.image.namespace) (dict "repository" $.Values.marketplace.image.repository "tag" $mktTag)) | quote }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           ports:
             - containerPort: {{ $.Values.marketplace.port }}

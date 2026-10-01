@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: platform-api
-          image: "{{ .Values.platformApi.image.repository }}:{{ .Values.platformApi.image.tag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) .Values.platformApi.image) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.platformApi.port }}
@@ -85,7 +85,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) .Values.web.image) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.web.port }}
@@ -133,7 +133,7 @@ spec:
     spec:
       containers:
         - name: marketplace
-          image: "{{ .Values.marketplace.image.repository }}:{{ .Values.marketplace.image.tag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) .Values.marketplace.image) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.marketplace.port }}
@@ -180,7 +180,7 @@ spec:
     spec:
       containers:
         - name: ai-inference
-          image: "{{ .Values.aiInference.image.repository }}:{{ .Values.aiInference.image.tag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) .Values.aiInference.image) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.aiInference.port }}
@@ -226,7 +226,7 @@ spec:
     spec:
       containers:
         - name: tawheed
-          image: "{{ .Values.tawheed.image.repository }}:{{ .Values.tawheed.image.tag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) .Values.tawheed.image) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.tawheed.port }}

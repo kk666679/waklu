@@ -1,12 +1,23 @@
 replicaCount: 2
 
+# Default registry namespace. release.yml pushes to
+# ${{ vars.GHCR_NAMESPACE || github.repository_owner }}, which may differ from
+# this value; the deploy jobs override registry/namespace with --set so the
+# running pods always match the images that were actually pushed.
+#
+# NOTE: repository below is a PLAIN string, not a template. Helm does not render
+# values.yaml, so a {{ }} expression here would be emitted into the manifests
+# verbatim. The templates join registry/namespace/repository via the
+# "halalchain.image" helper instead.
 image:
   pullPolicy: IfNotPresent
+  registry: ghcr.io
+  namespace: supporthalal
 
 # platform-api (canary release)
 platformApi:
   image:
-    repository: ghcr.io/supporthalal/halalchain-platform-api
+    repository: halalchain-platform-api
     tag: "dev"
   replicaCount: 2
   port: 8080
@@ -24,7 +35,7 @@ platformApi:
 # halalchain web UI (blue/green release)
 web:
   image:
-    repository: ghcr.io/supporthalal/halalchain-web
+    repository: halalchain-web
     tag: "dev"
   replicaCount: 2
   port: 8080
@@ -39,7 +50,7 @@ web:
 # marketplace (blue/green release)
 marketplace:
   image:
-    repository: ghcr.io/supporthalal/halalchain-marketplace
+    repository: halalchain-marketplace
     tag: "dev"
   replicaCount: 2
   port: 8080
@@ -54,7 +65,7 @@ marketplace:
 # ai-inference (standard deploy)
 aiInference:
   image:
-    repository: ghcr.io/supporthalal/halalchain-ai-inference
+    repository: halalchain-ai-inference
     tag: "dev"
   replicaCount: 1
   port: 7071
@@ -69,7 +80,7 @@ aiInference:
 # tawheed policy engine (standard deploy)
 tawheed:
   image:
-    repository: ghcr.io/supporthalal/halalchain-tawheed
+    repository: halalchain-tawheed
     tag: "dev"
   replicaCount: 1
   port: 8000

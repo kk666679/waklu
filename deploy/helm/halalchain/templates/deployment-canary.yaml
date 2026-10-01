@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
         - name: platform-api
-          image: "{{ .Values.platformApi.image.repository }}:{{ .Values.canary.imageTag }}"
+          image: {{ include "halalchain.image" (merge (dict "registry" .Values.image.registry "namespace" .Values.image.namespace) (dict "repository" .Values.platformApi.image.repository "tag" .Values.canary.imageTag)) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.platformApi.port }}
