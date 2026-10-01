@@ -440,31 +440,11 @@ public sealed class PlatformApiClient
             var r = await AuthedGet(url, ct);
             r.EnsureSuccessStatusCode();
             var result = await JsonSerializer.DeserializeAsync<SemanticSearchResult[]>(await r.Content.ReadAsStreamAsync(ct), _jsonOptions, ct);
-            if (result != null && result.Length > 0) return result;
+            if (result != null) return result;
         }
         catch (Exception ex) { _logger.LogWarning(ex, "Semantic search API unreachable"); }
-        return GetSeedSemanticResults(query);
-    }
 
-    private static SemanticSearchResult[] GetSeedSemanticResults(string query)
-    {
-        var allProducts = GetSeedProducts();
-        return allProducts
-            .Where(p => p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                       (p.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
-            .Take(5)
-            .Select(p => new SemanticSearchResult(
-                p.Id,
-                p.Title,
-                p.Slug,
-                p.Description,
-                p.VendorName,
-                p.CategoryName,
-                p.Price,
-                p.Currency,
-                p.Origin,
-                0.8 + Random.Shared.NextDouble() * 0.2))
-            .ToArray();
+        return [];
     }
 
     private static ProductDto[] GetSeedProducts() =>
