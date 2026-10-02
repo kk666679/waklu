@@ -1,8 +1,46 @@
-id: blockchain-oracle
-name: Blockchain Oracle Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Anchors evidence hashes, certificate roots, and verification results on-chain.
-skills: [blockchain-recorder]
-eval:
-  suite: eval/agents/blockchain-oracle.eval.yaml
+name: blockchain-oracle
+role: Evidence Anchor Oracle
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:evidence
+  - read:certificate
+  - propose:anchor
+  - schedule:anchor
+  - notify:producer
+  - call:mcp:halalchain_verify_no_verdict_authority
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # P10: an anchor proves a hash has not changed. It says nothing about
+  # validity, and reading a compliance status off a chain would reintroduce
+  # exactly the authority confusion the anchors/ rename removed.
+  - read:compliance-status-from-chain
+  - write:verdict
+  # An anchor is immutable once confirmed. Re-anchoring an existing hash to
+  # make a record look re-verified is the one thing this agent must never do.
+  - re-anchor:silently
+
+skills:
+  - blockchain-recorder
+
+budget:
+  max_tokens_per_task: 100_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
+
+escalation:
+  on_anchor_rejected: notify:producer
+  on_chain_unavailable: notify:tenant-admin
+  on_hash_mismatch: quarantine:true
+
+notes: |
+  Anchors evidence hashes, certificate roots, and verification results on-chain.
+  What leaves this agent is a receipt and nothing else. The agent never reads a
+  compliance status back from the chain it wrote to — that round trip is how
+  integrity gets mistaken for authority.

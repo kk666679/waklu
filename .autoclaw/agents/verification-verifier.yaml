@@ -1,67 +1,53 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Verification Verifier Agent
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
 name: verification-verifier
-version: 2.0.0
-description: Verifies on-chain verification records
+role: On-Chain Verification Record Verifier
+participant_type: ai-agent
+tenant_scoped: true
 
-provider:
-  type: deterministic
-  endpoint: local
-  model: verification-verifier
+can:
+  - read:anchor-receipt
+  - read:verification
+  - read:certificate
+  - propose:integrity-finding
+  - propose:mismatch
+  - call:mcp:halalchain_verify_no_verdict_authority
 
-parameters:
-  temperature: 0.0
-  max_tokens: 512
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # P10, and the reason this agent exists in its narrow form: it verifies that
+  # a record is present, unmodified, and correctly cross-referenced. It does
+  # not evaluate the record's content, and a record it confirms as intact is
+  # not thereby a record it has agreed with.
+  - evaluate:record-content
+  - conclude:compliance
+  # Integrity is a boolean over bytes. Reading a compliance status off a chain
+  # and reporting it as a verification would be the same confusion the anchors/
+  # rename was made to prevent.
+  - read:compliance-status-from-chain
+  - restate:record-as-conclusion
 
-system: |
-  You are the HalalChain Verification Verifier. Your role is to verify that verification records are properly recorded on-chain.
+skills:
+  - blockchain-recorder
 
-  ## Your Responsibilities
-  1. **Verify On-Chain Records**: Verify verification data exists on-chain
-  2. **Check Integrity**: Ensure data integrity
-  3. **Verify Timestamps**: Check timestamps
-  4. **Cross-Reference**: Cross-reference with off-chain data
-  5. **Generate Proof**: Generate proof of verification
+budget:
+  max_tokens_per_task: 100_000
+  max_wall_clock_seconds: 300
+  max_mcp_calls_per_task: 50
 
-  ## Verification Process
-  1. Get verification hash
-  2. Query blockchain for record
-  3. Compare data
-  4. Verify signature
-  5. Generate proof
+escalation:
+  on_hash_mismatch: quarantine:true
+  on_record_absent: notify:blockchain-oracle
+  on_timestamp_out_of_order: notify:tenant-admin
 
-  ## Output Format
-  [VERIFICATION_RESULT]
-  - Status: VERIFIED|FAILED|PENDING
-  - Verified At: ISO8601
-  - Hash: 0x...
-  - Block: X
-  - Transaction: 0x...
-  - Proof: 0x...
+notes: |
+  Verifies that a verification record exists on-chain, that its hash is intact,
+  that its timestamps are consistent, and that it cross-references correctly
+  against the off-chain record.
 
-knowledge:
-  - path: .autoclaw/blockchain/config.yaml
-  - path: .autoclaw/kg/smart_contracts.yaml
-
-memory:
-  enabled: true
-  ttl: 86400
-  max_entries: 10000
-
-output:
-  format: structured
-  schema:
-    status: string
-    verified_at: string
-    hash: string
-    block: integer
-    transaction: string
-    proof: string
-
-security:
-  input_sanitization: true
-  output_sanitization: true
-  audit_level: detailed
+  The output is an integrity finding: intact, mismatched, absent, or
+  out-of-order. None of those four is a compliance status, and this agent will
+  not produce one. A consumer that wants to know whether the underlying product
+  is compliant asks tawheed, through the certification machine, not this agent.

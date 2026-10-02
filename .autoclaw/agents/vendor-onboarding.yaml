@@ -1,18 +1,57 @@
-id: vendor-onboarding
-name: Vendor Onboarding Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Guides vendors through KYB, halal certificate upload, product categories, payouts.
-model:
-  provider: openai
-  name: gpt-4.1
-  temperature: 0.2
+name: vendor-onboarding
+role: Vendor Onboarding Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:vendor
+  - read:certificate
+  - read:policy
+  - propose:onboarding-step
+  - propose:document-request
+  - notify:vendor
+  - call:mcp:halalchain_get_controls
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # Onboarding completes the paperwork; it does not conclude the KYB. A vendor
+  # that has uploaded everything this agent asked for has still not been
+  # verified, and telling them otherwise is a statement this agent has no
+  # standing to make.
+  - complete:kyb
+  - approve:vendor
+  - decide:compliance
+  # Payout and settlement configuration is not a field this agent may write. A
+  # prompt that reaches it is a prompt injection, not a legitimate request.
+  - configure:payouts
+  - set:settlement-account
+  - log:secrets
+
 skills:
   - vendor-onboarding
   - certificate-validator
   - alert-dispatcher
-reference:
-  - reference/evidence_templates/
-  - reference/policies/marketplace_rules.yaml
-eval:
-  suite: eval/agents/vendor-onboarding.eval.yaml
+
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 150
+
+escalation:
+  on_kyb_document_missing: notify:vendor
+  on_beneficial_owner_unclear: notify:tenant-admin
+  on_certificate_upload_expired: notify:alert-monitor
+
+notes: |
+  Guides vendors through KYB, halal certificate upload, product category
+  selection, and the onboarding checklist.
+
+  Payout configuration sits deliberately outside this agent's reach even though
+  onboarding nominally covers it. Vendor-supplied text is untrusted input, and a
+  capability an agent can be talked into using is a capability that is not
+  enforced — so settlement details are routed to the payments surface by an
+  operator action instead.

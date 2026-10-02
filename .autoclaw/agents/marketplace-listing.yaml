@@ -1,16 +1,54 @@
-id: marketplace-listing
-name: Marketplace Listing Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Validates product listings against halal, jurisdiction, and marketplace rules.
+name: marketplace-listing
+role: Product Listing Validator
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:product
+  - read:ingredient
+  - read:jurisdiction
+  - read:policy
+  - propose:listing-assessment
+  - propose:finding
+  - call:mcp:halalchain_list_endpoints
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # A listing is vendor-supplied content. This agent checks it against the
+  # published rules and reports discrepancies; it does not decide whether a
+  # product is halal, and a listing that passes is not a listing that is
+  # certified.
+  - publish:listing
+  - decide:compliance
+  # A claim of halal status on a listing is a regulated assertion. This agent
+  # reports the claim and the certificate behind it, or reports its absence.
+  - assert:halal-status
+  - list:without-certificate-reference
+
 skills:
   - marketplace-listing
   - e-code-lookup
   - jurisdiction-mapper
   - policy-evaluator
-reference:
-  - reference/ingredients/e_codes.yaml
-  - reference/jurisdictions/
-  - reference/policies/marketplace_rules.yaml
-eval:
-  suite: eval/agents/marketplace-listing.eval.yaml
+
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
+
+escalation:
+  on_undeclared_allergen: notify:producer
+  on_jurisdiction_mismatch: notify:tenant-admin
+  on_certificate_claim_without_certificate: notify:tenant-admin
+
+notes: |
+  Validates product listings against halal rules, the applicable jurisdiction's
+  requirements, and marketplace rules.
+
+  Jurisdictional scope is per-listing: the same product listed for MY and for AE
+  is assessed against JAKIM and ESMA respectively, and a listing that is
+  complete for one is not thereby complete for the other.

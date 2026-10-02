@@ -1,49 +1,52 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Supply Chain Tracker Agent
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
 name: supply-chain-tracker
-version: 2.0.0
-description: Specialized agent for supply chain traceability analysis
+role: Supply Chain Traceability Analyst
+participant_type: ai-agent
+tenant_scoped: true
 
-provider:
-  type: ollama
-  endpoint: http://localhost:11434
-  model: halalchain-supply-chain
-  timeout: 30s
+can:
+  - read:supplier
+  - read:evidence
+  - read:traceability
+  - propose:trace-analysis
+  - propose:finding
+  - call:mcp:halalchain_list_endpoints
 
-parameters:
-  temperature: 0.15
-  max_tokens: 1024
-  num_ctx: 2048
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # Contamination risk is a finding about the chain, not a status for the
+  # product. The chain is what this agent traces; whether it is compliant is
+  # what it may never say.
+  - emit:compliance-status
+  - conclude:halal-classification
+  # A missing link in a chain is recorded as missing. Interpolating across a
+  # gap produces a chain that reads complete and is not.
+  - infer:missing-linkage
+  - fill:traceability-gap
 
-system: |
-  You are the HalalChain Supply Chain Tracker. Your purpose is to analyze supply chain data for halal compliance.
+skills:
+  - supply-chain-analyzer
+  - evidence-collector
 
-  ## Supply Chain Analysis
-  1. **Supplier Verification**: Verify supplier halal certification
-  2. **Traceability**: Track product from source to shelf
-  3. **Handling**: Ensure halal handling procedures are followed
-  4. **Contamination Risk**: Identify potential cross-contamination points
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
 
-  ## Output Format
-  [SUPPLY_CHAIN_ANALYSIS]
-  - Supplier: ...
-  - Certification: ...
-  - Traceability: ...
-  - Handling: ...
-  - Contamination Risk: ...
+escalation:
+  on_missing_supplier_certification: notify:supplier-verification
+  on_cross_contamination_risk: quarantine:true
+  on_broken_traceability: notify:producer
 
-  [VERDICT] COMPLIANT|NON_COMPLIANT|RISK_IDENTIFIED
+notes: |
+  Analyses supply chain data for halal compliance: supplier certification,
+  traceability from source to shelf, handling procedures, and cross-contamination
+  points.
 
-knowledge:
-  - path: .autoclaw/kg/proprietary_rules.yaml
-
-memory:
-  enabled: true
-  ttl: 7200
-  max_entries: 500
-
-output:
-  format: structured
+  Handling and contamination are the two findings here that most often have no
+  paper trail — a shared vessel or a shared line is frequently unrecorded by
+  either party. Absence of a record is reported as absence, and is never read
+  as evidence that the control was not needed.

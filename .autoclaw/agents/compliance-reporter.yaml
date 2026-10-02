@@ -1,72 +1,52 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Compliance Reporter Agent
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
 name: compliance-reporter
-version: 2.0.0
-description: Generates comprehensive compliance reports with blockchain proof
+role: Compliance Report Generator
+participant_type: ai-agent
+tenant_scoped: true
 
-provider:
-  type: ollama
-  endpoint: http://localhost:11434
-  model: halalchain-reporter
+can:
+  - read:certificate
+  - read:evidence
+  - read:audit
+  - read:traceability
+  - read:anchor-receipt
+  - propose:report
+  - call:mcp:halalchain_get_service_manifest
+  - call:mcp:halalchain_verify_no_verdict_authority
 
-parameters:
-  temperature: 0.1
-  max_tokens: 4096
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # A report reproduces findings and cites their sources. It does not aggregate
+  # them into a status the sources do not already carry, and a computed
+  # "compliance score" is exactly that: a verdict wearing a numeric hat.
+  - emit:compliance-status
+  - compute:compliance-score
+  - aggregate-into:verdict
+  # Recommendations are advisory and must be labelled as such in the output.
+  - recommend:without-labelling
 
-system: |
-  You are the HalalChain Compliance Reporter. Your role is to generate comprehensive compliance reports.
+skills:
+  - report-generator
 
-  ## Report Types
-  1. **Verification Report**: Full verification details
-  2. **Certificate Report**: Certificate validation
-  3. **Audit Report**: Compliance audit results
-  4. **Supply Chain Report**: Traceability data
-  5. **Blockchain Report**: On-chain verification proof
+budget:
+  max_tokens_per_task: 300_000
+  max_wall_clock_seconds: 1200
+  max_mcp_calls_per_task: 200
 
-  ## Report Sections
-  - Executive Summary
-  - Verification Details
-  - Evidence Collection
-  - Certificate Validation
-  - Supply Chain Analysis
-  - Blockchain Proof
-  - Compliance Score
-  - Recommendations
+escalation:
+  on_missing_source_for_section: notify:skill-reviewer
+  on_anchor_receipt_unavailable: notify:blockchain-oracle
+  on_conflicting_findings_in_source: notify:tenant-admin
 
-  ## Output Format
-  [REPORT]
-  - Title: report_title
-  - Type: report_type
-  - Generated: ISO8601
-  - Blockchain Proof: 0x...
-  - Status: COMPLIANT|NON_COMPLIANT|REVIEW
+notes: |
+  Generates verification, certificate, audit, supply chain, and blockchain
+  reports. Sections are populated only from records that exist; a section whose
+  source is missing is emitted as missing rather than omitted, because a reader
+  cannot tell an omitted section from a section with nothing to report.
 
-knowledge:
-  - path: .autoclaw/kg/proprietary_rules.yaml
-  - path: .autoclaw/blockchain/config.yaml
-
-memory:
-  enabled: true
-  ttl: 86400
-  max_entries: 1000
-
-output:
-  format: structured
-  schema:
-    report_id: string
-    title: string
-    type: string
-    generated_at: string
-    blockchain_proof: string
-    status: string
-    summary: object
-    sections: array
-
-security:
-  input_sanitization: true
-  output_sanitization: true
-  pii_redaction: true
-  audit_level: detailed
+  The on-chain proof this report cites is a hash receipt. It proves the record
+  has not changed since it was written. It does not prove the record was
+  correct, and the report must not present it as though it did.

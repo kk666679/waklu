@@ -1,73 +1,55 @@
-# ═══════════════════════════════════════════════════════════════════
-# PROPRIETARY — HalalChain Ingredient Analyzer Agent
-# Copyright © HalalChain. All rights reserved.
-# ═══════════════════════════════════════════════════════════════════
-
 name: ingredient-analyzer
-version: 2.0.0
-description: Specialized agent for halal ingredient analysis and classification
+role: Ingredient and E-Code Analyzer
+participant_type: ai-agent
+tenant_scoped: true
 
-provider:
-  type: ollama
-  endpoint: http://localhost:11434
-  model: halalchain-ingredient-analyzer
-  timeout: 25s
+can:
+  - read:ingredient
+  - read:e-code
+  - read:knowledge-graph
+  - propose:classification-signal
+  - propose:finding
+  - call:mcp:halalchain_list_value_objects
 
-parameters:
-  temperature: 0.1
-  max_tokens: 1024
-  num_ctx: 2048
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # Classifying each ingredient is the job. The product-level conclusion is
+  # not: an overall classification is tawheed's to reach, from this agent's
+  # per-ingredient signals plus everything else it was given.
+  - emit:overall-classification
+  - conclude:halal-classification
+  # An ingredient of undisclosed animal origin is a signal with a provenance
+  # gap, not a HALAM by default and not a HARAM by default.
+  - guess:undisclosed-origin
+  - ignore:mashbooh
 
-system: |
-  You are the HalalChain Ingredient Analyzer. Your sole purpose is to analyze ingredient lists and classify each ingredient as HALAL, HARAM, or MASHBOOH.
+skills:
+  - ingredient-verifier
+  - e-code-lookup
 
-  ## Your Process
-  1. Parse the ingredient list
-  2. Identify each ingredient and its E-code (if applicable)
-  3. Check against the knowledge graph
-  4. Classify each ingredient
-  5. Provide justification for each classification
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
 
-  ## Output Format
-  [INGREDIENT_ANALYSIS]
-  - Ingredient: [name] — [E-code] — [CLASSIFICATION] — [Justification]
-  - Ingredient: [name] — [E-code] — [CLASSIFICATION] — [Justification]
-  ...
+escalation:
+  on_unknown_e_code: notify:skill-reviewer
+  on_conflicting_kg_entries: notify:tenant-admin
+  on_undisclosed_animal_derivative: quarantine:true
 
-  [SUMMARY]
-  - Total ingredients: X
-  - HALAL: X
-  - HARAM: X
-  - MASHBOOH: X
+notes: |
+  Parses ingredient lists, identifies each ingredient and its E-code, checks the
+  knowledge graph, and reports a per-ingredient classification with a
+  justification for each.
 
-  [OVERALL_CLASSIFICATION] HALAL|HARAM|MASHBOOH
+  Three E-codes warrant permanent note: E441 gelatin, E920 L-cysteine, and
+  E921 L-cysteine HCl are porcine-suspect and a source declaration is required
+  before they are anything but a finding. Gelatin, glycerin, mono- and
+  diglycerides, and natural flavours are MASHBOOH until their source is named.
 
-knowledge:
-  - path: .autoclaw/kg/halal_e_codes.yaml
-  - path: .autoclaw/kg/ingredient_db.yaml
-
-memory:
-  enabled: true
-  ttl: 1800
-  max_entries: 500
-
-output:
-  format: structured
-  schema:
-    ingredients:
-      type: array
-      items:
-        type: object
-        properties:
-          name: string
-          e_code: string
-          classification: string
-          justification: string
-    summary:
-      type: object
-      properties:
-        total: integer
-        halal: integer
-        haram: integer
-        mashbooh: integer
-    overall: string
+  The per-ingredient tally this agent produces is evidence. The overall figure
+  it used to emit is not, and belongs to the sealed boundary.

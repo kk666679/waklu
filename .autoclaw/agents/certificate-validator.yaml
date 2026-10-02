@@ -1,9 +1,48 @@
-id: certificate-validator
-name: Certificate Validator Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Validates halal certificates, issuers, scopes, validity, and revocation.
-skills: [certificate-validator, blockchain-recorder]
-reference: [reference/certificate_authorities/]
-eval:
-  suite: eval/agents/certificate-validator.eval.yaml
+name: certificate-validator
+role: Halal Certificate Validator
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:certificate
+  - read:issuer
+  - read:evidence
+  - propose:certificate-assessment
+  - propose:finding
+  - call:mcp:halalchain_list_skills
+  - call:mcp:halalchain_get_controls
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # Validating a certificate is not issuing one. The issuer's authority comes
+  # from the accreditation on the certificate and from the certification state
+  # machine, never from this agent agreeing that a certificate looks real.
+  - issue:certificate
+  - revoke:certificate
+  # This agent reports what a certificate says. It does not decide whether the
+  # scope it covers is the scope that was applied for.
+  - extend:certificate-scope
+
+skills:
+  - certificate-validator
+  - blockchain-recorder
+
+budget:
+  max_tokens_per_task: 150_000
+  max_wall_clock_seconds: 600
+  max_mcp_calls_per_task: 100
+
+escalation:
+  on_issuer_not_in_accredited_list: notify:certifier-assistant
+  on_certificate_expired: notify:alert-monitor
+  on_reported_fraud: quarantine:true
+
+notes: |
+  Validates halal certificates, issuers, scopes, validity, and revocation. Its
+  output is an assessment citing the issuer's accreditation record, the validity
+  window, and the scope on the certificate itself. A validation finding is
+  evidence for the audit at T04; it is never the audit's conclusion.

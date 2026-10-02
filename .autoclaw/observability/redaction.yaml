@@ -7,21 +7,31 @@ applies_to: HalalChain.Mcp
 # telemetry change can be made without touching the secret list.
 
 pipeline:
+  # Every stage below runs in memory, on the record as it is being assembled,
+  # and completes before the record reaches any sink. `order: before-write` is
+  # the load-bearing declaration here: a pipeline that redacted on read would
+  # leave the secret on disk for the whole interval between the write and the
+  # read, and a leaked secret is leaked from the moment it is persisted —
+  # not from the moment somebody reads it back.
   - stage: capture
     applies_to: [log, trace, exception, metric-label, audit]
+    order: before-write
     action: none
   - stage: redact
     applies_to: [log, trace, exception, metric-label]
+    order: before-write
     patterns: security/secrets/never-log.yaml
     action: replace-with [REDACTED:{name}]
   - stage: drop
     applies_to: [metric-label]
+    order: before-write
     # A metric label containing a secret is dropped entirely rather than
     # replaced. Labels are indexed; a redacted label is still a high-cardinality
     # slot that an operator will try to group by.
     action: drop-record
   - stage: wrap
     applies_to: [exception]
+    order: before-write
     # Exceptions are wrapped, not string-matched, because a secret usually
     # arrives through a message or a stack frame that sanitising the message
     # would not reach.

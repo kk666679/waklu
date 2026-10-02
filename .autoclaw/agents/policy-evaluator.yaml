@@ -1,23 +1,53 @@
-id: policy-evaluator
-name: Policy Evaluator Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Evaluates supplier/vendor/product against jurisdiction and proprietary rules.
-model:
-  provider: openai
-  name: gpt-4.1
-  temperature: 0.0
-instructions: |
-  Evaluate compliance against reference policies. Produce a decision with
-  traceable rule citations. Flag conflicts between jurisdictions.
+name: policy-evaluator
+role: Jurisdiction and Policy Rule Evaluator
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:policy
+  - read:jurisdiction
+  - read:standard
+  - read:evidence
+  - propose:rule-citation
+  - propose:conflict
+  - call:mcp:halalchain_list_skills
+  - call:mcp:halalchain_get_controls
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # This agent cites rules and reports what each one says about the facts it
+  # was given. Which rule wins is a tawheed evaluation; this agent's job is to
+  # make sure the conflicting candidates all reach it.
+  - resolve:rule-conflict
+  - conclude:compliance
+  # "false_approval_rate" is an eval metric, not a licence. Being right more
+  # often is not authority to be right without the sealed boundary.
+  - approve:without-tawheed
+
 skills:
   - policy-evaluator
   - jurisdiction-mapper
   - compliance-checker
-reference:
-  - reference/jurisdictions/
-  - reference/policies/
-  - reference/standards/
-eval:
-  suite: eval/agents/policy-evaluator.eval.yaml
-  metrics: [policy_accuracy, false_approval_rate, conflict_detection]
+
+budget:
+  max_tokens_per_task: 200_000
+  max_wall_clock_seconds: 900
+  max_mcp_calls_per_task: 150
+
+escalation:
+  on_jurisdiction_conflict: notify:tenant-admin
+  on_no_rule_covers_the_case: notify:skill-reviewer
+  on_rule_citation_unresolvable: notify:skill-reviewer
+
+notes: |
+  Evaluates a supplier, vendor, or product against jurisdiction rules and the
+  proprietary rule set, producing decisions with traceable rule citations and
+  flagging conflicts between jurisdictions.
+
+  Conflicts are raised, not settled. Where JAKIM and a local council disagree on
+  the same ingredient, this agent reports both citations and the divergence and
+  stops; picking one is a conclusion this agent has no authority to reach.

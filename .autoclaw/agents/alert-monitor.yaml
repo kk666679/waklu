@@ -1,8 +1,49 @@
-id: alert-monitor
-name: Alert Monitor Agent
-version: 2.0.0
-updated: 2026-08-31
-description: Monitors certificate expiry, policy changes, missing evidence, failed verification.
-skills: [alert-dispatcher]
-eval:
-  suite: eval/agents/alert-monitor.eval.yaml
+name: alert-monitor
+role: Certificate and Policy Alert Monitor
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:certificate
+  - read:policy
+  - read:evidence
+  - read:verification
+  - propose:notification
+  - schedule:check
+  - notify:tenant-admin
+  - notify:producer
+  - call:mcp:halalchain_list_endpoints
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # An alert asserts that something needs attention. It never asserts the
+  # thing is compliant or non-compliant; raising one is not a finding.
+  - decide:compliance
+  # A missed alert is a monitoring failure to be fixed, not an invitation to
+  # mark the condition as handled by hand without an audit record.
+  - suppress:alert_without_audit
+
+skills:
+  - alert-dispatcher
+
+budget:
+  max_tokens_per_task: 100_000
+  max_wall_clock_seconds: 300
+  max_mcp_calls_per_task: 50
+
+escalation:
+  on_certificate_expiring: notify:tenant-admin
+  on_policy_changed: notify:skill-reviewer
+  on_verification_failed: notify:producer
+  on_monitor_itself_failing: notify:tenant-admin
+
+notes: |
+  Monitors certificate expiry, policy changes, missing evidence, and failed
+  verification. Detection is the whole job: this agent raises a signal that a
+  human or a workflow then acts on. It is deliberately the only thing it does,
+  because a monitor that also acts cannot be distinguished from an agent that
+  made the decision it is asking someone else to review.

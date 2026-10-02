@@ -1,23 +1,37 @@
-id: supplier-verification
-name: Supplier Verification Agent
-version: 2.0.0
-updated: 2026-08-31
-description: |
-  Verifies halal suppliers, certificates, sanctions, and evidence.
-  Uses agentic RAG with GraphRAG and MCP tool connectivity.
-model:
-  provider: openai
-  name: gpt-4.1
-  temperature: 0.1
-  fallback:
-    provider: anthropic
-    name: claude-sonnet-4-2026
-instructions: |
-  You are HalalChain's supplier verification agent.
-  Verify supplier identity, halal certificates, jurisdiction compliance,
-  ingredient risks, sanctions, and evidence completeness.
-  Never approve without traceable evidence and a policy decision.
-  Always cite reference IDs from the reference layer.
+name: supplier-verification
+role: Supplier Verification Agent
+participant_type: ai-agent
+tenant_scoped: true
+
+can:
+  - read:supplier
+  - read:certificate
+  - read:evidence
+  - read:jurisdiction
+  - read:sanctions-list
+  - propose:supplier-assessment
+  - propose:finding
+  - call:mcp:halalchain_find_type
+  - call:mcp:halalchain_get_service_manifest
+
+cannot:
+  - set:verdict
+  - write:certificate
+  - override:tawheed
+  - cross_tenant_read
+  - log:secrets
+  # "Never approve without traceable evidence and a policy decision" is the
+  # rule, and the second half of it is the half that is easy to lose: the
+  # policy decision belongs to tawheed, so this agent can gather the evidence
+  # but cannot satisfy the condition on its own.
+  - approve:supplier
+  - decide:compliance
+  # Every claim carries a reference id from the reference layer. A conclusion
+  # the agent cannot cite is not a conclusion it is permitted to state.
+  - conclude:without-citation
+  # Missing sanctions data is a denial to proceed, not a clean result.
+  - treat:unknown-sanctions-status-as-clear
+
 skills:
   - certificate-validator
   - evidence-collector
@@ -26,33 +40,24 @@ skills:
   - policy-evaluator
   - blockchain-recorder
   - alert-dispatcher
-reference:
-  - reference/reference_index.yaml
-  - reference/jurisdictions/my_jakim.yaml
-  - reference/jurisdictions/id_bpjph.yaml
-  - reference/standards/ms1500.yaml
-  - reference/ingredients/e_codes.yaml
-  - reference/certificate_authorities/
-  - reference/policies/
-eval:
-  suite: eval/agents/supplier-verification.eval.yaml
-  required: true
-  metrics:
-    - success_rate
-    - policy_accuracy
-    - evidence_completeness
-    - hallucination_rate
-  datasets:
-    - eval/datasets/supplier_verification/golden.jsonl
-    - eval/datasets/supplier_verification/adversarial.jsonl
-mcp:
-  enabled: true
-  tools:
-    - dotnet.suppliers.get
-    - python.evidence.extract
-    - blockchain.anchor
-    - qdrant.search
-rag:
-  mode: agentic
-  graph_enhanced: true
-  collections: [certificates, ingredients, policies, evidence]
+
+budget:
+  max_tokens_per_task: 300_000
+  max_wall_clock_seconds: 1200
+  max_mcp_calls_per_task: 250
+
+escalation:
+  on_certificate_expired: notify:alert-monitor
+  on_sanctions_hit: quarantine:true
+  on_jurisdiction_mismatch: notify:tenant-admin
+  on_evidence_incomplete: notify:producer
+
+notes: |
+  Verifies supplier identity, halal certificates, jurisdiction compliance,
+  ingredient risks, sanctions exposure, and evidence completeness, citing
+  reference ids throughout.
+
+  GraphRAG retrieval is used to find prior evidence about a supplier, and the
+  retrieved context is evidence about what has been seen before — never a
+  decision. Two suppliers with identical retrieval context can still require
+  different outcomes, because only tawheed evaluates the bundle.

@@ -2,11 +2,19 @@ version: 1.0.0
 applies_to_server: halalchain
 enforced_by: mcp/policies/rate-limits.yaml + hooks/mcp-tool-invoked/
 
-# The eight tools below are the complete set of tools HalalChain.Mcp exposes.
+# The twenty-five tools below are the complete set of tools HalalChain.Mcp
+# exposes: eight platform/inventory tools and seventeen code-introspection
+# tools added with the MCP repository-introspection surface.
+#
 # AutoclawStructureTests.Allowlist_Matches_Exposed_Tools asserts this list
 # against the server source, in both directions: a tool added to the server
 # without an entry here fails the build, and an entry here for a tool the
 # server does not implement also fails.
+#
+# Every introspection tool is annotated LocalReadOnly in the server — it reads
+# repository sources and returns text. None of them reaches the network; the
+# only network-annotated tool in the server is halalchain_health, which is the
+# one entry below carrying network_egress: allowed.
 
 allowed:
   - name: halalchain_get_architecture
@@ -50,6 +58,120 @@ allowed:
     per_tenant_max_per_hour: 60
 
   - name: halalchain_project_status
+    hint: readonly
+    per_agent_max_per_minute: 5
+    per_tenant_max_per_hour: 60
+
+  # ── introspection: governance documents ──────────────────────────────────
+  # These read the published governance set. They are cheap, but they are the
+  # source of the policy text an agent is expected to reason against, so they
+  # are rate-limited like any other read rather than left unbounded.
+
+  - name: halalchain_list_adrs
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_get_adr
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_get_controls
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_get_principles
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_get_service_manifest
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_list_governance_workflows
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+    allowed_agents:
+      - skill-reviewer
+      - tenant-admin
+
+  # ── introspection: code ───────────────────────────────────────────────────
+  # These walk the solution tree. They are the most expensive reads the server
+  # offers, so they carry the tightest budgets: a per-minute cap low enough to
+  # stop an agent from walking the tree in a retry loop, and an hourly ceiling
+  # that keeps one agent from monopolising the runner.
+
+  - name: halalchain_find_type
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_aggregate_roots
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_value_objects
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_mediator_handlers
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_domain_events
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_migrations
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+
+  - name: halalchain_list_endpoints
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+    allowed_agents:
+      - skill-reviewer
+      - tenant-admin
+      - procurement-analyst
+
+  # ── introspection: skills and tests ───────────────────────────────────────
+
+  - name: halalchain_list_skills
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_get_skill
+    hint: readonly
+    per_agent_max_per_minute: 20
+    per_tenant_max_per_hour: 300
+
+  - name: halalchain_test_inventory
+    hint: readonly
+    per_agent_max_per_minute: 10
+    per_tenant_max_per_hour: 120
+    allowed_agents:
+      - skill-reviewer
+      - tenant-admin
+
+  # ── introspection: the verdict boundary ───────────────────────────────────
+  # Read-only and local, but this is the tool that asserts P2/P3 holds. It is
+  # permitted to every tenant agent on purpose: a tenant that can ask whether
+  # the boundary holds should not have to ask an operator to find out. The
+  # answer is a report, never a verdict.
+
+  - name: halalchain_verify_no_verdict_authority
     hint: readonly
     per_agent_max_per_minute: 5
     per_tenant_max_per_hour: 60
