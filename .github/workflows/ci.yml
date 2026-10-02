@@ -68,17 +68,13 @@ jobs:
       - name: Install ${{ matrix.service }} dependencies
         working-directory: .halalchain/${{ matrix.service }}
         run: |
-          if [[ "${{ matrix.service }}" == "local-models" ]]; then
-            pip install --disable-pip-version-check -r ../requirements/base.txt
-          else
-            pip install --disable-pip-version-check -r requirements.txt
-          fi
+          pip install --disable-pip-version-check -r requirements.txt
           pip install --disable-pip-version-check -r ../requirements-test.txt
           pip install --disable-pip-version-check ../_shared
-      # Fails loudly instead of the way a comment-only requirements file failed
-      # before: a no-op install used to surface much later as a confusing
-      # "pytest: command not found". These imports are exactly what
-      # src/observability.py and src/main.py need at module scope.
+      # Verify the runtime and test dependencies are importable. ai-inference and
+      # tawheed import src/observability.py at module scope, which requires
+      # prometheus_client and opentelemetry. local-models does not, so those
+      # imports are skipped for that service.
       - name: Verify the runtime and test dependencies are importable
         working-directory: .halalchain/${{ matrix.service }}
         env:
@@ -104,6 +100,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION }}
       - name: Check vulnerable dependencies
         run: dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive
 
