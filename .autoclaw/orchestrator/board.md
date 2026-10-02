@@ -1,7 +1,7 @@
 # AutoClaw Agendaboard
 
-_Generated 2026-09-29T15:57:44.571Z by board-watch_
-_Fleet: 1 live / 1 known_
+_Generated 2026-10-02T10:57:58.879Z by orchestrator-loop_
+_Fleet: 0 live / 2 known_
 
 | Section | Count |
 |---|---|

@@ -1,9 +1,9 @@
 {
-  "tick": 2407,
+  "tick": 2798,
   "startedAt": "2026-09-25T11:13:35.989Z",
-  "lastTickAt": "2026-09-29T14:39:30.307Z",
+  "lastTickAt": "2026-10-02T10:57:58.880Z",
   "totalAgentsSeen": 13,
-  "totalTicks": 2407,
+  "totalTicks": 2798,
   "totalErrors": 16,
   "totalDispatches": 242,
   "vendorStats": {},

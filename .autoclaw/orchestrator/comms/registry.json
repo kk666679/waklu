@@ -1,24 +1,11 @@
 {
   "agents": [
     {
-      "id": "kiro",
-      "name": "Kiro",
-      "extension_id": "amazon.kiro",
-      "detected": true,
-      "rules_path": ".kiro\\steering\\cross-agent.md",
-      "inbox_path": ".autoclaw/orchestrator/comms/inboxes/kiro/",
-      "hooks_supported": true,
-      "last_heartbeat": null,
-      "status": "detected",
-      "loop_mechanism": "cli-headless",
-      "keepalive_template": "templates/keepalive/kiro.md"
-    },
-    {
       "id": "kilocode",
       "name": "Kilo Code",
       "extension_id": "kilocode.kilo-code",
       "detected": true,
-      "rules_path": ".clinerules\\cross-agent-protocol.md",
+      "rules_path": ".clinerules/cross-agent-protocol.md",
       "inbox_path": ".autoclaw/orchestrator/comms/inboxes/kilocode/",
       "hooks_supported": false,
       "last_heartbeat": null,
@@ -31,15 +18,28 @@
       "name": "Cline",
       "extension_id": "saoudrizwan.claude-dev",
       "detected": true,
-      "rules_path": ".clinerules\\cross-agent-protocol.md",
+      "rules_path": ".clinerules/cross-agent-protocol.md",
       "inbox_path": ".autoclaw/orchestrator/comms/inboxes/cline/",
       "hooks_supported": false,
       "last_heartbeat": null,
       "status": "detected",
       "loop_mechanism": "plain-message",
       "keepalive_template": "templates/keepalive/kilocode.md"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "extension_id": null,
+      "detected": true,
+      "rules_path": ".cursor/rules/cross-agent-protocol.md",
+      "inbox_path": ".autoclaw/orchestrator/comms/inboxes/cursor/",
+      "hooks_supported": false,
+      "last_heartbeat": null,
+      "status": "detected",
+      "loop_mechanism": "cli-headless",
+      "keepalive_template": "templates/keepalive/cursor.md"
     }
   ],
-  "ide": "Kiro",
-  "provisioned_at": "2026-09-28T17:36:31.061Z"
+  "ide": "Visual Studio Code",
+  "provisioned_at": "2026-10-02T06:41:18.386Z"
 }
