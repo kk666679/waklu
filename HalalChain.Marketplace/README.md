@@ -2,6 +2,64 @@
 
 > **The composable trust infrastructure for the global halal economy.**
 
+---
+
+## About this directory
+
+`HalalChain.Marketplace/` is the **vendor marketplace web application** — an ASP.NET Core app combining Razor Pages, Blazor Server, and SignalR, mapped to host port `5201` in the local stack.
+
+**This document is the product and platform vision.** It is the authoritative statement of *what HalalChain Marketplace is for*, its ecosystem model, its capability and governance concepts, and its roadmap. It is not an implementation guide and does not describe the code in this directory.
+
+For the implementation, use:
+
+| Document | Covers |
+| --- | --- |
+| `TESTING_GUIDE.md` | Test layout and how to run it |
+| `COMPONENT_MIGRATION_GUIDE.md` | Moving components between areas |
+| `COMPONENT_TEST_CHECKLIST.md` | Review checklist for new components |
+| `VENDOR_PORTAL_GUIDE.md` | The vendor portal feature |
+| `VERIFICATION_FEATURE.md` | Halal verification in the marketplace |
+| `REALTIME_FEATURES.md` | The SignalR hubs |
+| [HalalChain.Marketplace.Tests/README.md](../HalalChain.Marketplace.Tests/README.md) | The test project |
+| [../docs/architecture/05-integration-workflows.md](../docs/architecture/05-integration-workflows.md) | How this app connects to the rest of the platform |
+
+### Code layout at a glance
+
+```
+HalalChain.Marketplace/
+├── Program.cs                     # Composition root
+├── App.razor, _Imports.razor
+├── Components/                    # Admin, Dashboard, Layouts, Shared
+├── Pages/                         # Account, Admin, Cart, Catalog, Checkout,
+│                                  #   Dashboard, Home, Orders, Products,
+│                                  #   VendorPortal, Vendors, Verify
+├── Models/                        # Dashboard, Mapping, ViewModels
+├── Data/                          # ApplicationDbContext, PlatformDbContext
+├── Repositories/                  # Repositories + Repositories/Dashboard
+├── Services/                      # Abstractions, Dashboard (+CacheStrategies),
+│                                  #   Tenancy, Wishlist
+├── State/                         # AppState, CartState, NotificationState
+├── Realtime/                      # CartHub, OrderHub,
+│                                  #   RealtimeNotificationBridge
+├── Migrations/                    # EF Core migrations
+├── DependencyInjection/
+├── wwwroot/                       # css, js, scss
+├── appsettings*.json              # incl. dashboard-specific variants
+└── Dockerfile                     # Container build
+```
+
+Project references: `HalalChain.Application`, `HalalChain.Domain`,
+`HalalChain.Platform.Contracts`, `HalalChain.Platform.Http`. It deliberately
+does **not** reference `HalalChain.Platform.Api` — the marketplace consumes the
+platform over HTTP, and that rule is enforced by
+`HalalChain.Architecture.Tests`.
+
+---
+
+# Vision
+
+> The rest of this document is the platform vision.
+
 HalalChain Marketplace is a multi-participant digital infrastructure platform for connecting the organizations, professionals, technologies, evidence sources, financial services, logistics providers, AI systems, and consumers that participate in the global halal economy.
 
 It is designed to operate beyond a conventional product marketplace.

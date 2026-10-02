@@ -28,6 +28,26 @@ best; these are now real:
   ceilings.
 - `IAgentTraceStore` → `InMemoryAgentTraceIndex`. Read side only.
 
+## Wiring status
+
+Two registration methods exist, and they are not equally wired:
+
+| Method | Called from | Notes |
+| --- | --- | --- |
+| `AddAgentRuntime(IConfiguration)` | `HalalChain.Platform.Api/Program.cs` | Binds `AgentsRuntimeOptions` from the `Agents` section. **Throws at client-configuration time if `Agents:BaseUrl` is blank** — there is deliberately no in-process fallback, so the API cannot start without an agents endpoint configured |
+| `AddAgentEvaluation(NodeThresholds?)` | nothing in production code | Registers `AgentTraceEvaluator`, `NodeScorerRegistry`, `BlobStoreTraceLoader`, and `InMemoryAgentTraceIndex`. Exercised only by `HalalChain.Agents.Tests` |
+
+Consequences worth knowing before relying on either path:
+
+- The API starts only if `Agents:BaseUrl` is set. In the local stack that is the
+  `agents` service, published on host port `8081`.
+- Because `AddAgentEvaluation` is never called, no trace is loaded and no
+  evaluation runs in any deployable service. The evaluation DAG is currently a
+  test-only capability.
+- `IAgentTraceStore` resolves to `InMemoryAgentTraceIndex`, so even if
+  evaluation were wired, traces would only be visible within the process that
+  wrote them.
+
 ## The verdict boundary
 
 The harness produces scores, root causes, and failure categories. It cannot

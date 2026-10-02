@@ -40,7 +40,15 @@ state.
 1. Implement `IScheduledJob` under `Jobs/<Category>/`.
 2. Delegate to an Application-layer handler. Do not add logic here.
 3. Register with `RegisterJob<T>()` in `Program.cs`.
-4. Add a test under `tests/`.
+
+There is **no test project for this host** — `HalalChain.Automation.Tests` does
+not exist and there is no `tests/` directory in this project, so step 4 of the
+original checklist ("add a test under `tests/`") cannot currently be completed.
+Adding a job therefore means adding coverage elsewhere (or creating the test
+project) — do not assume a local test harness exists.
+
+The eleven registered jobs are listed above; their names and cron expressions
+are asserted nowhere, so a rename is not caught by the suite.
 
 ## What does NOT belong here
 

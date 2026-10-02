@@ -79,20 +79,47 @@ tests; in production the S3 adapter's IAM-scoped presigned URLs are the correct
 answer and this type must never be deployed. Its constructor throws if the key
 is blank so it cannot fail open.
 
+**No project references this one.** `HalalChain.Storage` is a `ProjectReference`
+of `HalalChain.Agents` only. It is *not* referenced by
+`HalalChain.Platform.Api`, despite earlier revisions of this document claiming
+so.
+
+The assembly guard is `Storage_AssemblyDeclaresNoMerkleTreeType` in
+`HalalChain.Architecture.Tests/DependencyRulesTests.cs` — merge decision M1
+reserves Keccak-256 Merkle internals for the blockchain module, so Storage must
+not declare a Merkle type of its own.
+
 **`VerifyOnRead` is off by default** because it costs a full read on every
 retrieval. Enable it where integrity outweighs throughput — certificate
 retrieval, audit replay.
 
 ## Wiring
 
-In the API composition root:
+`StorageServiceCollectionExtensions` exposes three registration methods:
 
-1. `builder.Services.AddFileSystemStorage(builder.Configuration)` — or the S3
-   variant when the storage profile is active.
-2. `builder.Services.AddNdjsonAccessLog(builder.Configuration)` in dev, the
-   Postgres adapter in production.
-3. `builder.Services.AddHostedService<RetentionHostedService>()` — the sweep.
-4. `app.MapBlobProxy()` — the `GET /_blob/{hash}` endpoint.
+| Method | Registers |
+|---|---|
+| `AddFileSystemStorage(IConfiguration)` | `IContentHasher`→`Sha256ContentHasher`, `IBlobStore`→`FileSystemBlobStore`, `IEvidenceMetadataStore`→`FileSystemEvidenceMetadataStore`, `ISignedUrlIssuer`→`LocalProxySignedUrlIssuer`, `RetentionEvaluator`, `IEvidenceStore`→`EvidenceStore` (all singletons) |
+| `AddNdjsonAccessLog(IConfiguration)` | `IAccessLog`→`NdjsonAccessLogger` |
+| `AddNullAccessLog()` | internal `NullAccessLogger` |
 
-Steps 3 and 4 live in the API, not here, because they need the ASP.NET Core
-host. This library stays host-agnostic.
+**These are not currently called anywhere in production code.** A search across
+`HalalChain.Platform.Api`, `HalalChain.Marketplace`, and `HalalChain.Web` for
+`AddFileSystemStorage`, `AddNdjsonAccessLog`, `AddNullAccessLog`, `IBlobStore`,
+and `IEvidenceStore` returns nothing. The ports are declared in
+`HalalChain.Application/Storage/` and implemented here, but no composition root
+registers them, so the adapters do not run in any deployable service today.
+
+Consequences of that gap, recorded here so they are not mistaken for working
+features:
+
+- `RetentionEvaluator` exists but no hosted service calls it. There is no
+  `RetentionHostedService` in this repository.
+- `LocalProxySignedUrlIssuer` exists but no `GET /_blob/{hash}` endpoint is
+  mapped. There is no `MapBlobProxy()` extension here.
+- The S3 / Azure / IPFS / Postgres variants listed above do not exist in the
+  code; only the filesystem adapters ship.
+
+`HalalChain.Agents` references this project, but only to satisfy the
+`IBlobStore` / `IAgentTraceStore` *ports* in its type signatures
+(`BlobStoreTraceLoader`). It does not register these DI extensions either.

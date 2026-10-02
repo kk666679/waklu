@@ -85,6 +85,28 @@ halalchain sandbox clean
 `--experimental-permission` to `--permission` in Node 23.5, and the CLI
 probes for whichever the host accepts.
 
+## Structure
+
+```
+HalalChain-Cli/
+├── bin/halalchain.js   # Published entry point; prefers dist/, falls back to src/ via tsx
+├── src/
+│   ├── index.ts        # buildProgram() — registers every command
+│   ├── commands/       # One file per command, each exporting create<Name>Command()
+│   ├── lib/            # api-client.ts (the only .halalchain caller), config, secrets,
+│   │                   #   mcp-client, sandbox, banner, format, logger, validators
+│   └── runtime/        # chat.ts (agent loop), intent.ts
+├── skills/             # One directory per skill, each with SKILL.md
+│   ├── halalchain-agent/
+│   ├── halalchain-evaluate/
+│   ├── halalchain-vector/
+│   └── implementations/   # .pyc residue only; no tracked source
+├── test/               # node:test suites via tsx
+├── sandbox/            # Throwaway sandbox project (has its own node_modules)
+├── AGENTS.md           # Contributor conventions
+└── package.json        # bin: halalchain → ./bin/halalchain.js
+```
+
 ## Guarantees
 
 - **No verdict authority.** The CLI never decides compliance. `evaluate`
@@ -93,6 +115,10 @@ probes for whichever the host accepts.
   if one appears.
 - **No invented endpoints.** `src/lib/api-client.ts` is the only module that
   talks to `.halalchain/*`, and every route there maps to a real FastAPI route.
+- **No browser packages.** The CLI has no DOM. CI fails if a React or TanStack
+  React package appears in `dependencies` or `devDependencies`.
+- **MCP client is a process-level singleton.** A command handler must never
+  close it; CI greps `src/runtime/chat.ts` for `closeMCPClient` and fails.
 - **No secret leakage.** Every key in `SECRET_KEYS` is masked by `config list`,
   `config show-services` and `env`.
 
@@ -117,17 +143,34 @@ variables.
 | `HALALCHAIN_JURISDICTION` | `tawheed.jurisdiction` |
 | `HALALCHAIN_POLICY_VERSION` | `tawheed.policy-version` |
 
-## Development
+## Testing
 
-```bash
-npm install                            # from the repository root
-npm run typecheck --workspace HalalChain-Cli
-npm test --workspace HalalChain-Cli
-npm run build --workspace HalalChain-Cli
-```
+`npm test --workspace HalalChain-Cli` runs `node --test --import tsx` over
+`test/*.test.ts`: `api-client`, `banner`, `commands`, `config`, `format`,
+`mcp-lifecycle`, `sandbox`, `secrets`.
 
-The suite runs through `tsx`; `tsc --noEmit` type-checks the shipped code.
-See `AGENTS.md` for conventions.
+CI (`.github/workflows/cli.yml`) adds two guards on top of the suite — the
+no-browser-packages check and the `chat.ts` MCP-client check — and runs
+`npm run intent:validate` against the skills.
+
+## Deployment
+
+Published as the npm package `@halalchain/cli` (v3.0.0), shipping `bin/`,
+`dist/`, `skills/`, and `README.md`. Not deployed as a container.
+
+## Related Components
+
+- [HalalChain.Mcp](../HalalChain.Mcp/README.md) — the MCP server this CLI's `agent` command talks to
+- [.halalchain/](../.halalchain/README.md) — the four Python services this CLI calls
+- [.halalchain/tawheed](../.halalchain/tawheed/README.md) — the authority behind `evaluate`
+- [package.json](../package.json) — the workspace root that owns `npm run halalchain:cli`
+
+## Notes / Limitations
+
+- `skills/implementations/` contains only `__pycache__` `.pyc` files. No
+  Python skill implementation source is tracked.
+- The `sandbox` command provides no network isolation — see the Sandbox section
+  above and the rationale comment at the top of `src/lib/sandbox.ts`.
 
 ## License
 

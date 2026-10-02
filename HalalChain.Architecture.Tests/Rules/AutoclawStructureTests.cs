@@ -149,6 +149,7 @@ public sealed partial class AutoclawStructureTests
     {
         "CONTROLS.yaml",
         "MANIFEST.yaml",
+        "PRINCIPLES.md",
         "governance/",
         "hooks/",
         "mcp/policies/",
@@ -562,7 +563,7 @@ public sealed partial class AutoclawStructureTests
         var authorityLines = File.ReadAllLines(authority);
 
         var may = Section(authorityLines, "may_transition:")
-            .Select(l => l.Trim().TrimStart('-').Trim())
+            .Select(Scalar)
             .Where(s => s.Length > 0)
             .ToList();
 
@@ -580,7 +581,8 @@ public sealed partial class AutoclawStructureTests
         // around keeping out of the decision, so the assertion is explicit
         // rather than implied by the absence of an entry.
         var mayNot = Section(authorityLines, "may_not_transition:")
-            .Select(l => l.Trim().TrimStart('-').Trim())
+            .Select(Scalar)
+            .Where(s => s.Length > 0)
             .ToList();
 
         Assert.Contains("T06", mayNot);
@@ -822,6 +824,32 @@ public sealed partial class AutoclawStructureTests
             .Where(m => m.Success)
             .Select(m => m.Groups[1].Value.Trim('"', '\''))
             .ToList();
+    }
+
+    /// <summary>
+    /// A bare sequence item: leading dash removed, trailing inline comment
+    /// removed, surrounding quotes removed.
+    ///
+    /// The .autoclaw policy files use trailing <c>#</c> comments as a normal
+    /// convention — <c>- T06 # consultants/producers only</c> says something a
+    /// bare <c>T06</c> cannot — so a reader that does not strip them compares
+    /// an identifier against its own annotation and calls the two different.
+    /// The comment must be preceded by whitespace, so a <c>#</c> inside a value
+    /// survives; a hash inside a quoted string preceded by a space would not,
+    /// which is the one case this reader does not model and none of these
+    /// files use.
+    /// </summary>
+    private static string Scalar(string line)
+    {
+        var value = line.Trim().TrimStart('-').Trim();
+
+        var comment = value.IndexOf(" #", StringComparison.Ordinal);
+        if (comment >= 0)
+        {
+            value = value[..comment].TrimEnd();
+        }
+
+        return value.Trim('"', '\'');
     }
 
     /// <summary>
