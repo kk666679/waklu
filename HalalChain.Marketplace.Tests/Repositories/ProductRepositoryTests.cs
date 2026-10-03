@@ -11,7 +11,7 @@ using Xunit;
 namespace HalalChain.Marketplace.Tests.Repositories;
 
 /// <summary>Unit tests for ProductRepository using in-memory database.</summary>
-public class ProductRepositoryTests
+public class ProductRepositoryTests : IDisposable
 {
     private readonly PlatformDbContext _context;
     private readonly ProductRepository _repository;
