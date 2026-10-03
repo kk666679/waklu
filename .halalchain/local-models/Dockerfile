@@ -30,8 +30,16 @@ RUN pip install --no-cache-dir /tmp/_shared \
 # fastapi==0.120.0 (see local-models/pyproject.toml). Installing it unpinned here
 # is what made this stage unsatisfiable.
 COPY requirements/local-models.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir --no-deps .
+RUN pip install --no-cache-dir -r requirements.txt
+# The package itself is installed from source, so its module directory has to be
+# present in this stage. pyproject.toml resolves packages with
+# `packages.find where = ["src"]`, and setuptools fails while collecting the
+# wheel with "error in 'egg_base' option: 'src' does not exist or is not a
+# directory" when only the manifest was copied. The copy sits after the pinned
+# dependency install on purpose: llama-cpp-python compiles from source, so
+# keeping it above this line leaves that layer cached when only src changes.
+COPY local-models/src ./src
+RUN pip install --no-cache-dir --no-deps .
 
 FROM python:3.11-slim AS runtime
 
