@@ -26,12 +26,23 @@ ARG PROJECT=HalalChain.Marketplace
 ARG PROJECT_DLL=HalalChain.Marketplace
 WORKDIR /src
 COPY ["global.json", "Directory.Build.props", "Directory.Build.targets", "./"]
+COPY ["HalalChain.Domain/HalalChain.Domain.csproj", "HalalChain.Domain/"]
+COPY ["HalalChain.Application/HalalChain.Application.csproj", "HalalChain.Application/"]
 COPY ["HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj", "HalalChain.Platform.Contracts/"]
 COPY ["HalalChain.Platform.Http/HalalChain.Platform.Http.csproj", "HalalChain.Platform.Http/"]
 COPY ["${PROJECT}/${PROJECT}.csproj", "${PROJECT}/"]
+# Restore from the leaves inward. ${PROJECT} references Domain, Application,
+# Contracts and Http; Application in turn references Domain and Contracts. A
+# ProjectReference whose .csproj was not copied above is silently skipped by
+# restore and then fails the build with NETSDK1004, so every project in that
+# closure needs a COPY and a restore line here.
+RUN dotnet restore "HalalChain.Domain/HalalChain.Domain.csproj"
+RUN dotnet restore "HalalChain.Application/HalalChain.Application.csproj"
 RUN dotnet restore "HalalChain.Platform.Http/HalalChain.Platform.Http.csproj"
 RUN dotnet restore "${PROJECT}/${PROJECT}.csproj"
 COPY . .
+RUN dotnet build "HalalChain.Domain/HalalChain.Domain.csproj" -c Release --no-restore
+RUN dotnet build "HalalChain.Application/HalalChain.Application.csproj" -c Release --no-restore
 RUN dotnet build "HalalChain.Platform.Http/HalalChain.Platform.Http.csproj" -c Release --no-restore
 RUN dotnet build "${PROJECT}/${PROJECT}.csproj" -c Release --no-restore -o /app/build
 FROM build AS publish
