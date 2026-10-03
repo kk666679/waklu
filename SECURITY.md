@@ -275,4 +275,4 @@ request.
 | Licensing | `licensing@halalchain.xyz` |
 | Data protection | `dpo@halalchain.xyz` |
 | Certification compliance | `compliance@halalchain.xyz` |
-| Community conduct | HalalChain Code of Conduct (see the project README) |
+| Community conduct | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — report to the addresses named there |
