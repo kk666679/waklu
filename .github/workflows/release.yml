@@ -32,15 +32,42 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    # The matrix must live on the job. `strategy` is not a valid step key: when
+    # it was nested under the build step, GitHub rejected the whole workflow
+    # file and every push failed this run in 0s with no jobs at all.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: halalchain-platform-api
+            dockerfile: ./Dockerfile
+            context: .
+          - image: halalchain-web
+            dockerfile: ./HalalChain.Web/Dockerfile
+            context: .
+          - image: halalchain-marketplace
+            dockerfile: ./HalalChain.Marketplace/Dockerfile
+            context: .
+          # Both Python services build from the .halalchain/ context so the
+          # _shared package and the pinned requirements/ locks are
+          # reachable; their Dockerfiles copy from that layout. These two
+          # were previously never published, yet values.yaml and
+          # deploy-staging both reference them by SHA tag.
+          - image: halalchain-ai-inference
+            dockerfile: ./.halalchain/ai-inference/Dockerfile
+            context: ./.halalchain
+          - image: halalchain-tawheed
+            dockerfile: ./.halalchain/tawheed/Dockerfile
+            context: ./.halalchain
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -50,7 +77,7 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Build and push images
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -58,30 +85,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:latest
-        strategy:
-          fail-fast: false
-          matrix:
-            include:
-              - image: halalchain-platform-api
-                dockerfile: ./Dockerfile
-                context: .
-              - image: halalchain-web
-                dockerfile: ./HalalChain.Web/Dockerfile
-                context: .
-              - image: halalchain-marketplace
-                dockerfile: ./HalalChain.Marketplace/Dockerfile
-                context: .
-              # Both Python services build from the .halalchain/ context so the
-              # _shared package and the pinned requirements/ locks are
-              # reachable; their Dockerfiles copy from that layout. These two
-              # were previously never published, yet values.yaml and
-              # deploy-staging both reference them by SHA tag.
-              - image: halalchain-ai-inference
-                dockerfile: ./.halalchain/ai-inference/Dockerfile
-                context: ./.halalchain
-              - image: halalchain-tawheed
-                dockerfile: ./.halalchain/tawheed/Dockerfile
-                context: ./.halalchain
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
@@ -106,7 +109,7 @@ jobs:
           done
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Helm lint
         run: helm lint ./deploy/helm/halalchain
@@ -118,8 +121,8 @@ jobs:
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v5
+      - uses: azure/setup-helm@v5
       - name: Deploy to staging
         env:
           REGISTRY: ${{ env.REGISTRY }}
@@ -169,8 +172,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v5
+      - uses: azure/setup-helm@v5
       - name: Deploy to production
         env:
           REGISTRY: ${{ env.REGISTRY }}
