@@ -17,15 +17,30 @@ COPY ["global.json", "Directory.Build.props", "Directory.Build.targets", "./"]
 COPY ["HalalChain.Domain/HalalChain.Domain.csproj", "HalalChain.Domain/"]
 COPY ["HalalChain.Application/HalalChain.Application.csproj", "HalalChain.Application/"]
 COPY ["HalalChain.Platform.Contracts/HalalChain.Platform.Contracts.csproj", "HalalChain.Platform.Contracts/"]
+COPY ["HalalChain.Storage/HalalChain.Storage.csproj", "HalalChain.Storage/"]
+COPY ["HalalChain.Agents/HalalChain.Agents.csproj", "HalalChain.Agents/"]
 COPY ["HalalChain.Platform.Http/HalalChain.Platform.Http.csproj", "HalalChain.Platform.Http/"]
 COPY ["${PROJECT}/${PROJECT}.csproj", "${PROJECT}/"]
-# Restore the project reference graph from the leaves inward (Http depends on
-# Contracts; Application depends on Domain; this project depends on all of
-# them). Every ProjectReference of ${PROJECT} must have its .csproj copied
-# above or restore silently skips it with a "Skipping project" warning and
-# the build fails later with NETSDK1004.
+# Restore the project reference graph from the leaves inward. Every
+# ProjectReference reachable from ${PROJECT} must have its .csproj copied above
+# or restore silently skips it with a "Skipping project" warning and the build
+# fails later with NETSDK1004.
+#
+# The closure this file must track, for PROJECT=HalalChain.Platform.Api:
+#   Domain, Platform.Contracts
+#     -> Application
+#        -> Storage
+#           -> Agents            (also references Application directly)
+#              -> Platform.Api   (also references Application/Domain/Contracts)
+# Platform.Http is referenced by no project above; it is built so the image
+# build keeps covering it.
+#
+# When adding a ProjectReference anywhere in that graph, add the matching COPY
+# and restore lines here in the same change.
 RUN dotnet restore "HalalChain.Domain/HalalChain.Domain.csproj"
 RUN dotnet restore "HalalChain.Application/HalalChain.Application.csproj"
+RUN dotnet restore "HalalChain.Storage/HalalChain.Storage.csproj"
+RUN dotnet restore "HalalChain.Agents/HalalChain.Agents.csproj"
 RUN dotnet restore "HalalChain.Platform.Http/HalalChain.Platform.Http.csproj"
 RUN dotnet restore "${PROJECT}/${PROJECT}.csproj"
 COPY . .
